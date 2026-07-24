@@ -411,7 +411,7 @@
     const val = m === 'C' ? num(a.C) : (a[m])
     return `<div class="destacado"><div class="rk">${i + 1}</div>${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
-        <small>${a.P} pub · ${num(a.C)} citas</small></div>
+        <small>${a.P} pub · ${num(a.C)} citas</small>${notaExUtm(a)}</div>
       <div class="dm"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
   }
   function pintarTop() {
@@ -425,7 +425,7 @@
     const val = m === 'C' ? num(r.C) : r[m]
     return `<div class="destacado"><div class="rk">${i + 1}</div>${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
-        <small>${r.P} pub · ${num(r.C)} citas en ${ANIO_ACTUAL}</small></div>
+        <small>${r.P} pub · ${num(r.C)} citas en ${ANIO_ACTUAL}</small>${notaExUtm(a)}</div>
       <div class="dm"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
   }
   function pintarTopAnual() {
@@ -461,6 +461,7 @@
       ${avatar(a)}
       <div class="info">
         <div class="nom">${esc(a.n)}</div>
+        ${notaExUtm(a)}
         <div class="anios">Activo ${a.pa || '—'}–${a.ua || '—'}</div>
         <div class="mini">
           <div><b>${a.P}</b><span>Pub.</span></div>
@@ -521,6 +522,7 @@
         ${avatar(a)}
         <div style="flex:1;min-width:240px">
           <h2>${esc(a.n)}</h2>
+          ${a.xu ? `<div class="ex-utm" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Actualmente ya no tiene filiación UTM</div>` : ''}
           <div class="sub">Autor UTM en Scopus · Activo ${a.pa || '—'}–${a.ua || '—'}${a.rP ? ` · Puesto ${a.rP} en publicaciones en la UTM` : ''}</div>
           <div class="enlaces">
             <a class="btn-ext" href="https://www.scopus.com/authid/detail.uri?authorId=${encodeURIComponent(a.id)}" target="_blank" rel="noreferrer">Perfil en Scopus ↗</a>
@@ -715,6 +717,12 @@
   function badgeQ(q) {
     const c = COLQ[q] || '#999'
     return `<span class="insig-q" style="background:${c}1e;color:${c}">${esc(q)}</span>`
+  }
+  // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
+  function notaExUtm(a) {
+    return a && a.xu
+      ? `<div class="ex-utm-mini" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Actualmente ya no tiene filiación UTM</div>`
+      : ''
   }
   function pubRow(p, dest) {
     const abierto = p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown'
