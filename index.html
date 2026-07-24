@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Investigadores UTM — Producción Científica en Scopus</title>
+  <meta name="description" content="Portal de investigadores de la Universidad Técnica de Manabí: producción científica indexada en Scopus." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Investigadores UTM — Producción Científica en Scopus" />
+  <meta property="og:description" content="Perfiles, publicaciones e indicadores de impacto de los investigadores de la Universidad Técnica de Manabí." />
+  <meta property="og:image" content="logo_utm_2022.png" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="icon" href="logo_utm_2022.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="estilos.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Investigadores UTM — Producción Científica en Scopus",
+    "description": "Perfiles, publicaciones e indicadores de impacto de los investigadores de la Universidad Técnica de Manabí indexados en Scopus.",
+    "about": {
+      "@type": "CollegeOrUniversity",
+      "name": "Universidad Técnica de Manabí",
+      "alternateName": "UTM"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="marca" href="#/">
+        <img src="logo_utm_2022.png" alt="Universidad Técnica de Manabí" />
+      </a>
+      <h1 class="topbar-titulo">Portal de producción científica en Scopus</h1>
+    </div>
+    <div class="barra-amarilla"></div>
+  </header>
+
+  <main id="app"></main>
+
+  <footer class="pie">
+    <div class="pie-inner">
+      <div>
+        <strong>Dirección de Investigación</strong><br />
+        Origen de Datos: Scopus<span id="pie-fecha"></span><br />
+        Desarrollado por Jorge Párraga-Álava
+      </div>
+    </div>
+  </footer>
+
+  <script src="datos.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
