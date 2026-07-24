@@ -522,7 +522,7 @@
         ${avatar(a)}
         <div style="flex:1;min-width:240px">
           <h2>${esc(a.n)}</h2>
-          ${a.xu ? `<div class="ex-utm" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Actualmente ya no tiene filiación UTM</div>` : ''}
+          ${a.xu ? `<div class="ex-utm" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Sin afiliación vigente con la Universidad Técnica de Manabí.</div>` : ''}
           <div class="sub">Autor UTM en Scopus · Activo ${a.pa || '—'}–${a.ua || '—'}${a.rP ? ` · Puesto ${a.rP} en publicaciones en la UTM` : ''}</div>
           <div class="enlaces">
             <a class="btn-ext" href="https://www.scopus.com/authid/detail.uri?authorId=${encodeURIComponent(a.id)}" target="_blank" rel="noreferrer">Perfil en Scopus ↗</a>
@@ -721,7 +721,7 @@
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
   function notaExUtm(a) {
     return a && a.xu
-      ? `<div class="ex-utm-mini" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Actualmente ya no tiene filiación UTM</div>`
+      ? `<div class="ex-utm-mini" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Sin afiliación vigente con la Universidad Técnica de Manabí.</div>`
       : ''
   }
   function pubRow(p, dest) {
