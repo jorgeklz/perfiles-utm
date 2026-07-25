@@ -207,7 +207,7 @@
         ${destacadosHTML()}
       </div>
       ${novedadesHTML()}
-      <div class="wrap">
+      <div class="wrap" id="dirsec">
         <h2 class="dir-tit">Directorio de investigadores</h2>
         <div class="ayuda-filtros">Use el buscador para encontrar un autor por nombre o apellido, las letras para
           filtrar por la inicial del apellido y el desplegable para ordenar.</div>
@@ -234,15 +234,15 @@
     refConteo = document.getElementById('conteo')
     refPag = document.getElementById('pag')
 
-    q.addEventListener('input', () => { estado.q = q.value; estado.pagina = 1; pintar() })
-    orden.addEventListener('change', () => { estado.orden = orden.value; estado.pagina = 1; pintar() })
+    q.addEventListener('input', () => { estado.q = q.value; estado.pagina = 1; pintar(); verDirectorio(false) })
+    orden.addEventListener('change', () => { estado.orden = orden.value; estado.pagina = 1; pintar(); verDirectorio(false) })
 
     const alf = document.getElementById('alf')
     const letras = ['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
     alf.innerHTML = letras.map(l =>
       `<button data-l="${l}">${l || 'Todos'}</button>`).join('')
     alf.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-      estado.letra = b.dataset.l; estado.pagina = 1; marcarLetra(); pintar()
+      estado.letra = b.dataset.l; estado.pagina = 1; marcarLetra(); pintar(); verDirectorio(false)
     }))
 
     const selTop = document.getElementById('topMetric')
@@ -357,8 +357,17 @@
       paginacionHTML(estado.pagina, paginas)
     refPag.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => {
       estado.pagina = +b.dataset.p; pintar()
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      verDirectorio(true)
     }))
+  }
+  // Mantiene la vista en el directorio al paginar o filtrar, en vez de saltar al
+  // inicio de la página. Con smooth desplaza siempre; si no, solo reposiciona
+  // cuando la sección quedó por encima del viewport (al encogerse los resultados).
+  function verDirectorio(smooth) {
+    const el = document.getElementById('dirsec')
+    if (!el) return
+    if (smooth || el.getBoundingClientRect().top < 0)
+      el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' })
   }
 
   function paginacionHTML(cur, tot) {
