@@ -97,11 +97,15 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .subtitulo-panel { font-size: 12px; font-weight: 700; text-transform: none; letter-spacing: 0;
   color: var(--texto2); margin: 18px 0 10px; }
 .tipos-barras { display: flex; flex-direction: column; gap: 8px; }
-.tipo-fila { display: grid; grid-template-columns: 120px 1fr 34px; align-items: center; gap: 10px; font-size: 12.5px; }
-.tipo-fila .tn { color: var(--texto2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tipo-fila .tb { height: 9px; background: var(--sup2); border-radius: 99px; overflow: hidden; }
+/* nombre · barra · (nº + %) en una sola línea: la última columna se dimensiona
+   según su contenido y nunca parte el texto. */
+.tipo-fila { display: grid; grid-template-columns: minmax(60px, 120px) minmax(24px, 1fr) auto;
+  align-items: center; gap: 10px; font-size: 12.5px; }
+.tipo-fila .tn { color: var(--texto2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tipo-fila .tb { height: 9px; background: var(--sup2); border-radius: 99px; overflow: hidden; min-width: 0; }
 .tipo-fila .tb > div { height: 100%; background: var(--g3); border-radius: 99px; }
-.tipo-fila .tv { text-align: right; color: var(--texto2); font-variant-numeric: tabular-nums; }
+.tipo-fila .tv { text-align: right; color: var(--texto2); font-variant-numeric: tabular-nums;
+  white-space: nowrap; }
 .metricas-autoria { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px;
   padding-top: 14px; border-top: 1px solid var(--borde); }
 .metricas-autoria .ma { background: var(--sup2); border-radius: var(--rc); padding: 12px 14px; }
@@ -243,6 +247,9 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .leyenda span { display: flex; align-items: center; gap: 7px; }
 .leyenda i { width: 11px; height: 11px; border-radius: 3px; }
 .leyenda b { margin-left: auto; font-variant-numeric: tabular-nums; }
+.leyenda em { font-style: normal; font-size: 11px; color: var(--texto3);
+  font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
+.tipo-fila .tv em { font-style: normal; font-size: 11px; color: var(--texto3); margin-left: 4px; }
 
 /* coautores */
 .coautores { display: flex; flex-direction: column; gap: 2px; }
@@ -286,6 +293,11 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 @media (max-width: 560px) {
   .hero h1 { font-size: 26px; } .perfil-hero { padding: 18px; }
   .perfil-hero .avatar { width: 64px; height: 64px; font-size: 22px; }
+  /* En móvil se estrecha el nombre y se reduce la tipografía para que la fila
+     (nombre, barra, nº y %) siga entrando en una sola línea. */
+  .tipo-fila { grid-template-columns: minmax(52px, 92px) minmax(18px, 1fr) auto;
+    gap: 7px; font-size: 11.5px; }
+  .tipo-fila .tv em { font-size: 10px; margin-left: 3px; }
 }
 
 /* coautoría externa */

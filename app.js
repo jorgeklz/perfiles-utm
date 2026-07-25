@@ -1203,13 +1203,16 @@
     if (!pres.length) return '<div style="color:var(--texto3)">Sin datos.</div>'
     const total = pres.reduce((s, q) => s + cq[q], 0) || 1
     const R = 50, C = 2 * Math.PI * R, cx = 64, cy = 64, sw = 20
+    // Texto emergente: número de documentos y su equivalencia en porcentaje.
+    const pctDe = (v) => Math.round((1000 * v) / total) / 10
+    const rotulo = (q) => `${q}: ${num(cq[q])} ${cq[q] === 1 ? 'documento' : 'documentos'} (${pctDe(cq[q])}%)`
     let off = 0, segs = ''
     pres.forEach(q => {
       const len = (cq[q] / total) * C
-      segs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${COLQ[q]}" stroke-width="${sw}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" data-cat="cuartil" data-val="${q}" style="cursor:pointer"><title>Ver publicaciones ${q}</title></circle>`
+      segs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${COLQ[q]}" stroke-width="${sw}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" data-cat="cuartil" data-val="${q}" style="cursor:pointer"><title>${esc(rotulo(q))} · clic para ver las publicaciones</title></circle>`
       off += len
     })
-    const leg = pres.map(q => `<span data-cat="cuartil" data-val="${q}" style="cursor:pointer"><i style="background:${COLQ[q]}"></i>${q}<b>${cq[q]}</b></span>`).join('')
+    const leg = pres.map(q => `<span data-cat="cuartil" data-val="${q}" style="cursor:pointer" title="${esc(rotulo(q))} · clic para ver las publicaciones"><i style="background:${COLQ[q]}"></i>${q}<b>${cq[q]}</b><em>(${pctDe(cq[q])}%)</em></span>`).join('')
     return `<div class="donut-fila"><svg width="128" height="128" viewBox="0 0 128 128">${segs}
       <text x="64" y="61" text-anchor="middle" font-size="21" font-weight="700" fill="#185a10" font-family="Montserrat,sans-serif">${total}</text>
       <text x="64" y="79" text-anchor="middle" font-size="8.5" letter-spacing="1" fill="#98a18d">DOCS</text></svg>
@@ -1220,11 +1223,14 @@
     const arr = Object.entries(ct).sort((a, b) => b[1] - a[1])
     if (!arr.length) return ''
     const max = arr[0][1]
-    return `<div class="tipos-barras">${arr.map(([n, c]) =>
-      `<div class="tipo-fila" data-cat="tipo" data-val="${esc(n)}" style="cursor:pointer" title="Ver publicaciones: ${esc(n)}">
+    const total = arr.reduce((s, [, c]) => s + c, 0) || 1
+    return `<div class="tipos-barras">${arr.map(([n, c]) => {
+      const pct = Math.round((1000 * c) / total) / 10
+      return `<div class="tipo-fila" data-cat="tipo" data-val="${esc(n)}" style="cursor:pointer" title="${esc(n)}: ${num(c)} ${c === 1 ? 'documento' : 'documentos'} (${pct}%) · clic para ver las publicaciones">
         <span class="tn">${esc(n)}</span>
         <span class="tb"><div style="width:${Math.max(3, Math.round(100 * c / max))}%"></div></span>
-        <span class="tv">${c}</span></div>`).join('')}</div>`
+        <span class="tv">${c} <em>(${pct}%)</em></span></div>`
+    }).join('')}</div>`
   }
 
   function fingerprint(areas) {
