@@ -173,7 +173,7 @@
   ]
   const estado = { q: '', orden: 'P', letra: '', pagina: 1, topTab: 'hist', topMetric: 'P', topMetricAnual: 'P', pubMetric: 'recientes' }
   const POR_PAGINA = 20
-  let refGrid, refConteo, refPag
+  let refGrid, refConteo, refPag, refPagTop
   let comStop = null   // limpieza del grafo de comunidades del perfil anterior
 
   function renderLista() {
@@ -224,6 +224,7 @@
           <div class="conteo" id="conteo"></div>
         </div>
         <div class="alfabeto" id="alf"></div>
+        <div class="paginacion" id="pagTop"></div>
         <div class="grid-inv" id="grid"></div>
         <div class="paginacion" id="pag"></div>
       </div>
@@ -234,6 +235,7 @@
     refGrid = document.getElementById('grid')
     refConteo = document.getElementById('conteo')
     refPag = document.getElementById('pag')
+    refPagTop = document.getElementById('pagTop')
 
     q.addEventListener('input', () => { estado.q = q.value; estado.pagina = 1; pintar(); verDirectorio(false) })
     orden.addEventListener('change', () => { estado.orden = orden.value; estado.pagina = 1; pintar(); verDirectorio(false) })
@@ -353,13 +355,18 @@
     refConteo.textContent = num(total) + ' investigadores'
     refGrid.innerHTML = vis.length ? vis.map(cardInv).join('')
       : '<div class="vacio">Sin coincidencias.</div>'
-    refPag.innerHTML = (paginas > 1
+    // Misma paginación y "Página X de Y" arriba y abajo de la lista.
+    const htmlPag = (paginas > 1
       ? `<div class="pag-actual">Página ${estado.pagina} de ${paginas}</div>` : '') +
       paginacionHTML(estado.pagina, paginas)
-    refPag.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => {
-      estado.pagina = +b.dataset.p; pintar()
-      verDirectorio(true)
-    }))
+    for (const ref of [refPagTop, refPag]) {
+      if (!ref) continue
+      ref.innerHTML = htmlPag
+      ref.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => {
+        estado.pagina = +b.dataset.p; pintar()
+        verDirectorio(true)
+      }))
+    }
   }
   // Mantiene la vista en el directorio al paginar o filtrar, en vez de saltar al
   // inicio de la página. Con smooth desplaza siempre; si no, solo reposiciona
