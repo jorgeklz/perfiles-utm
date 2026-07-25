@@ -174,6 +174,7 @@
   const estado = { q: '', orden: 'P', letra: '', pagina: 1, topTab: 'hist', topMetric: 'P', topMetricAnual: 'P', pubMetric: 'recientes' }
   const POR_PAGINA = 20
   let refGrid, refConteo, refPag
+  let comStop = null   // limpieza del grafo de comunidades del perfil anterior
 
   function renderLista() {
     perfilPubs = null   // en la portada, el gráfico institucional filtra sobre D.pubs
@@ -584,6 +585,19 @@
 
       <div class="panel" style="margin-bottom:18px"><h3>Colaboración externa</h3>${coautoriaExterna(a)}</div>
 
+      <div class="panel" style="margin-bottom:18px"><h3>Comunidades de coautoría</h3>
+        <p class="ayuda-filtros" style="margin:0 0 12px">
+          Red de coautores de ${esc(a.n)}: cada nodo es un colaborador, el tamaño refleja los trabajos en
+          común y los colores agrupan a quienes publican entre sí. Arrastre un nodo para moverlo, pase el
+          cursor para ver el nombre y haga clic en un autor UTM para abrir su perfil.
+        </p>
+        <div id="comWrap" class="com-wrap">
+          <canvas id="comCanvas"></canvas>
+          <div id="comVacio" class="vacio" style="display:none">Aún no hay coautores suficientes para graficar comunidades.</div>
+          <div id="comLeyenda" class="com-leyenda"></div>
+        </div>
+      </div>
+
       ${panelPubsHTML('Publicaciones', pubs.length, true)}
     </div>
     ${TOP_PAGE_HTML}`
@@ -596,6 +610,7 @@
     paginar('revCont', 'revPager', revistas, revistaRow, 5)
     if ((a.cx || []).length) paginar('ceCoautCont', 'ceCoautPager', a.cx, coautExtRow, 5)
     if ((a.ix || []).length) paginar('ceInstCont', 'ceInstPager', a.ix, instRow, 5)
+    wireComunidades(a, pubs)
   }
 
   function revistaRow([nombre, n, q]) {
@@ -606,6 +621,215 @@
   function coautRow([u, c]) {
     const co = porId.get(u)
     return `<a class="coautor" href="#/autor/${encodeURIComponent(u)}">${avatar(co)}<span class="cn">${esc(co.n)}</span><span class="cc">${c} en común</span></a>`
+  }
+
+  // Grafo animado de comunidades de coautoría (ego-red del autor). Autocontenido:
+  // simulación de fuerzas y dibujo en canvas, sin librerías. Misma idea que la red
+  // de coautoría del sistema: nodos por colaborador, color por comunidad detectada.
+  function wireComunidades(a, pubs) {
+    if (comStop) { comStop(); comStop = null }
+    const wrap = document.getElementById('comWrap')
+    const canvas = document.getElementById('comCanvas')
+    const vacio = document.getElementById('comVacio')
+    const leyenda = document.getElementById('comLeyenda')
+    if (!wrap || !canvas) return
+    const PAL = ['#1e6b14', '#b58a00', '#2563a8', '#a8385d', '#7048a8', '#0e8074', '#b35e1f', '#5a7a1e', '#8a2f6b', '#3a6ea5']
+    const GRIS = '#9aa590'
+    const self = String(a.id)
+
+    // recolectar coautores (UTM y externos) y co-ocurrencias desde las publicaciones
+    const nombreDe = new Map(), utmDe = new Map(), pesoCon = new Map(), pares = new Map()
+    const kkey = (x, y) => x < y ? x + '|' + y : y + '|' + x
+    for (const [pid, nom] of (a.cx || [])) { nombreDe.set(String(pid), nom); utmDe.set(String(pid), false) }
+    for (const p of pubs) {
+      const co = new Set()
+      for (const u of (p.u || [])) { const s = String(u); if (s !== self) co.add(s) }
+      for (const x of (p.xa || [])) { const s = String(x); if (s !== self) co.add(s) }
+      for (const c of co) {
+        pesoCon.set(c, (pesoCon.get(c) || 0) + 1)
+        const au = porId.get(c)
+        if (au) { nombreDe.set(c, au.n); utmDe.set(c, true) }
+        else if (!nombreDe.has(c)) { nombreDe.set(c, c); utmDe.set(c, false) }
+      }
+      const arr = [...co]
+      for (let i = 0; i < arr.length; i++)
+        for (let j = i + 1; j < arr.length; j++) {
+          const k = kkey(arr[i], arr[j]); pares.set(k, (pares.get(k) || 0) + 1)
+        }
+    }
+    const top = [...pesoCon.entries()].sort((x, y) => y[1] - x[1]).slice(0, 45)
+    if (top.length < 2) { canvas.style.display = 'none'; if (vacio) vacio.style.display = 'flex'; if (leyenda) leyenda.style.display = 'none'; return }
+    const idset = new Set(top.map(([c]) => c))
+
+    // comunidades por propagación de etiquetas sobre el grafo coautor-coautor
+    const adj = new Map([...idset].map(c => [c, new Map()]))
+    for (const [k, w] of pares) {
+      const [u, v] = k.split('|')
+      if (idset.has(u) && idset.has(v)) { adj.get(u).set(v, w); adj.get(v).set(u, w) }
+    }
+    const label = new Map([...idset].map((c, i) => [c, i]))
+    for (let it = 0; it < 14; it++) {
+      let ch = false
+      for (const c of idset) {
+        const cnt = new Map()
+        for (const [nb, w] of adj.get(c)) cnt.set(label.get(nb), (cnt.get(label.get(nb)) || 0) + w)
+        if (!cnt.size) continue
+        let best = label.get(c), bv = -1
+        for (const [lb, v] of cnt) if (v > bv || (v === bv && lb < best)) { best = lb; bv = v }
+        if (best !== label.get(c)) { label.set(c, best); ch = true }
+      }
+      if (!ch) break
+    }
+    const tam = new Map()
+    for (const c of idset) if (adj.get(c).size) tam.set(label.get(c), (tam.get(label.get(c)) || 0) + 1)
+    const remap = new Map([...tam.entries()].sort((x, y) => y[1] - x[1]).map(([l], i) => [l, i]))
+    const comDe = c => adj.get(c).size ? remap.get(label.get(c)) : -1
+    const colorCom = g => g < 0 ? GRIS : PAL[g % PAL.length]
+
+    // nodos y aristas
+    const maxPeso = Math.max(...top.map(([, w]) => w))
+    const nodos = [{ id: self, name: a.n, utm: true, centro: true, r: 16, com: -2 }]
+    for (const [c, w] of top) nodos.push({
+      id: c, name: nombreDe.get(c) || c, utm: !!utmDe.get(c), centro: false,
+      r: 5 + 9 * Math.sqrt(w / maxPeso), com: comDe(c),
+    })
+    const idxDe = new Map(nodos.map((n, i) => [n.id, i]))
+    const enlaces = []
+    for (const [c, w] of top) enlaces.push({ s: 0, t: idxDe.get(c), w, centro: true })
+    for (const [k, w] of pares) {
+      const [u, v] = k.split('|')
+      if (idxDe.has(u) && idxDe.has(v)) enlaces.push({ s: idxDe.get(u), t: idxDe.get(v), w, centro: false })
+    }
+    const vecinos = nodos.map(() => new Set())
+    enlaces.forEach(e => { vecinos[e.s].add(e.t); vecinos[e.t].add(e.s) })
+
+    // lienzo
+    const dpr = window.devicePixelRatio || 1
+    let W = 0, H = 0
+    const ctx = canvas.getContext('2d')
+    const medir = () => {
+      W = wrap.clientWidth; H = wrap.clientHeight
+      canvas.width = W * dpr; canvas.height = H * dpr
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
+    }
+    medir()
+    const cx = () => W / 2, cy = () => H / 2
+    nodos.forEach((n, i) => {
+      if (n.centro) { n.x = cx(); n.y = cy() }
+      else { const ang = 2 * Math.PI * i / nodos.length; n.x = cx() + Math.cos(ang) * Math.min(W, H) * 0.32; n.y = cy() + Math.sin(ang) * Math.min(W, H) * 0.32 }
+      n.vx = 0; n.vy = 0
+    })
+
+    let alpha = 1, sobre = null, arrastrando = null, raf = null, vivo = true
+    const cortar = s => s.length > 22 ? s.slice(0, 21) + '…' : s
+    const paso = () => {
+      for (let i = 0; i < nodos.length; i++)
+        for (let j = i + 1; j < nodos.length; j++) {
+          const A = nodos[i], B = nodos[j]
+          let dx = A.x - B.x, dy = A.y - B.y, d2 = dx * dx + dy * dy + 0.01
+          const d = Math.sqrt(d2), f = 900 / d2
+          dx /= d; dy /= d
+          A.vx += dx * f; A.vy += dy * f; B.vx -= dx * f; B.vy -= dy * f
+        }
+      for (const e of enlaces) {
+        const A = nodos[e.s], B = nodos[e.t]
+        let dx = B.x - A.x, dy = B.y - A.y, d = Math.hypot(dx, dy) || 0.01
+        const L = e.centro ? (70 - Math.min(40, e.w * 4)) : 46
+        const f = (d - L) * 0.015
+        dx /= d; dy /= d
+        A.vx += dx * f; A.vy += dy * f; B.vx -= dx * f; B.vy -= dy * f
+      }
+      for (const n of nodos) { n.vx += (cx() - n.x) * 0.003; n.vy += (cy() - n.y) * 0.003 }
+      for (const n of nodos) {
+        if (n === arrastrando) { n.vx = 0; n.vy = 0; continue }
+        if (n.centro) { n.x = cx(); n.y = cy(); n.vx = 0; n.vy = 0; continue }
+        n.vx *= 0.82; n.vy *= 0.82
+        n.x += n.vx * alpha; n.y += n.vy * alpha
+        n.x = Math.max(n.r, Math.min(W - n.r, n.x)); n.y = Math.max(n.r, Math.min(H - n.r, n.y))
+      }
+    }
+    const dibujar = () => {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.clearRect(0, 0, W, H)
+      ctx.lineCap = 'round'
+      for (const e of enlaces) {
+        const A = nodos[e.s], B = nodos[e.t]
+        const act = sobre == null || e.s === sobre || e.t === sobre
+        ctx.strokeStyle = act ? (e.centro ? 'rgba(30,107,20,0.16)' : 'rgba(60,80,50,0.22)') : 'rgba(120,130,110,0.05)'
+        ctx.lineWidth = Math.min(3, 0.5 + e.w * 0.6)
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke()
+      }
+      for (let i = 0; i < nodos.length; i++) {
+        const n = nodos[i]
+        const foco = sobre === i
+        ctx.globalAlpha = (sobre != null && !foco && !vecinos[sobre].has(i)) ? 0.22 : 1
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 2 * Math.PI)
+        ctx.fillStyle = n.centro ? '#17220f' : colorCom(n.com)
+        ctx.fill()
+        ctx.lineWidth = n.centro ? 2.5 : 1.2; ctx.strokeStyle = n.centro ? '#d4a80a' : '#fff'; ctx.stroke()
+        if (n.centro || n.r > 9 || foco) {
+          ctx.globalAlpha = 1
+          ctx.fillStyle = '#17220f'; ctx.font = (foco ? '600 ' : '') + '11px Montserrat, sans-serif'; ctx.textAlign = 'center'
+          ctx.fillText(cortar(n.name), n.x, n.y - n.r - 4)
+        }
+        ctx.globalAlpha = 1
+      }
+    }
+    const bucle = () => {
+      if (!vivo) return
+      paso(); dibujar()
+      alpha *= 0.994
+      raf = (alpha > 0.03 || arrastrando) ? requestAnimationFrame(bucle) : null
+    }
+    bucle()
+    const recalienta = () => { alpha = Math.max(alpha, 0.5); if (!raf && vivo) bucle() }
+
+    // interacción
+    const pos = ev => { const r = canvas.getBoundingClientRect(); const t = ev.touches ? ev.touches[0] : ev; return [t.clientX - r.left, t.clientY - r.top] }
+    const buscar = (x, y) => { for (let i = nodos.length - 1; i >= 0; i--) { const n = nodos[i]; if ((n.x - x) ** 2 + (n.y - y) ** 2 <= (n.r + 3) ** 2) return i } return null }
+    let movido = 0, ini = null
+    const abajo = ev => { const [x, y] = pos(ev); const i = buscar(x, y); ini = [x, y]; movido = 0; if (i != null) { arrastrando = nodos[i]; recalienta() } }
+    const mueve = ev => {
+      const [x, y] = pos(ev)
+      if (arrastrando) {
+        arrastrando.x = x; arrastrando.y = y; arrastrando.vx = 0; arrastrando.vy = 0
+        if (ini) { movido += Math.abs(x - ini[0]) + Math.abs(y - ini[1]); ini = [x, y] }
+        recalienta(); if (ev.cancelable) ev.preventDefault()
+      } else {
+        const i = buscar(x, y); if (i !== sobre) { sobre = i; if (!raf) dibujar() }
+        canvas.style.cursor = i != null ? 'pointer' : 'grab'
+      }
+    }
+    const arriba = () => {
+      if (arrastrando && movido < 5 && arrastrando.utm && !arrastrando.centro)
+        location.hash = '#/autor/' + encodeURIComponent(arrastrando.id)
+      arrastrando = null
+    }
+    const salir = () => { if (sobre != null) { sobre = null; if (!raf) dibujar() } }
+    canvas.addEventListener('mousedown', abajo)
+    canvas.addEventListener('mousemove', mueve)
+    window.addEventListener('mouseup', arriba)
+    canvas.addEventListener('mouseleave', salir)
+    canvas.addEventListener('touchstart', abajo, { passive: true })
+    canvas.addEventListener('touchmove', mueve, { passive: false })
+    canvas.addEventListener('touchend', arriba)
+    let rt
+    const onResize = () => { clearTimeout(rt); rt = setTimeout(() => { medir(); recalienta() }, 200) }
+    window.addEventListener('resize', onResize)
+
+    // leyenda
+    if (leyenda) {
+      const grupos = [...new Set(nodos.filter(n => !n.centro && n.com >= 0).map(n => n.com))].sort((x, y) => x - y)
+      leyenda.style.display = grupos.length ? 'flex' : 'none'
+      leyenda.innerHTML = grupos.map(g => `<span><i style="background:${colorCom(g)}"></i>Grupo ${g + 1}</span>`).join('')
+        + (nodos.some(n => n.com === -1) ? `<span><i style="background:${GRIS}"></i>Sin grupo</span>` : '')
+    }
+
+    comStop = () => {
+      vivo = false; if (raf) cancelAnimationFrame(raf)
+      window.removeEventListener('mouseup', arriba)
+      window.removeEventListener('resize', onResize)
+    }
   }
 
   // paginador genérico (sin selector de cantidad)
