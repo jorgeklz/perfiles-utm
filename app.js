@@ -587,15 +587,27 @@
 
       <div class="panel" style="margin-bottom:18px"><h3>Comunidades de coautoría</h3>
         <p class="ayuda-filtros" style="margin:0 0 12px">
-          Red de coautores de ${esc(a.n)}: cada nodo es un colaborador, el tamaño refleja los trabajos en
-          común y los colores agrupan a quienes publican entre sí. Arrastre un nodo para moverlo, pase el
-          cursor para ver el nombre y haga clic en un autor UTM para abrir su perfil.
+          Red de coautoría de ${esc(a.n)}, el nodo central en oscuro. Cada nodo es un coautor y su tamaño
+          refleja cuántos trabajos tiene en común con ${esc(a.n)}. Cada arista une a dos personas que han
+          firmado al menos una publicación juntas y su grosor indica cuántas: las líneas hacia el centro
+          son las coautorías con ${esc(a.n)}, y las líneas entre nodos son coautorías entre sus
+          colaboradores. Los colores marcan grupos, comunidades de coautores que publican sobre todo
+          entre sí, una aproximación a equipos o líneas de investigación. Un nodo gris sin grupo es un
+          coautor que no comparte publicaciones con otros coautores de la red, solo colabora con
+          ${esc(a.n)}. Arrastre los nodos, use la rueda o el pellizco para el zoom, y haga clic en un
+          coautor para ver las publicaciones que tiene en común con ${esc(a.n)}.
         </p>
         <div id="comWrap" class="com-wrap">
           <canvas id="comCanvas"></canvas>
+          <div class="com-zoom">
+            <button type="button" id="comIn" title="Acercar">＋</button>
+            <button type="button" id="comOut" title="Alejar">－</button>
+            <button type="button" id="comReset" title="Restablecer vista">⟲</button>
+          </div>
           <div id="comVacio" class="vacio" style="display:none">Aún no hay coautores suficientes para graficar comunidades.</div>
           <div id="comLeyenda" class="com-leyenda"></div>
         </div>
+        <div id="comSel" class="com-sel" style="display:none"></div>
       </div>
 
       ${panelPubsHTML('Publicaciones', pubs.length, true)}
@@ -720,8 +732,10 @@
       n.vx = 0; n.vy = 0
     })
 
-    let alpha = 1, sobre = null, arrastrando = null, raf = null, vivo = true
+    let alpha = 1, sobre = null, sel = null, grupoSel = null, arrastrando = null, paneando = false, raf = null, vivo = true
+    const vista = { k: 1, x: 0, y: 0 }
     const cortar = s => s.length > 22 ? s.slice(0, 21) + '…' : s
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
     const paso = () => {
       for (let i = 0; i < nodos.length; i++)
         for (let j = i + 1; j < nodos.length; j++) {
@@ -748,31 +762,65 @@
         n.x = Math.max(n.r, Math.min(W - n.r, n.x)); n.y = Math.max(n.r, Math.min(H - n.r, n.y))
       }
     }
+    const atenuadoDe = i => {
+      if (grupoSel != null) return !nodos[i].centro && nodos[i].com !== grupoSel
+      const foco = sel != null ? sel : sobre
+      return foco != null && i !== foco && !vecinos[foco].has(i)
+    }
+    const fuerteDe = i => {
+      const n = nodos[i]
+      return n.centro || i === sobre || sel === i || (grupoSel != null && n.com === grupoSel)
+    }
+    const solapa = (a, b) => !(a[0] + a[2] < b[0] || b[0] + b[2] < a[0] || a[1] + a[3] < b[1] || b[1] + b[3] < a[1])
     const dibujar = () => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, W, H)
+      // nodos y aristas en coordenadas del mundo (con zoom/desplazamiento)
+      ctx.setTransform(dpr * vista.k, 0, 0, dpr * vista.k, dpr * vista.x, dpr * vista.y)
       ctx.lineCap = 'round'
+      const foco = sel != null ? sel : sobre
+      const enG = i => nodos[i].com === grupoSel
       for (const e of enlaces) {
-        const A = nodos[e.s], B = nodos[e.t]
-        const act = sobre == null || e.s === sobre || e.t === sobre
-        ctx.strokeStyle = act ? (e.centro ? 'rgba(30,107,20,0.16)' : 'rgba(60,80,50,0.22)') : 'rgba(120,130,110,0.05)'
+        const act = grupoSel != null ? (enG(e.s) && enG(e.t))
+          : (foco == null || e.s === foco || e.t === foco)
+        ctx.strokeStyle = act ? (e.centro ? 'rgba(30,107,20,0.16)' : 'rgba(60,80,50,0.22)') : 'rgba(120,130,110,0.04)'
         ctx.lineWidth = Math.min(3, 0.5 + e.w * 0.6)
+        const A = nodos[e.s], B = nodos[e.t]
         ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke()
       }
       for (let i = 0; i < nodos.length; i++) {
         const n = nodos[i]
-        const foco = sobre === i
-        ctx.globalAlpha = (sobre != null && !foco && !vecinos[sobre].has(i)) ? 0.22 : 1
+        ctx.globalAlpha = atenuadoDe(i) ? 0.16 : 1
         ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, 2 * Math.PI)
         ctx.fillStyle = n.centro ? '#17220f' : colorCom(n.com)
         ctx.fill()
-        ctx.lineWidth = n.centro ? 2.5 : 1.2; ctx.strokeStyle = n.centro ? '#d4a80a' : '#fff'; ctx.stroke()
-        if (n.centro || n.r > 9 || foco) {
-          ctx.globalAlpha = 1
-          ctx.fillStyle = '#17220f'; ctx.font = (foco ? '600 ' : '') + '11px Montserrat, sans-serif'; ctx.textAlign = 'center'
-          ctx.fillText(cortar(n.name), n.x, n.y - n.r - 4)
-        }
+        const seln = sel === i
+        ctx.lineWidth = n.centro ? 2.5 : (seln ? 2.4 : 1.2)
+        ctx.strokeStyle = (seln || n.centro) ? '#d4a80a' : '#fff'; ctx.stroke()
         ctx.globalAlpha = 1
+      }
+      // etiquetas en coordenadas de pantalla (nítidas, con halo y sin solaparse)
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round'
+      const rects = []
+      const orden = nodos.map((_, i) => i).sort((i, j) => {
+        const pi = fuerteDe(i) ? 1e6 : nodos[i].r, pj = fuerteDe(j) ? 1e6 : nodos[j].r
+        return pj - pi
+      })
+      for (const i of orden) {
+        if (atenuadoDe(i)) continue
+        const n = nodos[i]
+        const sx = n.x * vista.k + vista.x, sy = n.y * vista.k + vista.y - n.r * vista.k - 5
+        if (sx < 0 || sx > W || sy < 8 || sy > H) continue
+        const fuerte = fuerteDe(i)
+        ctx.font = (fuerte ? '600 ' : '') + '11px Montserrat, sans-serif'
+        const txt = cortar(n.name), w = ctx.measureText(txt).width
+        const box = [sx - w / 2 - 2, sy - 11, w + 4, 13]
+        if (!fuerte && rects.some(r => solapa(r, box))) continue
+        rects.push(box)
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.92)'
+        ctx.strokeText(txt, sx, sy)
+        ctx.fillStyle = '#17220f'; ctx.fillText(txt, sx, sy)
       }
     }
     const bucle = () => {
@@ -783,47 +831,118 @@
     }
     bucle()
     const recalienta = () => { alpha = Math.max(alpha, 0.5); if (!raf && vivo) bucle() }
+    const pinta = () => { if (!raf) dibujar() }
 
-    // interacción
-    const pos = ev => { const r = canvas.getBoundingClientRect(); const t = ev.touches ? ev.touches[0] : ev; return [t.clientX - r.left, t.clientY - r.top] }
-    const buscar = (x, y) => { for (let i = nodos.length - 1; i >= 0; i--) { const n = nodos[i]; if ((n.x - x) ** 2 + (n.y - y) ** 2 <= (n.r + 3) ** 2) return i } return null }
+    // zoom / desplazamiento
+    const zoomA = (factor, sx, sy) => {
+      const nk = clamp(vista.k * factor, 0.3, 6), real = nk / vista.k
+      vista.x = sx - real * (sx - vista.x); vista.y = sy - real * (sy - vista.y); vista.k = nk
+      pinta()
+    }
+    const scr = ev => { const r = canvas.getBoundingClientRect(); const t = ev.touches ? ev.touches[0] : ev; return [t.clientX - r.left, t.clientY - r.top] }
+    const aMundo = (sx, sy) => [(sx - vista.x) / vista.k, (sy - vista.y) / vista.k]
+    const buscar = (sx, sy) => { const [x, y] = aMundo(sx, sy); for (let i = nodos.length - 1; i >= 0; i--) { const n = nodos[i]; if ((n.x - x) ** 2 + (n.y - y) ** 2 <= (n.r + 4) ** 2) return i } return null }
+
+    // panel de publicaciones en común con el autor central
+    const comSel = document.getElementById('comSel')
+    const compartidas = c => pubs.filter(p => [...(p.u || []), ...(p.xa || [])].some(x => String(x) === String(c)))
+    const mostrarSel = i => {
+      grupoSel = null; pintarLeyenda()
+      if (i == null || nodos[i].centro) { sel = null; if (comSel) comSel.style.display = 'none'; pinta(); return }
+      sel = i
+      const n = nodos[i]
+      const comp = compartidas(n.id).sort((x, y) => (y.y || 0) - (x.y || 0) || (y.c || 0) - (x.c || 0))
+      if (comSel) {
+        const perfil = n.utm ? ` · <a href="#/autor/${encodeURIComponent(n.id)}">Ver perfil →</a>` : ''
+        comSel.innerHTML = `<div class="com-sel-cab"><div><strong>${esc(n.name)}</strong>
+            <span>${comp.length} ${comp.length === 1 ? 'publicación' : 'publicaciones'} en común con ${esc(a.n)}${perfil}</span></div>
+            <button type="button" class="com-sel-x" title="Cerrar">✕</button></div>
+          <div class="com-sel-lista">${comp.map(p => {
+          const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
+          const ret = p.r ? ` · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>` : ''
+          return `<div class="com-pub"><div class="com-pt">${t}</div><div class="com-pm">${p.y || '—'} · ${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${ret}</div></div>`
+        }).join('')}</div>`
+        comSel.style.display = 'block'
+        comSel.querySelector('.com-sel-x').addEventListener('click', () => mostrarSel(null))
+      }
+      pinta()
+    }
+
+    // interacción con puntero: clic en nodo selecciona, arrastre mueve, vacío desplaza
     let movido = 0, ini = null
-    const abajo = ev => { const [x, y] = pos(ev); const i = buscar(x, y); ini = [x, y]; movido = 0; if (i != null) { arrastrando = nodos[i]; recalienta() } }
+    const abajo = ev => {
+      const [sx, sy] = scr(ev); ini = { sx, sy, vx: vista.x, vy: vista.y }; movido = 0
+      const i = buscar(sx, sy)
+      if (i != null) { arrastrando = nodos[i]; recalienta() } else paneando = true
+    }
     const mueve = ev => {
-      const [x, y] = pos(ev)
+      const [sx, sy] = scr(ev)
+      if (ini) movido += Math.abs(sx - ini.sx) + Math.abs(sy - ini.sy)
       if (arrastrando) {
-        arrastrando.x = x; arrastrando.y = y; arrastrando.vx = 0; arrastrando.vy = 0
-        if (ini) { movido += Math.abs(x - ini[0]) + Math.abs(y - ini[1]); ini = [x, y] }
+        const [x, y] = aMundo(sx, sy); arrastrando.x = x; arrastrando.y = y; arrastrando.vx = 0; arrastrando.vy = 0
         recalienta(); if (ev.cancelable) ev.preventDefault()
+      } else if (paneando) {
+        vista.x = ini.vx + (sx - ini.sx); vista.y = ini.vy + (sy - ini.sy); pinta(); if (ev.cancelable) ev.preventDefault()
       } else {
-        const i = buscar(x, y); if (i !== sobre) { sobre = i; if (!raf) dibujar() }
+        const i = buscar(sx, sy); if (i !== sobre) { sobre = i; pinta() }
         canvas.style.cursor = i != null ? 'pointer' : 'grab'
       }
     }
     const arriba = () => {
-      if (arrastrando && movido < 5 && arrastrando.utm && !arrastrando.centro)
-        location.hash = '#/autor/' + encodeURIComponent(arrastrando.id)
-      arrastrando = null
+      if (arrastrando && movido < 5) mostrarSel(nodos.indexOf(arrastrando))
+      else if (paneando && movido < 5) mostrarSel(null)
+      arrastrando = null; paneando = false; ini = null
     }
-    const salir = () => { if (sobre != null) { sobre = null; if (!raf) dibujar() } }
+    const salir = () => { if (sobre != null) { sobre = null; pinta() } }
     canvas.addEventListener('mousedown', abajo)
     canvas.addEventListener('mousemove', mueve)
     window.addEventListener('mouseup', arriba)
     canvas.addEventListener('mouseleave', salir)
-    canvas.addEventListener('touchstart', abajo, { passive: true })
-    canvas.addEventListener('touchmove', mueve, { passive: false })
-    canvas.addEventListener('touchend', arriba)
+    canvas.addEventListener('wheel', ev => { ev.preventDefault(); const [sx, sy] = scr(ev); zoomA(ev.deltaY < 0 ? 1.15 : 1 / 1.15, sx, sy) }, { passive: false })
+
+    // táctil: un dedo arrastra/selecciona, dos dedos hacen zoom (pellizco)
+    const dist2 = ev => Math.hypot(ev.touches[0].clientX - ev.touches[1].clientX, ev.touches[0].clientY - ev.touches[1].clientY)
+    let pinchD = 0
+    canvas.addEventListener('touchstart', ev => { if (ev.touches.length === 2) { pinchD = dist2(ev); arrastrando = null; paneando = false } else abajo(ev) }, { passive: true })
+    canvas.addEventListener('touchmove', ev => {
+      if (ev.touches.length === 2) {
+        const d = dist2(ev)
+        if (pinchD) { const r = canvas.getBoundingClientRect(); const mx = (ev.touches[0].clientX + ev.touches[1].clientX) / 2 - r.left, my = (ev.touches[0].clientY + ev.touches[1].clientY) / 2 - r.top; zoomA(d / pinchD, mx, my) }
+        pinchD = d; if (ev.cancelable) ev.preventDefault()
+      } else mueve(ev)
+    }, { passive: false })
+    canvas.addEventListener('touchend', () => { pinchD = 0; arriba() })
+
+    const bIn = document.getElementById('comIn'), bOut = document.getElementById('comOut'), bReset = document.getElementById('comReset')
+    if (bIn) bIn.addEventListener('click', () => zoomA(1.3, W / 2, H / 2))
+    if (bOut) bOut.addEventListener('click', () => zoomA(1 / 1.3, W / 2, H / 2))
+    if (bReset) bReset.addEventListener('click', () => { vista.k = 1; vista.x = 0; vista.y = 0; pinta() })
     let rt
     const onResize = () => { clearTimeout(rt); rt = setTimeout(() => { medir(); recalienta() }, 200) }
     window.addEventListener('resize', onResize)
 
-    // leyenda
-    if (leyenda) {
-      const grupos = [...new Set(nodos.filter(n => !n.centro && n.com >= 0).map(n => n.com))].sort((x, y) => x - y)
-      leyenda.style.display = grupos.length ? 'flex' : 'none'
-      leyenda.innerHTML = grupos.map(g => `<span><i style="background:${colorCom(g)}"></i>Grupo ${g + 1}</span>`).join('')
-        + (nodos.some(n => n.com === -1) ? `<span><i style="background:${GRIS}"></i>Sin grupo</span>` : '')
+    // leyenda interactiva: clic en un grupo lo enfoca en la red (atenúa el resto)
+    const focoGrupo = g => {
+      grupoSel = (grupoSel === g ? null : g)
+      if (grupoSel != null) { sel = null; if (comSel) comSel.style.display = 'none' }
+      pintarLeyenda(); pinta()
     }
+    function pintarLeyenda() {
+      if (!leyenda) return
+      const grupos = [...new Set(nodos.filter(n => !n.centro && n.com >= 0).map(n => n.com))].sort((x, y) => x - y)
+      const haySinGrupo = nodos.some(n => n.com === -1)
+      leyenda.style.display = (grupos.length || haySinGrupo) ? 'flex' : 'none'
+      leyenda.innerHTML = grupos.map(g => {
+        const n = nodos.filter(x => x.com === g).length
+        return `<span class="com-lg${grupoSel === g ? ' on' : ''}" data-g="${g}" title="Comunidad de coautores que publican sobre todo entre sí (${n} ${n === 1 ? 'coautor' : 'coautores'}). Clic para enfocarla en la red."><i style="background:${colorCom(g)}"></i>Grupo ${g + 1}</span>`
+      }).join('')
+        + (haySinGrupo ? (() => {
+          const n = nodos.filter(x => x.com === -1).length
+          return `<span class="com-lg${grupoSel === -1 ? ' on' : ''}" data-g="-1" title="Coautores sin publicaciones en común con otros coautores de la red (${n} ${n === 1 ? 'coautor' : 'coautores'}); solo colaboran con el autor central. Clic para resaltarlos."><i style="background:${GRIS}"></i>Sin grupo</span>`
+        })() : '')
+      leyenda.querySelectorAll('[data-g]').forEach(el => el.addEventListener('click', () => focoGrupo(+el.dataset.g)))
+    }
+    pintarLeyenda()
 
     comStop = () => {
       vivo = false; if (raf) cancelAnimationFrame(raf)
