@@ -161,6 +161,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .recip:last-child { border-bottom: none; }
 .recip .rt { font-weight: 600; font-size: 13px; line-height: 1.35; }
 .recip .rm { font-size: 11.5px; color: var(--texto3); margin-top: 3px; display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.recip-citas { font-weight: 700; color: var(--g1); font-variant-numeric: tabular-nums; }
 .fingerprint a { cursor: pointer; }
 
 /* botón "Inicio de la página" (mismo estilo que la paginación) */

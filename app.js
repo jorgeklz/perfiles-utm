@@ -311,7 +311,8 @@
       <div class="panel">
         <div class="top-tabs" style="margin-bottom:12px">
           <button class="top-tab pub-tab" data-pm="recientes">Más recientes</button>
-          <button class="top-tab pub-tab" data-pm="citadas">Más citadas</button>
+          <button class="top-tab pub-tab" data-pm="citadas"
+            title="Publicaciones recientes que más citas han recibido">Recientes más citadas</button>
         </div>
         <div id="destPubs"></div>
       </div>
@@ -459,7 +460,13 @@
     const cont = document.getElementById('destPubs'); if (!cont) return
     let lista
     if (estado.pubMetric === 'citadas') {
-      lista = [...D.pubs].sort((a, b) => (b.c || 0) - (a.c || 0)).slice(0, 5)
+      // Publicaciones recientes que más citas han ganado: se limita a los dos
+      // últimos años para que destaque lo que está teniendo impacto ahora, y no
+      // los clásicos que acumulan citas desde hace una década.
+      const desde = ANIO_ACTUAL - 1
+      const recientes = D.pubs.filter(p => (p.y || 0) >= desde && (p.c || 0) > 0)
+      const base = recientes.length >= 5 ? recientes : D.pubs.filter(p => (p.c || 0) > 0)
+      lista = [...base].sort((a, b) => (b.c || 0) - (a.c || 0) || (b.y || 0) - (a.y || 0)).slice(0, 5)
     } else {
       lista = [...D.pubs].map(p => ({ p, k: p.d || ((p.y || 0) + '-00-00') }))
         .sort((a, b) => (a.k < b.k ? 1 : a.k > b.k ? -1 : 0)).slice(0, 5).map(x => x.p)
@@ -470,7 +477,8 @@
     const au = (p.u || []).map(u => porId.get(u)).filter(Boolean)
     const aut = au.length ? `<a href="#/autor/${encodeURIComponent(au[0].id)}">${esc(au[0].n)}</a>${au.length > 1 ? ' y ' + (au.length - 1) + ' más' : ''}` : ''
     const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
-    return `<div class="recip"><div class="rt">${t}</div><div class="rm">${p.y || ''} · ${esc(p.j || '—')} · ${badgeQ(p.q)}${aut ? ' · ' + aut : ''}</div></div>`
+    const citas = `<span class="recip-citas" title="Citas recibidas según Scopus">${num(p.c || 0)} ${(p.c || 0) === 1 ? 'cita' : 'citas'}</span>`
+    return `<div class="recip"><div class="rt">${t}</div><div class="rm">${p.y || ''} · ${esc(p.j || '—')} · ${badgeQ(p.q)} · ${citas}${aut ? ' · ' + aut : ''}</div></div>`
   }
 
   function cardInv(a) {
