@@ -489,6 +489,21 @@
       </div></button>`
   }
 
+  // Identificadores de Scopus del autor: uno si el perfil es único, o todos los
+  // que se unificaron. Cada uno enlaza a su ficha en Scopus.
+  function idsScopusHTML(a) {
+    const fus = a.fx || []
+    const ids = [String(a.id), ...fus.map(String)]
+    const chip = (x, principal) =>
+      `<a class="id-chip${principal ? ' principal' : ''}" target="_blank" rel="noreferrer"
+          href="https://www.scopus.com/authid/detail.uri?authorId=${encodeURIComponent(x)}"
+          title="${principal ? 'Perfil principal en Scopus' : 'Perfil unificado en el principal'} · abrir en Scopus">${esc(x)}</a>`
+    return `<div class="ids-scopus">
+      <span class="ids-et">${ids.length > 1 ? `Perfiles Scopus unificados (${ids.length})` : 'ID Scopus'}</span>
+      <span class="ids-lista">${ids.map((x, i) => chip(x, i === 0)).join('')}</span>
+    </div>`
+  }
+
   // ---------- perfil ----------
   function renderPerfil(id) {
     const a = porId.get(id)
@@ -541,6 +556,7 @@
           <h2>${esc(a.n)}</h2>
           ${a.xu ? `<div class="ex-utm" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Sin afiliación vigente con la Universidad Técnica de Manabí.</div>` : ''}
           <div class="sub">Autor UTM en Scopus · Activo ${a.pa || '—'}–${a.ua || '—'}${a.rP ? ` · Puesto ${a.rP} en publicaciones en la UTM` : ''}</div>
+          ${idsScopusHTML(a)}
           <div class="enlaces">
             <a class="btn-ext" href="https://www.scopus.com/authid/detail.uri?authorId=${encodeURIComponent(a.id)}" target="_blank" rel="noreferrer">Perfil en Scopus ↗</a>
             ${a.or
