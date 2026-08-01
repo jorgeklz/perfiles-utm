@@ -618,15 +618,10 @@
 
       <div class="panel" style="margin-bottom:18px"><h3>Comunidades de coautoría</h3>
         <p class="ayuda-filtros" style="margin:0 0 12px">
-          Red de coautoría de ${esc(a.n)}, el nodo central en oscuro. Cada nodo es un coautor y su tamaño
-          refleja cuántos trabajos tiene en común con ${esc(a.n)}. Cada arista une a dos personas que han
-          firmado al menos una publicación juntas y su grosor indica cuántas: las líneas hacia el centro
-          son las coautorías con ${esc(a.n)}, y las líneas entre nodos son coautorías entre sus
-          colaboradores. Los colores marcan grupos, comunidades de coautores que publican sobre todo
-          entre sí, una aproximación a equipos o líneas de investigación. Un nodo gris sin grupo es un
-          coautor que no comparte publicaciones con otros coautores de la red, solo colabora con
-          ${esc(a.n)}. Arrastre los nodos, use la rueda o el pellizco para el zoom, y haga clic en un
-          coautor para ver las publicaciones que tiene en común con ${esc(a.n)}.
+          Cada nodo es un coautor y su tamaño indica los trabajos en común; las líneas unen a quienes
+          han publicado juntos. Los colores agrupan a los coautores que publican entre sí. Elija un
+          grupo en la leyenda para ver sus nombres, o haga clic en un coautor para ver las
+          publicaciones que comparte con ${esc(a.n)}.
         </p>
         <div id="comWrap" class="com-wrap">
           <canvas id="comCanvas"></canvas>
@@ -798,10 +793,6 @@
       const foco = sel != null ? sel : sobre
       return foco != null && i !== foco && !vecinos[foco].has(i)
     }
-    const fuerteDe = i => {
-      const n = nodos[i]
-      return n.centro || i === sobre || sel === i || (grupoSel != null && n.com === grupoSel)
-    }
     const solapa = (a, b) => !(a[0] + a[2] < b[0] || b[0] + b[2] < a[0] || a[1] + a[3] < b[1] || b[1] + b[3] < a[1])
     const dibujar = () => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -830,24 +821,28 @@
         ctx.strokeStyle = (seln || n.centro) ? '#d4a80a' : '#fff'; ctx.stroke()
         ctx.globalAlpha = 1
       }
-      // etiquetas en coordenadas de pantalla (nítidas, con halo y sin solaparse)
+      // Etiquetas en coordenadas de pantalla (nítidas, con halo y sin solaparse).
+      // Solo se escriben los nombres del grupo elegido en la leyenda, más el
+      // nodo central y el coautor señalado con el cursor o seleccionado: con
+      // todos a la vez la red resulta ilegible.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round'
+      const conNombre = (i) => {
+        const n = nodos[i]
+        if (n.centro || i === sobre || sel === i) return true
+        return grupoSel != null && n.com === grupoSel
+      }
       const rects = []
-      const orden = nodos.map((_, i) => i).sort((i, j) => {
-        const pi = fuerteDe(i) ? 1e6 : nodos[i].r, pj = fuerteDe(j) ? 1e6 : nodos[j].r
-        return pj - pi
-      })
-      for (const i of orden) {
+      for (const i of nodos.map((_, k) => k).filter(conNombre)) {
         if (atenuadoDe(i)) continue
         const n = nodos[i]
         const sx = n.x * vista.k + vista.x, sy = n.y * vista.k + vista.y - n.r * vista.k - 5
         if (sx < 0 || sx > W || sy < 8 || sy > H) continue
-        const fuerte = fuerteDe(i)
-        ctx.font = (fuerte ? '600 ' : '') + '11px Montserrat, sans-serif'
+        const destacado = n.centro || i === sobre || sel === i
+        ctx.font = (destacado ? '600 ' : '') + '11px Montserrat, sans-serif'
         const txt = cortar(n.name), w = ctx.measureText(txt).width
         const box = [sx - w / 2 - 2, sy - 11, w + 4, 13]
-        if (!fuerte && rects.some(r => solapa(r, box))) continue
+        if (!destacado && rects.some(r => solapa(r, box))) continue
         rects.push(box)
         ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.92)'
         ctx.strokeText(txt, sx, sy)
@@ -1107,6 +1102,21 @@
       ? `<div class="ex-utm-mini" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Sin afiliación vigente con la Universidad Técnica de Manabí.</div>`
       : ''
   }
+  // Autores de la publicación: los primeros por orden de firma y, cuando hay
+  // muchos, también el último. El total va al final.
+  function autoresLinea(p) {
+    const prim = p.au || []
+    if (!prim.length) return ''
+    const total = p.nc || prim.length
+    let txt
+    if (p.uf && total > prim.length) {
+      const ocultos = total - prim.length - 1
+      txt = esc(prim.join('; ')) + (ocultos > 0 ? ` … +${ocultos} … ` : '; ') + esc(p.uf) + ` · ${total} autores`
+    } else {
+      txt = esc(prim.join('; ')) + (total > prim.length ? ` … (+${total - prim.length} más)` : '')
+    }
+    return `<div class="m aut-pub">${txt}</div>`
+  }
   function pubRow(p, dest) {
     const abierto = p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown'
     const t = p.doi
@@ -1114,7 +1124,7 @@
       : esc(p.t)
     return `<div class="pub"><div class="anio"><b>${p.y || '—'}</b></div>
       <div class="cuerpo"><div class="t">${t}${dest ? ' <span class="mas-citada">★ Más citada</span>' : ''}</div>
-      <div class="m">${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}</div></div></div>`
+      <div class="m">${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}</div>${autoresLinea(p)}</div></div>`
   }
 
   // ---------- coautoría externa, temas y exportaciones del perfil ----------
