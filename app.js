@@ -293,7 +293,7 @@
         <div class="panel"><h3>Fuentes más frecuentes</h3><div class="tipos-barras">${revHTML}</div>
           <div class="ctx-hint">Clic en una fuente para ver sus publicaciones más recientes.</div></div>
         <div class="panel"><h3>Colaboración internacional</h3>
-          <div class="metricas-autoria" style="margin-top:0;border-top:none;padding-top:0">
+          <div class="metricas-autoria intl" style="margin-top:0;border-top:none;padding-top:0">
             <div class="ma"><b>${GI.pctIntl}%</b><span>Publicaciones con coautoría internacional</span></div>
             <div class="ma"><b>${GI.nPaises}</b><span>Países colaboradores</span></div>
           </div>
@@ -648,6 +648,7 @@
     paginar('revCont', 'revPager', revistas, revistaRow, 5)
     if ((a.cx || []).length) paginar('ceCoautCont', 'ceCoautPager', a.cx, coautExtRow, 5)
     if ((a.ix || []).length) paginar('ceInstCont', 'ceInstPager', a.ix, instRow, 5)
+    wireCoautExtTabs()
     wireComunidades(a, pubs)
   }
 
@@ -1135,13 +1136,36 @@
     const cx = a.cx || [], px = a.px || [], ix = a.ix || []
     if (!cx.length && !px.length && !ix.length)
       return '<div style="color:var(--texto3);font-size:13px">Sin coautoría externa registrada.</div>'
-    const coaut = cx.length
-      ? `<div class="ce-sub">Coautores externos (${cx.length})</div><div id="ceCoautCont"></div><div class="paginacion" id="ceCoautPager"></div>` : ''
-    const paises = px.length
-      ? `<div class="ce-sub">Países (${px.length})</div><div class="ce-chips">${px.map(paisChip).join('')}</div>` : ''
-    const insts = ix.length
-      ? `<div class="ce-sub">Instituciones (${ix.length})</div><div id="ceInstCont"></div><div class="paginacion" id="ceInstPager"></div>` : ''
-    return coaut + insts + paises
+    // Coautores externos, instituciones y países como pestañas, con el mismo
+    // diseño del Top 10 de la portada (top-tabs / top-tab). Solo se muestra la
+    // pestaña de la categoría que tiene datos.
+    const tabs = [], panes = []
+    if (cx.length) {
+      tabs.push(`<button class="top-tab ce-tab" data-ce="coaut">Coautores externos (${cx.length})</button>`)
+      panes.push(`<div class="ce-pane" data-ce="coaut"><div id="ceCoautCont"></div><div class="paginacion" id="ceCoautPager"></div></div>`)
+    }
+    if (ix.length) {
+      tabs.push(`<button class="top-tab ce-tab" data-ce="inst">Instituciones (${ix.length})</button>`)
+      panes.push(`<div class="ce-pane" data-ce="inst"><div id="ceInstCont"></div><div class="paginacion" id="ceInstPager"></div></div>`)
+    }
+    if (px.length) {
+      tabs.push(`<button class="top-tab ce-tab" data-ce="pais">Países (${px.length})</button>`)
+      panes.push(`<div class="ce-pane" data-ce="pais"><div class="ce-chips">${px.map(paisChip).join('')}</div></div>`)
+    }
+    return tabs.length
+      ? `<div class="top-tabs" style="margin-bottom:12px">${tabs.join('')}</div>${panes.join('')}` : ''
+  }
+  // Conmuta las pestañas de Colaboración externa: misma lógica visual del Top 10.
+  function wireCoautExtTabs() {
+    const tabs = [...document.querySelectorAll('.ce-tab')]
+    const panes = [...document.querySelectorAll('.ce-pane')]
+    if (!tabs.length) return
+    const activar = key => {
+      tabs.forEach(t => t.classList.toggle('on', t.dataset.ce === key))
+      panes.forEach(p => { p.style.display = p.dataset.ce === key ? '' : 'none' })
+    }
+    tabs.forEach(t => t.addEventListener('click', () => activar(t.dataset.ce)))
+    activar(tabs[0].dataset.ce)
   }
   function temasRecurrentes(pubs) {
     const ct = new Map()
