@@ -143,10 +143,14 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 /* ---- destacados (portada) ---- */
 .destacados { margin-bottom: 22px; }
 .top-cab { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-.top-tabs { display: flex; gap: 6px; }
+.top-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Las pestañas conservan su ancho de contenido y no se encogen: así el texto
+   nunca se recorta (p. ej. la "s" de "Filiaciones") y, si no caben en una línea,
+   pasan a la siguiente en vez de desbordar. */
 .top-tab { font-family: 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 700; text-transform: none;
   letter-spacing: 0; color: var(--texto2); background: transparent; border: 1px solid var(--borde);
-  border-radius: 99px; padding: 6px 13px; cursor: pointer; transition: all .15s; }
+  border-radius: 99px; padding: 6px 15px; cursor: pointer; transition: all .15s;
+  white-space: nowrap; flex: 0 0 auto; }
 .top-tab:hover { color: var(--g1); border-color: var(--g3); }
 .top-tab.on { color: #fff; background: var(--g2); border-color: var(--g2); }
 .dir-tit { font-size: 20px; color: var(--g1); margin: 6px 0 14px; }
