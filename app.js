@@ -1145,7 +1145,7 @@
       panes.push(`<div class="ce-pane" data-ce="coaut"><div id="ceCoautCont"></div><div class="paginacion" id="ceCoautPager"></div></div>`)
     }
     if (ix.length) {
-      tabs.push(`<button class="top-tab ce-tab" data-ce="inst">Instituciones (${ix.length})</button>`)
+      tabs.push(`<button class="top-tab ce-tab" data-ce="inst">Filiaciones (${ix.length})</button>`)
       panes.push(`<div class="ce-pane" data-ce="inst"><div id="ceInstCont"></div><div class="paginacion" id="ceInstPager"></div></div>`)
     }
     if (px.length) {
