@@ -254,7 +254,7 @@
     const selTopAnual = document.getElementById('topMetricAnual')
     if (selTopAnual) { selTopAnual.value = estado.topMetricAnual; selTopAnual.addEventListener('change', () => { estado.topMetricAnual = selTopAnual.value; pintarTopAnual() }) }
     pintarTopAnual()
-    document.querySelectorAll('.top-tab').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.top-tab[data-tab]').forEach(b => b.addEventListener('click', () => {
       estado.topTab = b.dataset.tab; aplicarTopTab()
     }))
     aplicarTopTab()
@@ -287,7 +287,7 @@
     return `<div class="wrap portada" style="padding-bottom:0">
       <h2 class="dir-tit">Panorama institucional</h2>
       <div class="ayuda-filtros">Producción científica de la Universidad Técnica de Manabí indexada en Scopus, en conjunto.</div>
-      <div class="panel" style="margin-bottom:16px"><h3>Publicaciones por año</h3>${barsAnio(GI.porAnio)}${infoAnios(GI.porAnio)}
+      <div class="panel" style="margin-bottom:16px"><h3>Publicaciones por año</h3>${barsAnio(GI.porAnio, 200)}${infoAnios(GI.porAnio)}
         <div class="ctx-hint">Clic en una barra para ver las publicaciones de ese año.</div></div>
       <div class="grid2">
         <div class="panel"><h3>Fuentes más frecuentes</h3><div class="tipos-barras">${revHTML}</div>
@@ -421,7 +421,7 @@
     if (dta) dta.style.display = hist ? 'none' : ''
     if (sm) sm.style.display = hist ? '' : 'none'
     if (sma) sma.style.display = hist ? 'none' : ''
-    document.querySelectorAll('.top-tab').forEach(b =>
+    document.querySelectorAll('.top-tab[data-tab]').forEach(b =>
       b.classList.toggle('on', (b.dataset.tab === 'anual') === !hist))
   }
   const ETQ_TOP = Object.fromEntries(METRICAS_ORD.map(([k, , u]) => [k, u]))
@@ -429,8 +429,8 @@
     const val = m === 'C' ? num(a.C) : (a[m])
     return `<div class="destacado"><div class="rk">${i + 1}</div>${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
-        <small>${a.P} pub · ${num(a.C)} citas</small>${notaExUtm(a)}</div>
-      <div class="dm"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
+        <small><span class="pub-link" data-cat="autorPubs" data-val="${esc(a.id)}" title="Ver las publicaciones">${a.P} pub</span> · ${num(a.C)} citas</small>${notaExUtm(a)}</div>
+      <div class="dm pub-link" data-cat="autorPubs" data-val="${esc(a.id)}" title="Ver las publicaciones"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
   }
   function pintarTop() {
     const cont = document.getElementById('destTop'); if (!cont) return
@@ -443,8 +443,8 @@
     const val = m === 'C' ? num(r.C) : r[m]
     return `<div class="destacado"><div class="rk">${i + 1}</div>${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
-        <small>${r.P} pub · ${num(r.C)} citas en ${ANIO_ACTUAL}</small>${notaExUtm(a)}</div>
-      <div class="dm"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
+        <small><span class="pub-link" data-cat="autorPubsAnio" data-val="${esc(id)}" title="Ver las publicaciones de ${ANIO_ACTUAL}">${r.P} pub</span> · ${num(r.C)} citas en ${ANIO_ACTUAL}</small>${notaExUtm(a)}</div>
+      <div class="dm pub-link" data-cat="autorPubsAnio" data-val="${esc(id)}" title="Ver las publicaciones de ${ANIO_ACTUAL}"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
   }
   function pintarTopAnual() {
     const cont = document.getElementById('destTopAnual'); if (!cont) return
@@ -539,14 +539,16 @@
     const revMap = {}
     pubs.forEach(p => {
       const nombre = p.j || 'Sin revista o conferencia registrada'
-      if (!revMap[nombre]) revMap[nombre] = { n: 0, qs: {} }
+      if (!revMap[nombre]) revMap[nombre] = { n: 0, qs: {}, ret: 0 }
       revMap[nombre].n++
       const q = p.q || 'N/A'
       revMap[nombre].qs[q] = (revMap[nombre].qs[q] || 0) + 1
+      if (p.r) revMap[nombre].ret++
     })
     const revistas = Object.entries(revMap).map(([nombre, v]) => {
       const qTop = Object.entries(v.qs).sort((x, y) => y[1] - x[1])[0][0]
-      return [nombre, v.n, qTop]
+      // Fuente retirada: todas sus publicaciones están marcadas como retiradas.
+      return [nombre, v.n, qTop, v.n > 0 && v.ret === v.n]
     }).sort((x, y) => y[1] - x[1])
     const pubsOrd = [...pubs].sort((x, y) => (y.y || 0) - (x.y || 0) || (y.c - x.c))
     const R = RANKS.get(a.id) || {}   // puestos en la UTM por métrica (pastillas)
@@ -652,14 +654,25 @@
     wireComunidades(a, pubs)
   }
 
-  function revistaRow([nombre, n, q]) {
-    return `<div class="revista-fila"><span class="rv-n">${esc(nombre)}</span>
-      <span class="rv-q">${badgeQ(q)}</span><span class="rv-c">${n} pub.</span></div>`
+  function revistaRow([nombre, n, q, retirada]) {
+    // El flag va FUERA de .rv-n, porque esa columna trunca el texto (ellipsis) y
+    // ocultaría la etiqueta. Como ítem propio del flex no se recorta.
+    const ret = retirada
+      ? `<span class="retirada" style="flex-shrink:0" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>`
+      : ''
+    return `<div class="revista-fila"><span class="rv-n">${esc(nombre)}</span>${ret}
+      <span class="rv-q">${badgeQ(q)}</span>
+      <span class="rv-c" data-cat="revista" data-val="${esc(nombre)}" title="Ver las publicaciones en esta fuente">${n} pub.</span></div>`
   }
 
   function coautRow([u, c]) {
     const co = porId.get(u)
-    return `<a class="coautor" href="#/autor/${encodeURIComponent(u)}">${avatar(co)}<span class="cn">${esc(co.n)}</span><span class="cc">${c} en común</span></a>`
+    // El nombre lleva al perfil del coautor; el número abre el menú contextual con
+    // las publicaciones en común, igual que en la lista de coautoría externa.
+    return `<div class="coautor">
+      <a class="coautor-ir" href="#/autor/${encodeURIComponent(u)}" title="Ver el perfil de ${esc(co.n)}">${avatar(co)}<span class="cn">${esc(co.n)}</span></a>
+      <span class="cc" data-cat="coautorUtm" data-val="${esc(u)}" title="Ver las publicaciones en común">${c} en común</span>
+    </div>`
   }
 
   // Grafo animado de comunidades de coautoría (ego-red del autor). Autocontenido:
@@ -1002,8 +1015,11 @@
   // lista contextual de publicaciones al hacer clic en un gráfico
   function ctxRow(p) {
     const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
+    const retirada = p.r
+      ? ` · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>`
+      : ''
     return `<div class="ctx-row"><div class="ctx-t">${t}</div>
-      <div class="ctx-m">${p.y || ''} · ${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas</div></div>`
+      <div class="ctx-m">${p.y || ''} · ${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${retirada}</div></div>`
   }
   // popover flotante contextual (junto al cursor)
   let popEl = null
@@ -1015,7 +1031,48 @@
     document.removeEventListener('mousedown', fueraPop, true)
     document.removeEventListener('keydown', escPop)
   }
-  function mostrarPopover(ev, titulo, lista, color) {
+  // Nombre de país (en inglés, como lo da Scopus) a código ISO-2, para la bandera.
+  const PAIS_ISO = {
+    'Algeria': 'DZ', 'Argentina': 'AR', 'Australia': 'AU', 'Austria': 'AT', 'Belgium': 'BE',
+    'Bolivia': 'BO', 'Brazil': 'BR', 'Canada': 'CA', 'Chile': 'CL', 'China': 'CN',
+    'Colombia': 'CO', 'Costa Rica': 'CR', "Cote d'Ivoire": 'CI', 'Cuba': 'CU', 'Czech Republic': 'CZ',
+    'Denmark': 'DK', 'Dominican Republic': 'DO', 'Ecuador': 'EC', 'Egypt': 'EG', 'El Salvador': 'SV',
+    'Finland': 'FI', 'France': 'FR', 'Germany': 'DE', 'Gibraltar': 'GI', 'Greece': 'GR',
+    'Guatemala': 'GT', 'Honduras': 'HN', 'Hong Kong': 'HK', 'Hungary': 'HU', 'India': 'IN',
+    'Indonesia': 'ID', 'Iran': 'IR', 'Iraq': 'IQ', 'Italy': 'IT', 'Japan': 'JP',
+    'Malaysia': 'MY', 'Martinique': 'MQ', 'Mexico': 'MX', 'Morocco': 'MA', 'Mozambique': 'MZ',
+    'Netherlands': 'NL', 'New Zealand': 'NZ', 'Nicaragua': 'NI', 'Nigeria': 'NG', 'Norway': 'NO',
+    'Oman': 'OM', 'Pakistan': 'PK', 'Panama': 'PA', 'Paraguay': 'PY', 'Peru': 'PE',
+    'Philippines': 'PH', 'Poland': 'PL', 'Portugal': 'PT', 'Puerto Rico': 'PR', 'Romania': 'RO',
+    'Russian Federation': 'RU', 'Rwanda': 'RW', 'Saudi Arabia': 'SA', 'Singapore': 'SG', 'Slovenia': 'SI',
+    'South Africa': 'ZA', 'South Korea': 'KR', 'Spain': 'ES', 'Sweden': 'SE', 'Switzerland': 'CH',
+    'Trinidad and Tobago': 'TT', 'Tunisia': 'TN', 'United Arab Emirates': 'AE', 'United Kingdom': 'GB',
+    'United States': 'US', 'Uruguay': 'UY', 'Venezuela': 'VE', 'Viet Nam': 'VN',
+    // alias frecuentes por si cambia la grafía
+    'USA': 'US', 'UK': 'GB', 'Russia': 'RU', 'Vietnam': 'VN', 'South Korea, Republic of': 'KR',
+  }
+  function banderaPais(pais) {
+    const cc = PAIS_ISO[pais]
+    if (!cc) return ''
+    return cc.replace(/./g, (c) => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65))
+  }
+
+  // Fila de autor para la pestaña "Autores" del menú contextual (países). El
+  // nombre usa el mismo tamaño y color que el título de la publicación (.ctx-t).
+  // Los autores internacionales no tienen perfil UTM, así que no llevan enlace;
+  // se muestra la bandera de su país cuando se conoce.
+  function ctxAutorRow(a) {
+    const bandera = a.externo && a.pais
+      ? `<span title="${esc(a.pais)}" style="margin-right:7px;flex-shrink:0">${banderaPais(a.pais)}</span>`
+      : ''
+    const nombre = a.externo
+      ? `<span class="ctx-t" style="min-width:0">${bandera}${esc(a.nombre)}</span>`
+      : `<a class="ctx-t" href="#/autor/${encodeURIComponent(a.id)}">${esc(a.nombre)}</a>`
+    return `<div class="ctx-row" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">
+      ${nombre}
+      <span class="ctx-m" style="white-space:nowrap">${a.n} pub.</span></div>`
+  }
+  function mostrarPopover(ev, titulo, lista, color, autores) {
     cerrarPop()
     color = color || '#2e8a1f'
     const orden = [...lista].sort((a, b) => {
@@ -1023,13 +1080,38 @@
       return ka < kb ? 1 : ka > kb ? -1 : 0
     })
     const cap = 10, vis = orden.slice(0, cap)
+    const pubsBody = vis.length ? vis.map(ctxRow).join('') : '<div class="ctx-m">Sin publicaciones.</div>'
     popEl = document.createElement('div')
     popEl.className = 'popover-ctx'
-    popEl.innerHTML = `<div class="pop-cab">
-      <span><i class="pop-punto"></i>${esc(titulo)} · ${lista.length} publicaci${lista.length !== 1 ? 'ones' : 'ón'}${lista.length > cap ? ` · últimas ${cap}` : ''}</span>
-      <button class="pop-x" title="Cerrar">✕</button></div>
-      <div class="pop-body">${vis.length ? vis.map(ctxRow).join('') : '<div class="ctx-m">Sin publicaciones.</div>'}</div>`
+    const conAutores = autores && autores.length
+    if (conAutores) {
+      // Dos pestañas: publicaciones y autores que colaboran con ese país.
+      const capA = 15, visA = autores.slice(0, capA)
+      const autBody = visA.map(ctxAutorRow).join('')
+      popEl.innerHTML = `<div class="pop-cab">
+        <span><i class="pop-punto"></i>${esc(titulo)}</span>
+        <button class="pop-x" title="Cerrar">✕</button></div>
+        <div class="top-tabs" style="margin:8px 0 10px 10px">
+          <button class="top-tab pop-tab on" data-pt="pubs">Publicaciones (${lista.length})</button>
+          <button class="top-tab pop-tab" data-pt="aut">Autores (${autores.length})</button>
+        </div>
+        <div class="pop-body pop-pane" data-pt="pubs">${pubsBody}</div>
+        <div class="pop-body pop-pane" data-pt="aut" style="display:none">${autBody || '<div class="ctx-m">Sin autores.</div>'}</div>`
+    } else {
+      popEl.innerHTML = `<div class="pop-cab">
+        <span><i class="pop-punto"></i>${esc(titulo)} · ${lista.length} publicaci${lista.length !== 1 ? 'ones' : 'ón'}${lista.length > cap ? ` · últimas ${cap}` : ''}</span>
+        <button class="pop-x" title="Cerrar">✕</button></div>
+        <div class="pop-body">${pubsBody}</div>`
+    }
     document.body.appendChild(popEl)
+    if (conAutores) {
+      const tabs = [...popEl.querySelectorAll('.pop-tab')]
+      const panes = [...popEl.querySelectorAll('.pop-pane')]
+      tabs.forEach(t => t.addEventListener('click', () => {
+        tabs.forEach(x => x.classList.toggle('on', x === t))
+        panes.forEach(p => { p.style.display = p.dataset.pt === t.dataset.pt ? '' : 'none' })
+      }))
+    }
     const w = popEl.offsetWidth, h = popEl.offsetHeight
     let x = ev.clientX + 12, y = ev.clientY + 12
     if (x + w > window.innerWidth - 8) x = Math.max(8, window.innerWidth - w - 8)
@@ -1130,8 +1212,16 @@
 
   // ---------- coautoría externa, temas y exportaciones del perfil ----------
   const paisChip = ([p, c]) => `<span class="ce-chip" data-cat="pais" data-val="${esc(p)}" style="cursor:pointer" title="Ver publicaciones con ${esc(p)}">${esc(p)}<b>${c}</b></span>`
-  const instRow = ([n, c]) => `<div class="ce-inst" data-cat="inst" data-val="${esc(n)}" style="cursor:pointer" title="Ver publicaciones con esta institución"><span>${esc(n)}</span><b>${c}</b></div>`
-  const coautExtRow = ([id, nombre, c]) => `<div class="ce-inst" data-cat="coautorExt" data-val="${esc(id)}" style="cursor:pointer" title="Ver publicaciones en común con ${esc(nombre)}"><span>${esc(nombre)}</span><b>${c}</b></div>`
+  const instRow = ([n, c]) => {
+    const pais = (D.instPais || {})[n]
+    const bandera = pais ? `<span title="${esc(pais)}" style="margin-right:6px">${banderaPais(pais)}</span>` : ''
+    return `<div class="ce-inst" data-cat="inst" data-val="${esc(n)}" style="cursor:pointer" title="Ver publicaciones con esta institución (${esc(pais || 'país no registrado')})"><span>${bandera}${esc(n)}</span><b>${c}</b></div>`
+  }
+  const coautExtRow = ([id, nombre, c]) => {
+    const pais = (D.extPais || {})[id]
+    const bandera = pais ? `<span title="${esc(pais)}" style="margin-right:6px;flex-shrink:0">${banderaPais(pais)}</span>` : ''
+    return `<div class="ce-inst" data-cat="coautorExt" data-val="${esc(id)}" style="cursor:pointer" title="Ver publicaciones en común con ${esc(nombre)}"><span>${bandera}${esc(nombre)}</span><b>${c}</b></div>`
+  }
   function coautoriaExterna(a) {
     const cx = a.cx || [], px = a.px || [], ix = a.ix || []
     if (!cx.length && !px.length && !ix.length)
@@ -1205,12 +1295,12 @@
     return { m, b: media - m * xm }
   }
 
-  function barsAnio(porAnio) {
+  function barsAnio(porAnio, H = 150) {
     const years = Object.keys(porAnio).map(Number).sort((a, b) => a - b)
     if (!years.length) return '<div style="color:var(--texto3)">Sin datos.</div>'
     const vals = years.map(y => porAnio[y])
     const max = Math.max(...vals)
-    const n = years.length, W = Math.max(280, n * 36), H = 150, base = H - 24, top = 14
+    const n = years.length, W = Math.max(280, n * 36), base = H - 24, top = 14
     const paso = W / n, bw = Math.min(22, paso - 9)
     const yFor = v => base - (Math.max(0, v) / max) * (base - top)
     let s = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>`
@@ -1232,7 +1322,7 @@
     years.forEach((y, i) => {
       s += `<rect x="${(i * paso).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${base}" fill="transparent" data-cat="anio" data-val="${y}" style="cursor:pointer"><title>Ver publicaciones de ${y}</title></rect>`
     })
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:160px">${s}</svg>`
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 10}px">${s}</svg>`
   }
 
   function infoAnios(porAnio) {
@@ -1296,7 +1386,7 @@
     const max = areas[0][1], min = areas[areas.length - 1][1]
     const size = c => (11 + (max === min ? 3 : (c - min) / (max - min) * 11)).toFixed(1)
     return `<div class="fingerprint">${areas.map(([n, c]) =>
-      `<a href="#/area/${encodeURIComponent(n)}" style="font-size:${size(c)}px" title="${c} publicaciones">${esc(n)}<span class="n"> ${c}</span></a>`).join('')}</div>`
+      `<a data-cat="area" data-val="${esc(n)}" style="font-size:${size(c)}px;cursor:pointer" title="Ver las publicaciones de ${esc(n)}">${esc(n)}<span class="n"> ${c}</span></a>`).join('')}</div>`
   }
 
   // ---------- área temática ----------
@@ -1356,22 +1446,48 @@
     // activo) el gráfico institucional filtra sobre todas las publicaciones
     const fuente = perfilPubs || D.pubs
     const cat = el.getAttribute('data-cat'), val = el.getAttribute('data-val')
-    let lista, titulo, color = '#2e8a1f'
+    let lista, titulo, color = '#2e8a1f', autores = null
     if (cat === 'anio') { lista = fuente.filter(p => String(p.y) === val); titulo = 'Año ' + val }
     else if (cat === 'cuartil') { lista = fuente.filter(p => (p.q || 'N/A') === val); titulo = 'Cuartil ' + val; color = COLQ[val] || '#2e8a1f' }
     else if (cat === 'tipo') { lista = fuente.filter(p => (p.st || 'Otro') === val); titulo = 'Tipo: ' + val }
     else if (cat === 'revista') { lista = fuente.filter(p => (p.j || '') === val); titulo = 'Fuente: ' + val }
-    else if (cat === 'pais') { lista = fuente.filter(p => (p.pc || []).includes(val)); titulo = 'País: ' + val }
+    else if (cat === 'area') { lista = fuente.filter(p => (p.a || []).includes(val)); titulo = 'Área: ' + val }
+    else if (cat === 'pais') {
+      lista = fuente.filter(p => (p.pc || []).includes(val)); titulo = 'País: ' + val
+      // Autores internacionales (externos a la UTM y a Ecuador) que aparecen en
+      // esas publicaciones, para la segunda pestaña. El mapa extNombres ya excluye
+      // a los coautores con afiliación ecuatoriana, así que basta con filtrar por él.
+      const ext = (D.extNombres) || {}, extP = (D.extPais) || {}
+      const ct = {}
+      lista.forEach(p => (p.xa || []).forEach(id => { if (ext[id]) ct[id] = (ct[id] || 0) + 1 }))
+      autores = Object.entries(ct)
+        .map(([id, n]) => ({ id, nombre: ext[id], n, externo: true, pais: extP[id] }))
+        .sort((a, b) => b.n - a.n)
+    }
     else if (cat === 'inst') { lista = fuente.filter(p => (p.pi || []).includes(val)); titulo = 'Institución: ' + val }
     else if (cat === 'coautorExt') {
       lista = fuente.filter(p => (p.xa || []).includes(val))
       const et = el.querySelector('span')
       titulo = 'Coautor: ' + (et ? et.textContent : val)
     }
+    else if (cat === 'coautorUtm') {
+      lista = fuente.filter(p => (p.u || []).map(String).includes(val))
+      const co = porId.get(val)
+      titulo = 'Coautor: ' + (co ? co.n : val)
+    }
+    // Top 10 del landing: publicaciones del autor (histórico y del año en curso).
+    else if (cat === 'autorPubs') {
+      lista = (D.porAutor[val] || []).map(i => D.pubs[i]).filter(Boolean)
+      const co = porId.get(val); titulo = co ? co.n : val
+    }
+    else if (cat === 'autorPubsAnio') {
+      lista = (D.porAutor[val] || []).map(i => D.pubs[i]).filter(p => p && p.y === ANIO_ACTUAL)
+      const co = porId.get(val); titulo = (co ? co.n : val) + ' · ' + ANIO_ACTUAL
+    }
     else return
-    mostrarPopover(ev, titulo, lista, color)
+    mostrarPopover(ev, titulo, lista, color, autores)
   })
 
-  window.addEventListener('hashchange', router)
+  window.addEventListener('hashchange', () => { cerrarPop(); router() })
   router()
 })()

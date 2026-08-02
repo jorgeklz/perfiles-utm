@@ -110,10 +110,8 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   padding-top: 14px; border-top: 1px solid var(--borde); }
 .metricas-autoria .ma { background: var(--sup2); border-radius: var(--rc); padding: 12px 14px; }
 .metricas-autoria .ma b { display: block; font-family: 'Montserrat', sans-serif; font-size: 22px;
-  font-weight: 700; color: var(--g1); line-height: 1; }
+  font-weight: 700; color: var(--texto); line-height: 1; }
 .metricas-autoria .ma span { display: block; font-size: 11.5px; color: var(--texto2); margin-top: 5px; }
-/* Panel de colaboración internacional del landing: cifras en gris bien oscuro. */
-.metricas-autoria.intl .ma b { color: var(--texto); }
 
 /* ---- grid de investigadores ---- */
 .grid-inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 16px; }
@@ -207,7 +205,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .pop-body { max-height: 300px; overflow-y: auto; padding: 4px 12px 8px; }
 .ctx-row { padding: 7px 2px; border-bottom: 1px solid var(--borde); }
 .ctx-row:last-child { border-bottom: none; }
-.ctx-t { font-size: 12.5px; font-weight: 600; line-height: 1.35; }
+.ctx-t, .ctx-t a { font-size: 12.5px; font-weight: 600; line-height: 1.35; color: var(--texto); }
 .ctx-m { font-size: 11px; color: var(--texto3); margin-top: 2px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .tipo-fila:hover .tn { color: var(--g1); }
 .leyenda span[data-cat]:hover { color: var(--g1); }
@@ -261,7 +259,14 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 /* coautores */
 .coautores { display: flex; flex-direction: column; gap: 2px; }
 .coautor { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 9px; }
-.coautor:hover { background: var(--sup2); text-decoration: none; }
+.coautor:hover { background: var(--sup2); }
+.coautor-ir { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.coautor-ir:hover { text-decoration: none; }
+.coautor .cc { cursor: pointer; }
+.coautor .cc:hover { color: var(--g1); text-decoration: underline; }
+/* Número de publicaciones clicable (Top 10 del landing). */
+.pub-link { cursor: pointer; }
+.pub-link:hover { color: var(--g1); text-decoration: underline; }
 .coautor .avatar { width: 34px; height: 34px; font-size: 12.5px; }
 .coautor .cn { flex: 1; min-width: 0; font-size: 13px; color: var(--texto); font-weight: 500;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -276,7 +281,8 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .revista-fila:hover { background: var(--sup2); }
 .revista-fila .rv-n { flex: 1; min-width: 0; font-size: 13px; color: var(--texto); font-weight: 500;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.revista-fila .rv-c { font-size: 11.5px; color: var(--texto3); white-space: nowrap; }
+.revista-fila .rv-c { font-size: 11.5px; color: var(--texto3); white-space: nowrap; cursor: pointer; }
+.revista-fila .rv-c:hover { color: var(--g1); text-decoration: underline; }
 
 /* publicaciones */
 .pubs { }
