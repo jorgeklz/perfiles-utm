@@ -195,6 +195,10 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .popover-ctx { position: fixed; z-index: 100; width: 330px; max-width: calc(100vw - 20px);
   background: var(--sup); border: 1px solid var(--borde); border-radius: 12px;
   box-shadow: var(--sombra2); overflow: hidden; }
+/* Globo de tooltip por toque (móvil), para las pastillas de cuartil. */
+.tip-toque { position: fixed; z-index: 120; max-width: min(280px, calc(100vw - 24px));
+  background: #16210e; color: #fff; font-size: 12px; line-height: 1.4;
+  padding: 8px 11px; border-radius: 9px; box-shadow: var(--sombra2); pointer-events: none; }
 .pop-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px;
   background: #2f333a; color: #fff; font-size: 12px; font-weight: 700; padding: 8px 11px; }
 .pop-cab .pop-punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
@@ -242,9 +246,20 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   letter-spacing: 0; color: var(--texto2); margin-bottom: 14px; }
 
 /* fingerprint de áreas: chips escalados por frecuencia */
-.fingerprint { display: flex; flex-wrap: wrap; gap: 7px 12px; align-items: baseline; }
-.fingerprint a { color: var(--g1); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
-.fingerprint a .n { font-size: .62em; color: var(--texto3); font-weight: 500; }
+/* Áreas Scopus como barras ordenadas con su conteo. */
+.areas-barras { display: flex; flex-direction: column; gap: 7px; }
+.area-fila { display: flex; align-items: center; gap: 10px; border-radius: 8px; padding: 2px 4px; }
+.area-fila:hover { background: var(--sup2); }
+.area-fila .area-n { flex: 1 1 45%; min-width: 0; font-size: 13px; color: var(--texto); font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.area-fila .area-bar { flex: 1 1 40%; height: 8px; background: var(--sup); border-radius: 99px; overflow: hidden; }
+.area-fila .area-bar > span { display: block; height: 100%; background: var(--g3); border-radius: 99px; }
+.area-fila .area-c { flex: 0 0 auto; font-size: 12.5px; color: var(--texto2); font-variant-numeric: tabular-nums; min-width: 20px; text-align: right; }
+/* Frases frecuentes de los títulos, como chips clicables. */
+.frases { display: flex; flex-wrap: wrap; gap: 7px; }
+.frase-chip { background: var(--g6); color: var(--g1); border-radius: 99px; padding: 4px 11px; font-size: 12.5px; overflow-wrap: anywhere; }
+.frase-chip b { margin-left: 5px; font-weight: 700; color: var(--g2); }
+.frase-chip:hover { background: #d9ecca; }
 
 /* donut cuartiles */
 .donut-fila { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }

@@ -155,7 +155,12 @@
 
   // stopwords para "temas recurrentes" de los títulos
   const STOP = new Set(('de la el en y a los las del un una para con por que su al es una on of the and in to for with a an from using based study analysis new'
-    + ' del una uso caso casos entre este esta como más o e u o').split(/\s+/))
+    + ' del una uso caso casos entre este esta como más o e u o'
+    + ' effect effects role roles novel review approach method methods result results assessment evaluation application applications potential model models system systems'
+    + ' use used two three during under between towards toward within among first via into their its case studies data high low level levels type types'
+    + ' preface critical view views chapter book editorial introduction overview perspective perspectives special issue vol volume part'
+    + ' sobre desde hacia según mediante través nivel niveles tipo tipos efecto efectos papel modelo modelos sistema sistemas revisión análisis estudio estudios método métodos'
+    + ' aplicación aplicaciones evaluación caso casos capítulo libro nueva nuevo nuevos nuevas').split(/\s+/))
 
   // ---------- listado ----------
   // métricas por las que se puede ordenar (clave, etiqueta larga, unidad corta)
@@ -608,8 +613,10 @@
         : '<div style="color:var(--texto3);font-size:13px">Sin datos de revistas o conferencias.</div>'}</div>
 
       <div class="grid2">
-        <div class="panel"><h3>Áreas temáticas</h3>${fingerprint(areas)}
-          <div class="subtitulo-panel">Temas recurrentes en sus títulos</div>${temasHTML(temasRecurrentes(pubs))}</div>
+        <div class="panel"><h3>Líneas de investigación</h3>
+          <div class="subtitulo-panel" style="margin-top:0">Áreas temáticas de Scopus</div>${areasBarras(areas)}
+          ${(() => { const fr = frasesTitulos(pubs); return fr.length
+            ? `<div class="subtitulo-panel">Frases frecuentes en sus títulos</div>${frasesHTML(fr)}` : '' })()}</div>
         <div class="panel"><h3>Coautores UTM (${coaut.length})</h3>
           ${coaut.length
         ? '<div class="coautores" id="coautCont"></div><div class="paginacion" id="coautPager"></div>'
@@ -1175,9 +1182,19 @@
     const attr = ayuda ? ` title="${esc(ayuda)}" style="cursor:help"` : ''
     return `<div class="kpi"${attr}><div class="v">${v}</div><div class="e">${esc(e)}</div>${x ? `<div class="x">${esc(x)}</div>` : ''}</div>`
   }
+  // Explicación de cada cuartil SJR, para el tooltip de las pastillas.
+  const TIP_Q = {
+    Q1: 'Cuartil 1 (SJR): la revista está en el 25% superior de su área.',
+    Q2: 'Cuartil 2 (SJR): la revista está en el segundo 25% de su área.',
+    Q3: 'Cuartil 3 (SJR): la revista está en el tercer 25% de su área.',
+    Q4: 'Cuartil 4 (SJR): la revista está en el 25% inferior de su área.',
+    'N/A': 'No aplica: el documento no es de revista (libro, capítulo o ponencia), así que el cuartil SJR no corresponde.',
+    NC: 'No clasificada: es una revista sin cuartil disponible en el ranking SJR de SCImago.',
+  }
+  const tipCuartil = (q) => TIP_Q[q] || TIP_Q['N/A']
   function badgeQ(q) {
     const c = COLQ[q] || '#999'
-    return `<span class="insig-q" style="background:${c}1e;color:${c}">${esc(q)}</span>`
+    return `<span class="insig-q" style="background:${c}1e;color:${c};cursor:help" title="${esc(tipCuartil(q))}">${esc(q)}</span>`
   }
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
   function notaExUtm(a) {
@@ -1257,31 +1274,61 @@
     tabs.forEach(t => t.addEventListener('click', () => activar(t.dataset.ce)))
     activar(tabs[0].dataset.ce)
   }
-  function temasRecurrentes(pubs) {
-    const ct = new Map()
-    pubs.forEach(p => {
-      const vistos = new Set()
-      ;(p.t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .split(/[^a-z0-9ñ]+/).forEach(w => {
-          if (w.length >= 4 && !STOP.has(w) && !vistos.has(w)) { vistos.add(w); ct.set(w, (ct.get(w) || 0) + 1) }
-        })
-    })
-    return [...ct.entries()].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 24)
+  // Normaliza un texto a minúsculas sin acentos, para comparar frases con títulos.
+  const normFrase = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  // Palabras significativas de un título (sin stopwords ni palabras cortas). Es la
+  // MISMA tokenización que arma las frases, para que el conteo y el filtro del clic
+  // coincidan aunque en el título haya palabras intermedias (ej. "Latent Dirichlet
+  // Allocation, and HJ-Biplot" produce el bigrama "allocation biplot").
+  const tokensFrase = (t) => normFrase(t).split(/[^a-z0-9ñ]+/).filter(w => w.length >= 4 && !STOP.has(w))
+  // ¿El título contiene la frase, según esa tokenización? Bigrama = dos tokens
+  // seguidos; unigrama = el token presente.
+  function coincideFrase(titulo, frase) {
+    const fw = frase.split(' '), ws = tokensFrase(titulo)
+    if (fw.length === 1) return ws.includes(fw[0])
+    for (let i = 0; i < ws.length - 1; i++) if (ws[i] === fw[0] && ws[i + 1] === fw[1]) return true
+    return false
   }
-  // nube de palabras: tamaño y color según la frecuencia del término
-  const NUBE_PAL = ['#185a10', '#1e6b14', '#2e8a1f', '#4aab30', '#7bbf3a', '#b8900a', '#c07a12']
-  function temasHTML(temas) {
-    if (!temas.length) return '<div style="color:var(--texto3);font-size:13px">Sin temas recurrentes suficientes.</div>'
-    const max = temas[0][1], min = temas[temas.length - 1][1]
-    const esc2 = t => max === min ? 1 : (t - min) / (max - min)
-    // ordena alfabético para que los tamaños no queden todos apilados por frecuencia
-    const mezcla = [...temas].sort((a, b) => a[0].localeCompare(b[0]))
-    return '<div class="nube">' + mezcla.map(([w, c]) => {
-      const t = esc2(c)
-      const size = (13 + t * 21).toFixed(1)
-      const color = NUBE_PAL[Math.round((1 - t) * (NUBE_PAL.length - 1))]
-      return `<span class="nube-w" style="font-size:${size}px;color:${color};opacity:${(0.55 + 0.45 * t).toFixed(2)}" title="${c} títulos">${esc(w)}</span>`
-    }).join('') + '</div>'
+  // Frases frecuentes de los títulos: bigramas (dos palabras seguidas) que se
+  // repiten, más unigramas fuertes si hacen falta. Dan contexto que la palabra
+  // suelta pierde ("machine learning" en vez de "machine" y "learning"). El conteo
+  // es por publicación (no por ocurrencia), para que cuadre con el menú del clic.
+  function frasesTitulos(pubs) {
+    const big = new Map(), uni = new Map()
+    pubs.forEach(p => {
+      const ws = tokensFrase(p.t)
+      const bigVistos = new Set()
+      for (let i = 0; i < ws.length - 1; i++) {
+        const b = ws[i] + ' ' + ws[i + 1]
+        if (!bigVistos.has(b)) { bigVistos.add(b); big.set(b, (big.get(b) || 0) + 1) }
+      }
+      new Set(ws).forEach(w => uni.set(w, (uni.get(w) || 0) + 1))
+    })
+    const bigs = [...big.entries()].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 16)
+    // Palabras ya cubiertas por un bigrama, para no repetirlas como unigrama.
+    const enBig = new Set(); bigs.forEach(([b]) => b.split(' ').forEach(w => enBig.add(w)))
+    // Solo se complementa con unigramas cuando hay pocos bigramas (autores con
+    // poca producción), exigiendo mayor frecuencia para que valgan la pena.
+    const faltan = Math.max(0, 8 - bigs.length)
+    const unis = faltan
+      ? [...uni.entries()].filter(([w, c]) => c >= 3 && !enBig.has(w)).sort((a, b) => b[1] - a[1]).slice(0, faltan)
+      : []
+    return [...bigs, ...unis].sort((a, b) => b[1] - a[1]).slice(0, 18)
+  }
+  function frasesHTML(frases) {
+    if (!frases.length) return ''
+    return '<div class="frases">' + frases.map(([f, c]) =>
+      `<span class="frase-chip" data-cat="frase" data-val="${esc(f)}" style="cursor:pointer" title="Ver las publicaciones cuyo título menciona “${esc(f)}”">${esc(f)}<b>${c}</b></span>`).join('') + '</div>'
+  }
+  // Áreas Scopus como barras ordenadas con su conteo, clicables.
+  function areasBarras(areas) {
+    if (!areas.length) return '<div style="color:var(--texto3);font-size:13px">Sin áreas registradas.</div>'
+    const max = areas[0][1] || 1
+    return '<div class="areas-barras">' + areas.map(([n, c]) =>
+      `<div class="area-fila" data-cat="area" data-val="${esc(n)}" style="cursor:pointer" title="Ver las publicaciones de ${esc(n)}">
+        <span class="area-n">${esc(n)}</span>
+        <span class="area-bar"><span style="width:${Math.max(6, Math.round(100 * c / max))}%"></span></span>
+        <b class="area-c">${c}</b></div>`).join('') + '</div>'
   }
 
   function regresion(vals) {
@@ -1357,10 +1404,10 @@
     let off = 0, segs = ''
     pres.forEach(q => {
       const len = (cq[q] / total) * C
-      segs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${COLQ[q]}" stroke-width="${sw}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" data-cat="cuartil" data-val="${q}" style="cursor:pointer"><title>${esc(rotulo(q))} · clic para ver las publicaciones</title></circle>`
+      segs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${COLQ[q]}" stroke-width="${sw}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" data-cat="cuartil" data-val="${q}" style="cursor:pointer"><title>${esc(rotulo(q))} · ${esc(tipCuartil(q))} · clic para ver las publicaciones</title></circle>`
       off += len
     })
-    const leg = pres.map(q => `<span data-cat="cuartil" data-val="${q}" style="cursor:pointer" title="${esc(rotulo(q))} · clic para ver las publicaciones"><i style="background:${COLQ[q]}"></i>${q}<b>${cq[q]}</b><em>(${pctDe(cq[q])}%)</em></span>`).join('')
+    const leg = pres.map(q => `<span data-cat="cuartil" data-val="${q}" style="cursor:pointer" title="${esc(rotulo(q))} · ${esc(tipCuartil(q))} · clic para ver las publicaciones"><i style="background:${COLQ[q]}"></i>${q}<b>${cq[q]}</b><em>(${pctDe(cq[q])}%)</em></span>`).join('')
     return `<div class="donut-fila"><svg width="128" height="128" viewBox="0 0 128 128">${segs}
       <text x="64" y="61" text-anchor="middle" font-size="21" font-weight="700" fill="#185a10" font-family="Montserrat,sans-serif">${total}</text>
       <text x="64" y="79" text-anchor="middle" font-size="8.5" letter-spacing="1" fill="#98a18d">DOCS</text></svg>
@@ -1379,14 +1426,6 @@
         <span class="tb"><div style="width:${Math.max(3, Math.round(100 * c / max))}%"></div></span>
         <span class="tv">${c} <em>(${pct}%)</em></span></div>`
     }).join('')}</div>`
-  }
-
-  function fingerprint(areas) {
-    if (!areas.length) return '<div style="color:var(--texto3)">Sin datos.</div>'
-    const max = areas[0][1], min = areas[areas.length - 1][1]
-    const size = c => (11 + (max === min ? 3 : (c - min) / (max - min) * 11)).toFixed(1)
-    return `<div class="fingerprint">${areas.map(([n, c]) =>
-      `<a data-cat="area" data-val="${esc(n)}" style="font-size:${size(c)}px;cursor:pointer" title="Ver las publicaciones de ${esc(n)}">${esc(n)}<span class="n"> ${c}</span></a>`).join('')}</div>`
   }
 
   // ---------- área temática ----------
@@ -1452,6 +1491,10 @@
     else if (cat === 'tipo') { lista = fuente.filter(p => (p.st || 'Otro') === val); titulo = 'Tipo: ' + val }
     else if (cat === 'revista') { lista = fuente.filter(p => (p.j || '') === val); titulo = 'Fuente: ' + val }
     else if (cat === 'area') { lista = fuente.filter(p => (p.a || []).includes(val)); titulo = 'Área: ' + val }
+    else if (cat === 'frase') {
+      lista = fuente.filter(p => coincideFrase(p.t, val))
+      titulo = 'Tema: ' + val
+    }
     else if (cat === 'pais') {
       lista = fuente.filter(p => (p.pc || []).includes(val)); titulo = 'País: ' + val
       // Autores internacionales (externos a la UTM y a Ecuador) que aparecen en
@@ -1488,6 +1531,30 @@
     mostrarPopover(ev, titulo, lista, color, autores)
   })
 
-  window.addEventListener('hashchange', () => { cerrarPop(); router() })
+  // Tooltip por toque para móvil: en pantalla táctil no hay "hover", así que el
+  // title de las pastillas de cuartil no se muestra. Al tocar una, se abre un
+  // globo con su explicación; se cierra al tocar en otro lado o al desplazarse.
+  // En escritorio el title sigue funcionando al pasar el mouse.
+  let globoTip = null
+  function cerrarGlobo() { if (globoTip) { globoTip.remove(); globoTip = null } }
+  document.addEventListener('click', (ev) => {
+    const chip = ev.target.closest('.insig-q[title]')
+    if (!chip || chip.closest('[data-cat]')) { cerrarGlobo(); return }
+    cerrarGlobo()
+    globoTip = document.createElement('div')
+    globoTip.className = 'tip-toque'
+    globoTip.textContent = chip.getAttribute('title')
+    document.body.appendChild(globoTip)
+    const r = chip.getBoundingClientRect()
+    const w = globoTip.offsetWidth, h = globoTip.offsetHeight
+    let x = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 8))
+    let y = r.top - h - 8
+    if (y < 8) y = r.bottom + 8
+    globoTip.style.left = x + 'px'
+    globoTip.style.top = y + 'px'
+  })
+  window.addEventListener('scroll', cerrarGlobo, { passive: true })
+
+  window.addEventListener('hashchange', () => { cerrarPop(); cerrarGlobo(); router() })
   router()
 })()
