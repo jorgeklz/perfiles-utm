@@ -117,8 +117,10 @@
   }
 
   // ---------- servidor ----------
-  // La clave sb_publishable_ va solo en "apikey" (no es un JWT, no va en Authorization).
+  // La clave nueva (sb_publishable_...) va solo en "apikey"; la antigua "anon" es un JWT
+  // (empieza con eyJ) y también se envía como Authorization. Así sirve cualquiera de las dos.
   var cabeceras = { apikey: cfg.clave, "Content-Type": "application/json" };
+  if (/^eyJ/.test(cfg.clave)) cabeceras.Authorization = "Bearer " + cfg.clave;
 
   function rpc(nombre, cuerpo) {
     return fetch(base + nombre, {

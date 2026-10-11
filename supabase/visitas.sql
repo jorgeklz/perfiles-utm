@@ -16,9 +16,15 @@
 -- Las tablas no tienen políticas de acceso: con la clave pública nadie puede leerlas
 -- ni escribirlas directamente. Solo se pueden ejecutar las dos funciones de abajo.
 
+-- Requisitos del proyecto nuevo: dejar activa la "Data API" (viene activa por defecto) con
+-- el esquema public expuesto. No hace falta crear tablas a mano ni políticas.
+
 begin;
 
-create extension if not exists pgcrypto;
+-- En Supabase las extensiones viven en el esquema "extensions".
+set local search_path = public, extensions;
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.visitas (
   id bigint generated always as identity primary key,
@@ -35,7 +41,7 @@ alter table public.visitas enable row level security;
 
 create table if not exists public.visitas_config (
   id int primary key default 1 check (id = 1),
-  sal text not null default encode(gen_random_bytes(24), 'hex')
+  sal text not null default encode(extensions.gen_random_bytes(24), 'hex')
 );
 insert into public.visitas_config (id) values (1) on conflict (id) do nothing;
 alter table public.visitas_config enable row level security;
@@ -109,6 +115,7 @@ begin
 end;
 $$;
 
+grant usage on schema public to anon, authenticated;
 revoke all on function public.registrar_visita(text, text) from public;
 revoke all on function public.resumen_visitas() from public;
 grant execute on function public.registrar_visita(text, text) to anon, authenticated;

@@ -9,6 +9,7 @@
 window.SITE_CONFIG = {
   visitas: {
     // Proyecto de Supabase del portal: Project Settings → API Keys (o el botón "Connect").
+    // Sirve la clave nueva "publishable" (sb_publishable_...) o la antigua "anon" (eyJ...).
     url: "",
     clave: ""
   }
