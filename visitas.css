@@ -2,7 +2,11 @@
    Estructura tomada de Emergency Radar: marca a la izquierda y un grupo de acciones
    (fuente de datos y contador de visitas) al final. Colores del portal. */
 .topbar-acciones { display: flex; align-items: center; gap: 10px; flex: none; }
-.fuente-datos { font-size: 12px; font-weight: 600; color: var(--texto3); white-space: nowrap; }
+.fuente-datos { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+  color: var(--texto2); white-space: nowrap; }
+.fuente-datos[hidden] { display: none; }
+.fd-ic { width: 15px; height: 15px; color: var(--g3); flex: none; }
+.fd-sep { width: 1px; height: 14px; background: var(--borde); margin: 0 4px; }
 
 /* ---------------- Contador de visitas (lo arma visitas.js) ---------------- */
 .visitas { display: flex; align-items: center; gap: 6px; min-width: 0; }
