@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="estilos.css" />
+  <link rel="stylesheet" href="visitas.css?v=20261011" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -32,10 +33,15 @@
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="marca" href="#/">
+      <a class="marca" href="#/" aria-label="Portal de producción científica, inicio">
         <img src="logo_utm_2022.png" alt="Universidad Técnica de Manabí" />
       </a>
       <h1 class="topbar-titulo">Portal de producción científica en Scopus</h1>
+
+      <div class="topbar-acciones">
+        <span class="fuente-datos">Datos: Scopus</span>
+        <!-- Contador de visitas: lo agrega visitas.js si config.js tiene url y clave. -->
+      </div>
     </div>
     <div class="barra-amarilla"></div>
   </header>
@@ -54,5 +60,7 @@
 
   <script src="datos.js?v=1788209504527"></script>
   <script src="app.js?v=1788209504527"></script>
+  <script src="config.js?v=20261011"></script>
+  <script src="visitas.js?v=20261011"></script>
 </body>
 </html>
