@@ -6,7 +6,6 @@
   color: var(--texto2); white-space: nowrap; }
 .fuente-datos[hidden] { display: none; }
 .fd-ic { width: 15px; height: 15px; color: var(--g3); flex: none; }
-.fd-sep { width: 1px; height: 14px; background: var(--borde); margin: 0 4px; }
 
 /* ---------------- Contador de visitas (lo arma visitas.js) ---------------- */
 .visitas { display: flex; align-items: center; gap: 6px; min-width: 0; }
