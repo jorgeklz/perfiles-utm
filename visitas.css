@@ -64,3 +64,7 @@
   .topbar-inner { position: relative; }
   .vis-pop { left: 12px; right: 12px; width: auto; max-width: none; top: calc(100% - 6px); }
 }
+
+/* Fecha de datos en el pie, con el mismo icono de la barra superior. */
+.pie-fecha { display: inline-flex; align-items: center; gap: 6px; }
+.pie-fecha[hidden] { display: none; }

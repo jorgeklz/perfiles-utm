@@ -118,16 +118,18 @@
       ? `<img src="fotos/${encodeURIComponent(a.id)}.jpg?v=${a.f}" alt="Foto de ${esc(a.n)}" loading="lazy">`
       : esc(iniciales(a))}</div>`
 
-  const pieFecha = document.getElementById('pie-fecha')
-  if (pieFecha && D.fecha) pieFecha.textContent = ' (actualizado al ' + (D.fecha || '').split(' ')[0] + ')'
-  // fecha de la última descarga de Scopus en la barra superior
+  // fecha de la última descarga de Scopus, en la barra superior y en el pie
   const topFecha = document.getElementById('top-fecha')
-  if (topFecha && D.fecha) {
+  const pieFecha = document.getElementById('pie-fecha')
+  if (D.fecha) {
     const dia = D.fecha.split(' ')[0]
     const [y, m, d] = dia.split('-').map(Number)
-    topFecha.dateTime = dia
-    topFecha.textContent = new Date(y, m - 1, d).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })
-  } else if (topFecha) document.getElementById('fuente-datos').hidden = true
+    const texto = new Date(y, m - 1, d).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })
+    for (const el of [topFecha, pieFecha]) if (el) { el.dateTime = dia; el.textContent = texto }
+  } else {
+    if (topFecha) document.getElementById('fuente-datos').hidden = true
+    if (pieFecha) pieFecha.closest('.pie-fecha').hidden = true
+  }
 
   // año actual y métricas por autor restringidas a ese año (mismos criterios que
   // el histórico). Se usa D.porAutor para incluir fusiones y asignaciones manuales.
