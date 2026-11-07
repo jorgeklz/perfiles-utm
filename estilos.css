@@ -20,35 +20,81 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 /* ---- barra superior ---- */
 .topbar { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.94);
   backdrop-filter: saturate(180%) blur(10px); border-bottom: 1px solid var(--borde); }
-.topbar-inner { max-width: 1180px; margin: 0 auto; padding: 20px 32px 20px 24px;
-  min-height: 76px; display: flex; align-items: center; gap: 16px; }
+.topbar-inner { max-width: 1180px; margin: 0 auto; padding: 10px 24px;
+  display: flex; align-items: center; gap: 14px; }
 .marca { display: flex; align-items: center; color: inherit; }
 .marca:hover { text-decoration: none; }
-.marca img { height: 78px; width: auto; }
+.marca img { height: 52px; width: auto; }
 
 /* título del portal, junto al logo, alineado a la izquierda */
 .topbar-titulo { margin: 0 auto 0 0; text-align: left; font-family: 'Montserrat', sans-serif;
-  font-size: 20px; font-weight: 700; color: var(--g1); line-height: 1.2; letter-spacing: -.01em; }
+  font-size: 20px; font-weight: 800; color: var(--g1); line-height: 1.2; letter-spacing: -.01em; }
+.topbar-titulo span { color: #c08f0a; }
+
+/* franja de estado sobre la barra: la fecha de los datos siempre visible.
+   Las reglas base de .fuente-datos viven aquí (y no en visitas.css) porque las
+   páginas estáticas de perfil solo cargan esta hoja. */
+.fuente-datos { display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+  font-weight: 600; color: var(--texto2); }
+.fuente-datos[hidden] { display: none; }
+.fd-ic { width: 15px; height: 15px; color: var(--g3); flex: none; }
+.franja-datos { background: #0f3e0b; color: #d6e8cc; font-size: 12px; }
+.franja-datos[hidden] { display: none; }
+.franja-inner { max-width: 1180px; margin: 0 auto; padding: 6px 24px;
+  display: flex; align-items: center; gap: 14px; justify-content: space-between; }
+.franja-datos .fuente-datos { display: inline-flex; align-items: center; gap: 6px;
+  font-weight: 600; color: #e9f3e3; min-width: 0; }
+.franja-datos .fd-ic { color: var(--y3); }
+.franja-datos time { font-weight: 700; color: #f2cf55; }
+.franja-fuente { color: #a9c69d; white-space: nowrap; }
 
 .barra-amarilla { height: 4px; background: linear-gradient(90deg, var(--g2), var(--y3)); }
 
 @media (max-width: 720px) {
-  .topbar-inner { min-height: 84px; padding: 22px 22px 22px 18px; gap: 10px; }
-  .marca img { height: 60px; }
-  .topbar-titulo { font-size: 18px; }
+  .topbar-inner { padding: 8px 14px; gap: 10px; }
+  .marca img { height: 42px; }
+  .topbar-titulo { font-size: 17px; white-space: nowrap; }
+  .franja-inner { padding: 5px 14px; justify-content: center; gap: 8px; }
+  .franja-fuente { display: none; }
+  .franja-datos { font-size: 11.5px; }
 }
 
 /* ---- hero ---- */
-.hero { background: linear-gradient(135deg, #185a10, #0f3e0b 55%, #123a15);
-  color: #fff; position: relative; overflow: hidden; }
-.hero::after { content: ''; position: absolute; right: -120px; top: -120px; width: 380px; height: 380px;
-  background: radial-gradient(circle, rgba(224,176,16,.22), transparent 70%); }
-.hero-inner { max-width: 1180px; margin: 0 auto; padding: 22px 24px 40px; position: relative; z-index: 1; }
+.hero { color: #fff; position: relative;
+  background: radial-gradient(190px at calc(100% - 70px) 70px, rgba(224,176,16,.22), transparent 70%),
+    linear-gradient(135deg, #185a10, #0f3e0b 55%, #123a15); }
+.hero-inner { max-width: 1180px; margin: 0 auto; padding: 26px 24px 34px; position: relative; z-index: 1; }
 .hero h1 { font-size: 34px; font-weight: 800; line-height: 1.1; letter-spacing: -.5px; }
-.hero p { max-width: 640px; margin-top: 4px; font-size: 15px; opacity: .92; }
+.hero p { max-width: 680px; margin-top: 8px; font-size: 15px; opacity: .92; }
+
+/* buscador de investigadores en la portada, con sugerencias */
+.hx-bus { position: relative; max-width: 620px; margin: 18px 0 4px; }
+.hx-bus > svg { position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
+  color: var(--texto3); pointer-events: none; }
+.hx-bus input { width: 100%; box-sizing: border-box; height: 48px; padding: 0 16px 0 44px;
+  border: 0; border-radius: 12px; font-size: 15px; font-family: inherit; background: #fff;
+  color: var(--texto); box-shadow: 0 6px 18px rgba(0,0,0,.18); outline: none; }
+.hx-bus input::placeholder { color: #8a9383; }
+.hx-bus input:focus { box-shadow: 0 0 0 3px rgba(224,176,16,.55), 0 6px 18px rgba(0,0,0,.18); }
+.hx-sug { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; right: 0;
+  background: var(--sup); border: 1px solid var(--borde); border-radius: 12px;
+  box-shadow: var(--sombra2); overflow: hidden; max-height: 60vh; overflow-y: auto; }
+.hx-sug[hidden] { display: none; }
+.hx-sug button { display: flex; width: 100%; box-sizing: border-box; align-items: center; gap: 10px;
+  padding: 9px 12px; border: 0; background: transparent; text-align: left; color: var(--texto);
+  border-bottom: 1px solid var(--borde); font-size: 13.5px; }
+.hx-sug button:last-child { border-bottom: 0; }
+.hx-sug button:hover, .hx-sug button.on { background: var(--g6); }
+.hx-sug .avatar { width: 32px; height: 32px; font-size: 12px; flex: none; }
+.hx-sug .sn { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.hx-sug .sm { color: var(--texto3); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hx-sug .sver { justify-content: center; color: var(--g2); font-weight: 700; font-size: 12.5px; }
+.hx-sug .svacio { padding: 12px; color: var(--texto3); font-size: 13px; }
+
 /* métricas institucionales como pastillas tipo KPI (mismos iconos y paleta) */
-.hero-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
-  gap: 4px; margin-top: 26px; }
+.hero-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px; margin-top: 22px; }
+@media (max-width: 900px) { .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .hero-stats .s { display: flex; align-items: center; gap: 11px; background: transparent;
   border: none; border-radius: var(--rc); padding: 14px 8px; color: #fff; }
 .hero-stats .s svg { width: 24px; height: 24px; color: #fff; opacity: 1; flex-shrink: 0; }
@@ -221,7 +267,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   padding: 26px; box-shadow: var(--sombra); margin-bottom: 18px;
   border-left: 5px solid var(--g2); }
 .perfil-hero .avatar { width: 84px; height: 84px; font-size: 28px; box-shadow: var(--sombra); }
-.perfil-hero h2 { font-size: 22px; line-height: 1.15; }
+.perfil-hero h1, .perfil-hero h2 { font-size: 22px; line-height: 1.15; }
 .perfil-hero .sub { color: var(--texto2); font-size: 13.5px; margin-top: 6px; }
 .enlaces { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-ext { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 9px;
@@ -320,7 +366,14 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .pie-inner strong { color: var(--texto2); font-weight: 700; }
 
 @media (max-width: 560px) {
-  .hero h1 { font-size: 26px; } .perfil-hero { padding: 18px; }
+  /* En pantallas estrechas el logo se recorta al escudo para que el título
+     quepa en una sola línea junto al contador. */
+  .marca img { height: 40px; width: 34px; object-fit: cover; object-position: left center; }
+  .topbar-titulo { font-size: 16px; }
+  .hero h1 { font-size: 24px; } .hero p { font-size: 14px; }
+  .hx-bus input { height: 44px; font-size: 14px; padding-left: 40px; }
+  .hx-bus > svg { left: 13px; }
+  .perfil-hero { padding: 18px; }
   .perfil-hero .avatar { width: 64px; height: 64px; font-size: 22px; }
   /* En móvil se estrecha el nombre y se reduce la tipografía para que la fila
      (nombre, barra, nº y %) siga entrando en una sola línea. */
@@ -405,4 +458,30 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   .wrap { max-width: none; padding: 0; }
   .panel, .kpi { break-inside: avoid; box-shadow: none; }
   a { color: inherit; text-decoration: none; }
+}
+
+/* ---------- novedades de la última actualización ---------- */
+.nov-cuenta { font-weight: 600; color: var(--texto3); font-size: 12px; margin-left: 6px; }
+.nov-lista { display: flex; flex-direction: column; }
+.nov-fila { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--borde);
+  text-decoration: none; color: inherit; border-radius: 6px; }
+.nov-fila:last-child { border-bottom: none; }
+.nov-fila:hover { background: rgba(30, 107, 20, .06); }
+.nov-nom { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--g1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nov-ins { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.nov-b { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.nov-b.pub { background: #e2f2da; color: #1e6b14; }
+.nov-b.cit { background: #fdf3d0; color: #8a6500; }
+.nov-b.nue { background: #e8eef9; color: #2b5797; }
+.nov-oculta { display: none; }
+.nov-lista.abierta .nov-oculta { display: flex; }
+.nov-mas { margin-top: 10px; background: none; border: 1px solid var(--borde); border-radius: 8px; padding: 6px 12px;
+  font-family: 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--g1); cursor: pointer; }
+.nov-mas:hover { border-color: var(--g3); }
+.nov-vacio { font-size: 12.5px; color: var(--texto3); padding: 6px 0; }
+@media (max-width: 520px) {
+  .nov-fila { flex-wrap: wrap; gap: 4px 8px; }
+  .nov-nom { white-space: normal; flex-basis: 100%; }
+  .nov-ins { justify-content: flex-start; }
 }

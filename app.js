@@ -8,6 +8,13 @@
     '<button class="top-page" title="Ir al inicio de la página">↑ Inicio de la página</button></div>'
   const porId = new Map(D.autores.map(a => [a.id, a]))
   const num = n => (n || 0).toLocaleString('es-EC')
+  // Decimales con coma, como corresponde en español: 6,53 y no 6.53. Así no se
+  // confunden con el punto de los miles (1.777).
+  const dec = (v, n = 2) => (Number(v) || 0).toLocaleString('es-EC',
+    { minimumFractionDigits: n, maximumFractionDigits: n })
+  // Valor de un indicador según su naturaleza (entero o decimal).
+  const fmtInd = (k, v) => (k === 'CP' || k === 'm') ? dec(v, 2)
+    : (k === 'apu' || k === 'cc') ? dec(v, 1) : num(v)
   const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
@@ -127,7 +134,7 @@
     const texto = new Date(y, m - 1, d).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })
     for (const el of [topFecha, pieFecha]) if (el) { el.dateTime = dia; el.textContent = texto }
   } else {
-    if (topFecha) document.getElementById('fuente-datos').hidden = true
+    if (topFecha) { const fr = topFecha.closest('.franja-datos'); if (fr) fr.hidden = true }
     if (pieFecha) pieFecha.closest('.pie-fecha').hidden = true
   }
 
@@ -195,8 +202,10 @@
     perfilPubs = null   // en la portada, el gráfico institucional filtra sobre D.pubs
     app.innerHTML = `
       <section class="hero"><div class="hero-inner">
+        <h1>Producción científica de la UTM en Scopus</h1>
         <p>Refleja exclusivamente las investigaciones en las que los autores figuran con
            afiliación a la Universidad Técnica de Manabí.</p>
+        ${buscadorHeroHTML()}
         <div class="hero-stats">
           ${stat('autores', num(G.autores), 'Autores',
     'Investigadores UTM con al menos una publicación indexada en Scopus.')}
@@ -204,15 +213,15 @@
       'Número de documentos UTM indexados en Scopus (se excluyen erratas, cartas, notas y editoriales).')}
           ${stat('citas', num(G.citas), 'Citas (C)',
         'Suma de todas las citas recibidas por las publicaciones según Scopus.')}
-          ${stat('cp', G.cp.toFixed(2), 'Citas por publicación (C/P)',
+          ${stat('cp', dec(G.cp, 2), 'Citas por publicación (C/P)',
           'Promedio de citas por documento: total de citas dividido entre total de publicaciones (C ÷ P).')}
-          ${stat('h', G.h, 'Índice h (h)',
+          ${stat('h', num(G.h), 'Índice h',
             'El mayor número h tal que h publicaciones tienen al menos h citas cada una.')}
-          ${stat('i10', G.i10, 'Índice i10',
+          ${stat('i10', num(G.i10), 'Índice i10',
             'Número de publicaciones UTM con al menos 10 citas cada una.')}
-          ${stat('g', G.g, 'Índice g',
+          ${stat('g', num(G.g), 'Índice g',
             'El mayor número g tal que las g publicaciones más citadas acumulan al menos g² citas en total.')}
-          ${stat('m', G.m.toFixed(2), 'Índice m',
+          ${stat('m', dec(G.m, 2), 'Índice m',
             'Índice h dividido por los años desde la primera publicación indexada. Permite comparar el ritmo de crecimiento del impacto.')}
         </div></div></section>
       ${panoramaHTML()}
@@ -223,6 +232,7 @@
         ${destacadosHTML()}
       </div>
       ${novedadesHTML()}
+      ${actividadHTML()}
       <div class="wrap" id="dirsec">
         <h2 class="dir-tit">Directorio de investigadores</h2>
         <div class="ayuda-filtros">Use el buscador para encontrar un autor por nombre o apellido, las letras para
@@ -245,6 +255,7 @@
       </div>
       ${TOP_PAGE_HTML}`
 
+    wireBuscadorHero()
     const q = document.getElementById('q'); q.value = estado.q
     const orden = document.getElementById('orden'); orden.value = estado.orden
     refGrid = document.getElementById('grid')
@@ -287,6 +298,73 @@
 
     marcarLetra()
     pintar()
+  }
+
+  // ---------- portada: buscador con sugerencias ----------
+  function buscadorHeroHTML() {
+    return `<div class="hx-bus">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="qHero" type="search" autocomplete="off" role="combobox" aria-expanded="false"
+        aria-controls="qHeroSug" aria-label="Buscar investigador"
+        placeholder="Buscar investigador por nombre, apellido o Scopus ID…">
+      <div class="hx-sug" id="qHeroSug" role="listbox" hidden></div>
+    </div>`
+  }
+
+  function wireBuscadorHero() {
+    const inp = document.getElementById('qHero'); if (!inp) return
+    const caja = document.getElementById('qHeroSug')
+    let halla = [], sel = -1
+    const cerrar = () => { caja.hidden = true; inp.setAttribute('aria-expanded', 'false'); sel = -1 }
+    const irA = (id) => { cerrar(); inp.blur(); location.hash = '#/autor/' + encodeURIComponent(id) }
+    // Pasa la búsqueda al directorio y baja hasta él, para ver la lista completa.
+    const verTodos = () => {
+      cerrar(); inp.blur()
+      estado.q = inp.value.trim(); estado.letra = ''; estado.pagina = 1
+      const q = document.getElementById('q'); if (q) q.value = estado.q
+      marcarLetra(); pintar(); verDirectorio(true)
+    }
+    const pinta = () => {
+      const txt = inp.value.trim()
+      if (txt.length < 2) return cerrar()
+      const tokens = norm(txt).split(/\s+/).filter(Boolean)
+      halla = D.autores.filter(a => {
+        const n = norm(a.n), id = String(a.id || '')
+        return tokens.every(tk => n.includes(tk) || id.includes(tk))
+      }).sort((a, b) => (b.P || 0) - (a.P || 0))
+      const vis = halla.slice(0, 7)
+      caja.innerHTML = vis.length
+        ? vis.map((a, i) => `<button type="button" role="option" data-i="${i}">${avatar(a)}
+            <span class="sn">${esc(a.n)}</span>
+            <span class="sm">${a.P} pub. · ${num(a.C)} citas</span></button>`).join('')
+          + (halla.length > vis.length
+            ? `<button type="button" class="sver" data-todos="1">Ver los ${num(halla.length)} resultados en el directorio</button>` : '')
+        : '<div class="svacio">Sin coincidencias. Pruebe con el apellido o con el ID de Scopus.</div>'
+      caja.hidden = false; inp.setAttribute('aria-expanded', 'true'); sel = -1
+      // mousedown y no click: se adelanta al blur del campo.
+      caja.querySelectorAll('button[data-i]').forEach(b =>
+        b.addEventListener('mousedown', (ev) => { ev.preventDefault(); irA(halla[+b.dataset.i].id) }))
+      const todos = caja.querySelector('button[data-todos]')
+      if (todos) todos.addEventListener('mousedown', (ev) => { ev.preventDefault(); verTodos() })
+    }
+    inp.addEventListener('input', pinta)
+    inp.addEventListener('focus', () => { if (inp.value.trim().length >= 2) pinta() })
+    inp.addEventListener('blur', () => setTimeout(cerrar, 150))
+    inp.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') { cerrar(); return }
+      const btns = caja.hidden ? [] : [...caja.querySelectorAll('button')]
+      if (ev.key === 'Enter') {
+        ev.preventDefault()
+        if (sel >= 0 && btns[sel]) btns[sel].dispatchEvent(new MouseEvent('mousedown'))
+        else verTodos()
+        return
+      }
+      if ((ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') || !btns.length) return
+      ev.preventDefault()
+      sel = (sel + (ev.key === 'ArrowDown' ? 1 : -1) + btns.length) % btns.length
+      btns.forEach((b, i) => b.classList.toggle('on', i === sel))
+      btns[sel].scrollIntoView({ block: 'nearest' })
+    })
   }
 
   // ---------- portada: tablero institucional y novedades ----------
@@ -333,6 +411,64 @@
       </div>
     </div>`
   }
+
+  // ---------- portada: actividad desde la última actualización ----------
+  // Autores con publicaciones o citas nuevas y autores que aparecen por primera
+  // vez. Viene ya calculado en D.nov (lo arma el sistema al generar el sitio).
+  const NOV_VISIBLES = 8
+  const fechaCorta = f => {
+    if (!f) return ''
+    const d = new Date(String(f).replace(' ', 'T'))
+    return isNaN(d) ? esc(f) : d.toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+  function filaNov(a, extra) {
+    return `<a class="nov-fila" href="#/autor/${encodeURIComponent(a.id)}" title="Ver el perfil de ${esc(a.n)}">
+      <span class="nov-nom">${esc(a.n)}</span>
+      <span class="nov-ins">${extra}</span></a>`
+  }
+  function listaNov(id, filas) {
+    if (!filas.length) return '<div class="nov-vacio">Sin cambios en esta actualización.</div>'
+    const ocultas = filas.length - NOV_VISIBLES
+    return `<div class="nov-lista" id="${id}">${filas.map((f, i) =>
+      i < NOV_VISIBLES ? f : f.replace('class="nov-fila"', 'class="nov-fila nov-oculta"')).join('')}</div>
+      ${ocultas > 0 ? `<button class="nov-mas" data-lista="${id}">Ver los ${filas.length} autores</button>` : ''}`
+  }
+  function actividadHTML() {
+    const N = D.nov
+    if (!N) return ''
+    const plural = (n, uno, varios) => `${num(n)} ${n === 1 ? uno : varios}`
+    const conNov = (N.an || []).map(([id, np, cg]) => {
+      const a = porId.get(id)
+      if (!a) return null
+      const b = []
+      if (np) b.push(`<b class="nov-b pub">+${plural(np, 'publicación', 'publicaciones')}</b>`)
+      if (cg) b.push(`<b class="nov-b cit">+${plural(cg, 'cita', 'citas')}</b>`)
+      return filaNov(a, b.join(''))
+    }).filter(Boolean)
+    const nuevos = (N.nu || []).map(id => porId.get(id)).filter(Boolean)
+      .map(a => filaNov(a, `<b class="nov-b nue">${plural(a.P, 'publicación', 'publicaciones')}</b>`))
+    return `<div class="wrap portada" style="padding-bottom:0">
+      <h2 class="dir-tit">Novedades de la última actualización</h2>
+      <div class="ayuda-filtros">Cambios respecto a la actualización del ${fechaCorta(N.fb)}.</div>
+      <div class="grid2">
+        <div class="panel"><h3>Autores con nuevas publicaciones o citas <span class="nov-cuenta">${num(conNov.length)}</span></h3>
+          ${listaNov('novAutores', conNov)}</div>
+        <div class="panel"><h3>Autores nuevos <span class="nov-cuenta">${num(nuevos.length)}</span></h3>
+          <div class="ayuda-filtros" style="margin:-4px 0 8px">Aparecen por primera vez en el portal.</div>
+          ${listaNov('novNuevos', nuevos)}</div>
+      </div>
+    </div>`
+  }
+  // "Ver todos" de las listas de novedades (delegado: la portada se repinta)
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.nov-mas')
+    if (!b) return
+    const lista = document.getElementById(b.dataset.lista)
+    if (!lista) return
+    const abierta = lista.classList.toggle('abierta')
+    const total = lista.querySelectorAll('.nov-fila').length
+    b.textContent = abierta ? 'Ver menos' : `Ver los ${total} autores`
+  })
 
   function marcarLetra() {
     document.querySelectorAll('#alf button').forEach(b =>
@@ -441,7 +577,7 @@
   }
   const ETQ_TOP = Object.fromEntries(METRICAS_ORD.map(([k, , u]) => [k, u]))
   function itemTop(a, i, m) {
-    const val = m === 'C' ? num(a.C) : (a[m])
+    const val = fmtInd(m, a[m])
     return `<div class="destacado"><div class="rk">${i + 1}</div>${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
         <small><span class="pub-link" data-cat="autorPubs" data-val="${esc(a.id)}" title="Ver las publicaciones">${a.P} pub</span> · ${num(a.C)} citas</small>${notaExUtm(a)}</div>
@@ -455,7 +591,7 @@
   }
   function itemTopAnual(id, r, i, m) {
     const a = porId.get(id)
-    const val = m === 'C' ? num(r.C) : r[m]
+    const val = fmtInd(m, r[m])
     return `<div class="destacado"><div class="rk">${i + 1}</div>${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
         <small><span class="pub-link" data-cat="autorPubsAnio" data-val="${esc(id)}" title="Ver las publicaciones de ${ANIO_ACTUAL}">${r.P} pub</span> · ${num(r.C)} citas en ${ANIO_ACTUAL}</small>${notaExUtm(a)}</div>
@@ -507,7 +643,7 @@
           <div><b>${a.P}</b><span>Pub.</span></div>
           <div><b>${num(a.C)}</b><span>Citas</span></div>
           <div><b>${a.h}</b><span>h</span></div>
-          <div><b>${a.CP}</b><span>C/P</span></div>
+          <div><b>${dec(a.CP, 2)}</b><span>C/P</span></div>
         </div>
       </div></button>`
   }
@@ -597,10 +733,10 @@
         ${kpi(a.P, 'Publicaciones', puestoTxt(a.rP), AY.P)}
         ${kpi(num(a.C), 'Citas', puestoTxt(a.rC), AY.C)}
         ${kpi(a.h, 'Índice h', puestoTxt(a.rH), AY.h)}
-        ${kpi(a.CP, 'Citas / pub.', puestoTxt(R.CP), AY.CP)}
+        ${kpi(dec(a.CP, 2), 'Citas / pub.', puestoTxt(R.CP), AY.CP)}
         ${kpi(a.i10, 'Índice i10', puestoTxt(R.i10), AY.i10)}
         ${kpi(a.g ?? 0, 'Índice g', puestoTxt(R.g), AY.g)}
-        ${kpi(a.m ?? 0, 'Índice m', puestoTxt(R.m), AY.m)}
+        ${kpi(dec(a.m ?? 0, 2), 'Índice m', puestoTxt(R.m), AY.m)}
         ${kpi(pctOA + '%', 'Acceso abierto', puestoTxt(R.oa), AY.oa)}
       </div>
 
@@ -610,9 +746,9 @@
         <div class="panel"><h3>Distribución por cuartil SJR y tipo</h3>${donut(cq)}
           <div class="subtitulo-panel">Por tipo de documento</div>${tiposBarras(ct)}
           <div class="metricas-autoria">
-            <div class="ma"><b>${a.apu ?? '—'}</b><span>Autores por publicación (promedio)</span></div>
+            <div class="ma"><b>${a.apu == null ? '—' : dec(a.apu, 1)}</b><span>Autores por publicación (promedio)</span></div>
             <div class="ma"><b>${(a.pfa ?? 0)}%</b><span>Publicaciones como primer autor</span></div>
-            <div class="ma"><b>${(a.cc ?? 0)}%</b><span>Publicaciones con al menos 1 cita</span></div>
+            <div class="ma"><b>${dec(a.cc ?? 0, 1)}%</b><span>Publicaciones con al menos 1 cita</span></div>
           </div>
           <div class="ctx-hint">Clic en un cuartil o tipo para ver sus publicaciones.</div></div>
       </div>
@@ -1352,29 +1488,46 @@
     return { m, b: media - m * xm }
   }
 
+  // El año en curso aún no ha terminado: sus barras se dibujan con otro tono y
+  // queda fuera de la tendencia y del promedio, que compararían un año completo
+  // con uno a medias.
+  const esParcial = (years) => years.length > 0 && years[years.length - 1] === ANIO_ACTUAL
+  const aniosCompletos = (years) => esParcial(years) ? years.slice(0, -1) : years
+
   function barsAnio(porAnio, H = 150) {
     const years = Object.keys(porAnio).map(Number).sort((a, b) => a - b)
     if (!years.length) return '<div style="color:var(--texto3)">Sin datos.</div>'
     const vals = years.map(y => porAnio[y])
+    const parcial = esParcial(years)
+    const nComp = years.length - (parcial ? 1 : 0)
     const max = Math.max(...vals)
     const n = years.length, W = Math.max(280, n * 36), base = H - 24, top = 14
     const paso = W / n, bw = Math.min(22, paso - 9)
     const yFor = v => base - (Math.max(0, v) / max) * (base - top)
     let s = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>`
+    let rotulos = ''
     years.forEach((y, i) => {
       const x = i * paso + (paso - bw) / 2
       const yb = yFor(porAnio[y])
-      s += `<rect x="${x}" y="${yb}" width="${bw}" height="${Math.max(1, base - yb)}" rx="4" fill="#2e8a1f"/>
-        <text x="${x + bw / 2}" y="${yb - 4}" font-size="9.5" text-anchor="middle" fill="#6b7563">${porAnio[y]}</text>
-        <text x="${x + bw / 2}" y="${base + 13}" font-size="9.5" text-anchor="middle" fill="#98a18d">${y}</text>`
+      const enCurso = parcial && i === years.length - 1
+      const relleno = enCurso
+        ? 'fill="#2e8a1f" fill-opacity=".45" stroke="#2e8a1f" stroke-width="1.2" stroke-dasharray="3 2"'
+        : 'fill="#2e8a1f"'
+      s += `<rect x="${x}" y="${yb}" width="${bw}" height="${Math.max(1, base - yb)}" rx="4" ${relleno}>${enCurso ? `<title>${y}: año en curso, cifra parcial</title>` : ''}</rect>`
+      // Las cifras se dibujan al final, sobre la línea de tendencia, con un halo
+      // blanco detrás para que no se confundan con ella.
+      rotulos += `<text x="${x + bw / 2}" y="${yb - 4}" font-size="9.5" text-anchor="middle" fill="#6b7563"
+          stroke="#fff" stroke-width="2.6" paint-order="stroke">${porAnio[y]}</text>
+        <text x="${x + bw / 2}" y="${base + 13}" font-size="9.5" text-anchor="middle" fill="${enCurso ? '#c07a12' : '#98a18d'}">${y}${enCurso ? '*' : ''}</text>`
     })
-    // línea de tendencia (regresión lineal)
-    if (n >= 2) {
-      const { m, b } = regresion(vals)
-      const pts = years.map((y, i) => `${(i * paso + paso / 2).toFixed(1)},${yFor(b + m * i).toFixed(1)}`).join(' ')
+    // línea de tendencia (regresión lineal), solo sobre los años completos
+    if (nComp >= 2) {
+      const { m, b } = regresion(vals.slice(0, nComp))
+      const pts = years.slice(0, nComp).map((y, i) => `${(i * paso + paso / 2).toFixed(1)},${yFor(b + m * i).toFixed(1)}`).join(' ')
       s += `<polyline points="${pts}" fill="none" stroke="#e0902d" stroke-width="2" stroke-dasharray="5 3"/>`
-      years.forEach((y, i) => { s += `<circle cx="${(i * paso + paso / 2).toFixed(1)}" cy="${yFor(b + m * i).toFixed(1)}" r="2.4" fill="#e0902d"/>` })
+      years.slice(0, nComp).forEach((y, i) => { s += `<circle cx="${(i * paso + paso / 2).toFixed(1)}" cy="${yFor(b + m * i).toFixed(1)}" r="2.4" fill="#e0902d"/>` })
     }
+    s += rotulos
     // zonas clicables (una por columna), encima de todo
     years.forEach((y, i) => {
       s += `<rect x="${(i * paso).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${base}" fill="transparent" data-cat="anio" data-val="${y}" style="cursor:pointer"><title>Ver publicaciones de ${y}</title></rect>`
@@ -1385,20 +1538,25 @@
   function infoAnios(porAnio) {
     const years = Object.keys(porAnio).map(Number).sort((a, b) => a - b)
     if (!years.length) return ''
-    const vals = years.map(y => porAnio[y])
+    const parcial = esParcial(years)
+    // El promedio, el pico y la tendencia se calculan solo con los años cerrados.
+    const comp = aniosCompletos(years)
+    const base = comp.length ? comp : years
+    const vals = base.map(y => porAnio[y])
     const total = vals.reduce((s, v) => s + v, 0)
-    const prom = (total / years.length).toFixed(1)
-    let pico = years[0]
-    years.forEach(y => { if (porAnio[y] > porAnio[pico]) pico = y })
+    const prom = dec(total / base.length, 1)
+    let pico = base[0]
+    base.forEach(y => { if (porAnio[y] > porAnio[pico]) pico = y })
     const { m } = regresion(vals)
     const tend = m > 0.15 ? 'creciente' : m < -0.15 ? 'decreciente' : 'estable'
     const flecha = m > 0.15 ? '↗' : m < -0.15 ? '↘' : '→'
     const span = years[years.length - 1] - years[0] + 1
     return `<div class="info-anios">
-      <span>Promedio <b>${prom}</b> pub./año</span>
+      <span>Promedio <b>${prom}</b> pub./año${parcial && comp.length ? ' <em>(años cerrados)</em>' : ''}</span>
       <span>Año más productivo <b>${pico}</b> (${porAnio[pico]})</span>
       <span>Trayectoria <b>${span} año${span !== 1 ? 's' : ''}</b></span>
       <span>Tendencia <b style="color:#c07a12">${flecha} ${tend}</b> <em>(línea naranja)</em></span>
+      ${parcial ? `<span><em>* ${ANIO_ACTUAL} en curso: cifra parcial, no entra en el promedio ni en la tendencia.</em></span>` : ''}
     </div>`
   }
 

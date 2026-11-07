@@ -2,10 +2,8 @@
    Estructura tomada de Emergency Radar: marca a la izquierda y un grupo de acciones
    (fuente de datos y contador de visitas) al final. Colores del portal. */
 .topbar-acciones { display: flex; align-items: center; gap: 10px; flex: none; }
-.fuente-datos { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
-  color: var(--texto2); white-space: nowrap; }
-.fuente-datos[hidden] { display: none; }
-.fd-ic { width: 15px; height: 15px; color: var(--g3); flex: none; }
+/* .fuente-datos y .fd-ic se definen en estilos.css: la franja de la cabecera
+   también se usa en las páginas estáticas de perfil, que no cargan esta hoja. */
 
 /* ---------------- Contador de visitas (lo arma visitas.js) ---------------- */
 .visitas { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -53,9 +51,10 @@
 .vis-chip b { color: var(--g1); }
 .vis-nota { margin: 0; font-size: 11px; line-height: 1.5; color: var(--texto3); }
 
-/* La pastilla de "visita reciente" y la fuente de datos solo en pantallas anchas. */
+/* La pastilla de "visita reciente" solo en pantallas anchas. La fecha de los
+   datos vive en la franja de la cabecera y se ve también en el móvil. */
 @media (max-width: 900px) {
-  .vis-reciente, .fuente-datos { display: none !important; }
+  .vis-reciente { display: none !important; }
 }
 /* En teléfonos: popover anclado a la barra para no desbordar. */
 @media (max-width: 640px) {
