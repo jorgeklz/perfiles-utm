@@ -129,10 +129,12 @@
   const topFecha = document.getElementById('top-fecha')
   const pieFecha = document.getElementById('pie-fecha')
   if (D.fecha) {
-    const dia = D.fecha.split(' ')[0]
+    const [dia, hora] = String(D.fecha).trim().split(/\s+/)
     const [y, m, d] = dia.split('-').map(Number)
-    const texto = new Date(y, m - 1, d).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })
-    for (const el of [topFecha, pieFecha]) if (el) { el.dateTime = dia; el.textContent = texto }
+    const fTxt = new Date(y, m - 1, d).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })
+    const texto = hora ? `${fTxt}, ${hora} (GMT-5)` : fTxt
+    const iso = hora ? `${dia}T${hora}-05:00` : dia
+    for (const el of [topFecha, pieFecha]) if (el) { el.dateTime = iso; el.textContent = texto }
   } else {
     if (topFecha) { const fr = topFecha.closest('.franja-datos'); if (fr) fr.hidden = true }
     if (pieFecha) pieFecha.closest('.pie-fecha').hidden = true
@@ -193,7 +195,7 @@
     ['pfa', '% como primer autor', '% 1er aut.'],
     ['cc', '% con al menos 1 cita', '% con cita'],
   ]
-  const estado = { q: '', orden: 'P', letra: '', pagina: 1, topTab: 'hist', topMetric: 'P', topMetricAnual: 'P', pubMetric: 'recientes' }
+  const estado = { q: '', orden: 'P', letra: '', pagina: 1, topTab: 'anual', topMetric: 'P', topMetricAnual: 'P', pubMetric: 'recientes' }
   const POR_PAGINA = 20
   let refGrid, refConteo, refPag, refPagTop
   let comStop = null   // limpieza del grafo de comunidades del perfil anterior
@@ -227,7 +229,7 @@
       ${panoramaHTML()}
       <div class="wrap" style="padding-bottom:0">
         <h2 class="dir-tit">Top 10 investigadores</h2>
-        <div class="ayuda-filtros">Elija entre el ranking histórico y el del año en curso, y ordene por el
+        <div class="ayuda-filtros">Elija entre el ranking del año en curso y el histórico, y ordene por el
           indicador que prefiera.</div>
         ${destacadosHTML()}
       </div>
@@ -240,7 +242,7 @@
         <div class="controles">
           <div class="buscador">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="q" placeholder="Buscar investigador por nombre, apellido o Scopus ID…" autocomplete="off" />
+            <input id="q" placeholder="Buscar por nombre, apellido o Scopus ID…" autocomplete="off" />
           </div>
           <select class="selector" id="orden">
             ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Ordenar: ${et}</option>`).join('')}
@@ -306,7 +308,7 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="qHero" type="search" autocomplete="off" role="combobox" aria-expanded="false"
         aria-controls="qHeroSug" aria-label="Buscar investigador"
-        placeholder="Buscar investigador por nombre, apellido o Scopus ID…">
+        placeholder="Buscar por nombre, apellido o Scopus ID…">
       <div class="hx-sug" id="qHeroSug" role="listbox" hidden></div>
     </div>`
   }
@@ -552,17 +554,17 @@
     return `<div class="destacados">
       <div class="panel"><div class="top-cab">
         <div class="top-tabs">
+          <button class="top-tab on" data-tab="anual">Top 10 del año ${ANIO_ACTUAL}</button>
           <button class="top-tab" data-tab="hist">Top 10 histórico</button>
-          <button class="top-tab" data-tab="anual">Top 10 del año ${ANIO_ACTUAL}</button>
         </div>
-        <select class="selector" id="topMetric" style="${SEL_ESTILO}">
-          ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Por ${et.toLowerCase()}</option>`).join('')}
-        </select>
         <select class="selector" id="topMetricAnual" style="${SEL_ESTILO}">
           ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Por ${et.toLowerCase()}</option>`).join('')}
+        </select>
+        <select class="selector" id="topMetric" style="${SEL_ESTILO};display:none">
+          ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Por ${et.toLowerCase()}</option>`).join('')}
         </select></div>
-        <div id="destTop"></div>
-        <div id="destTopAnual"></div></div></div>`
+        <div id="destTopAnual"></div>
+        <div id="destTop" style="display:none"></div></div></div>`
   }
   function aplicarTopTab() {
     const hist = estado.topTab !== 'anual'
@@ -576,9 +578,27 @@
       b.classList.toggle('on', (b.dataset.tab === 'anual') === !hist))
   }
   const ETQ_TOP = Object.fromEntries(METRICAS_ORD.map(([k, , u]) => [k, u]))
-  function itemTop(a, i, m) {
+  // Asigna puesto con empate (1, 2, 3, 3, 5...): quienes comparten el valor mostrado
+  // llevan el mismo número y, si quedan entre los 3 primeros puestos, comparten medalla.
+  function conPuestos(lista, valTexto, valNum) {
+    let puesto = 0, prev = null
+    return lista.map((item, i) => {
+      const txt = valTexto(item)
+      if (i === 0 || txt !== prev) { puesto = i + 1; prev = txt }
+      return { item, puesto, medalla: puesto <= 3 && valNum(item) > 0 ? puesto : 0 }
+    })
+  }
+  function badgePuesto(puesto, medalla) {
+    if (!medalla) return `<div class="rk">${puesto}</div>`
+    return `<div class="rk rk-med rk-${medalla}" title="Puesto ${puesto}">` +
+      `<svg viewBox="0 0 28 30" aria-hidden="true">` +
+      `<path class="rk-cinta" d="M9.5 19.5L8 28l6-3.2L20 28l-1.5-8.5"/>` +
+      `<circle class="rk-disco" cx="14" cy="11.5" r="9.5"/></svg>` +
+      `<span>${puesto}</span></div>`
+  }
+  function itemTop(a, puesto, medalla, m) {
     const val = fmtInd(m, a[m])
-    return `<div class="destacado"><div class="rk">${i + 1}</div>${avatar(a)}
+    return `<div class="destacado">${badgePuesto(puesto, medalla)}${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
         <small><span class="pub-link" data-cat="autorPubs" data-val="${esc(a.id)}" title="Ver las publicaciones">${a.P} pub</span> · ${num(a.C)} citas</small>${notaExUtm(a)}</div>
       <div class="dm pub-link" data-cat="autorPubs" data-val="${esc(a.id)}" title="Ver las publicaciones"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
@@ -586,13 +606,16 @@
   function pintarTop() {
     const cont = document.getElementById('destTop'); if (!cont) return
     const m = estado.topMetric
-    const top10 = [...D.autores].sort((a, b) => (b[m] || 0) - (a[m] || 0)).slice(0, 10)
-    cont.innerHTML = top10.map((a, i) => itemTop(a, i, m)).join('')
+    const top10 = [...D.autores]
+      .sort((a, b) => (b[m] || 0) - (a[m] || 0) || (b.C - a.C) || (b.P - a.P))
+      .slice(0, 10)
+    cont.innerHTML = conPuestos(top10, a => fmtInd(m, a[m]), a => Number(a[m]) || 0)
+      .map(({ item, puesto, medalla }) => itemTop(item, puesto, medalla, m)).join('')
   }
-  function itemTopAnual(id, r, i, m) {
+  function itemTopAnual(id, r, puesto, medalla, m) {
     const a = porId.get(id)
     const val = fmtInd(m, r[m])
-    return `<div class="destacado"><div class="rk">${i + 1}</div>${avatar(a)}
+    return `<div class="destacado">${badgePuesto(puesto, medalla)}${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
         <small><span class="pub-link" data-cat="autorPubsAnio" data-val="${esc(id)}" title="Ver las publicaciones de ${ANIO_ACTUAL}">${r.P} pub</span> · ${num(r.C)} citas en ${ANIO_ACTUAL}</small>${notaExUtm(a)}</div>
       <div class="dm pub-link" data-cat="autorPubsAnio" data-val="${esc(id)}" title="Ver las publicaciones de ${ANIO_ACTUAL}"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
@@ -601,10 +624,11 @@
     const cont = document.getElementById('destTopAnual'); if (!cont) return
     const m = estado.topMetricAnual
     const arr = [...ANUAL.entries()].filter(([id]) => porId.has(id))
-      .sort((x, y) => (y[1][m] || 0) - (x[1][m] || 0) || (y[1].C - x[1].C))
+      .sort((x, y) => (y[1][m] || 0) - (x[1][m] || 0) || (y[1].C - x[1].C) || (y[1].P - x[1].P))
       .slice(0, 10)
     cont.innerHTML = arr.length
-      ? arr.map(([id, r], i) => itemTopAnual(id, r, i, m)).join('')
+      ? conPuestos(arr, ([, r]) => fmtInd(m, r[m]), ([, r]) => Number(r[m]) || 0)
+        .map(({ item: [id, r], puesto, medalla }) => itemTopAnual(id, r, puesto, medalla, m)).join('')
       : `<div style="color:var(--texto3);font-size:13px;padding:8px 2px">Sin publicaciones registradas en ${ANIO_ACTUAL} todavía.</div>`
   }
   function pintarRecientes() {
@@ -1578,7 +1602,7 @@
     const leg = pres.map(q => `<span data-cat="cuartil" data-val="${q}" style="cursor:pointer" title="${esc(rotulo(q))} · ${esc(tipCuartil(q))} · clic para ver las publicaciones"><i style="background:${COLQ[q]}"></i>${q}<b>${cq[q]}</b><em>(${pctDe(cq[q])}%)</em></span>`).join('')
     return `<div class="donut-fila"><svg width="128" height="128" viewBox="0 0 128 128">${segs}
       <text x="64" y="61" text-anchor="middle" font-size="21" font-weight="700" fill="#185a10" font-family="Montserrat,sans-serif">${total}</text>
-      <text x="64" y="79" text-anchor="middle" font-size="8.5" letter-spacing="1" fill="#98a18d">DOCS</text></svg>
+      <text x="64" y="78" text-anchor="middle" font-size="10" fill="#8f9985">${total === 1 ? 'Doc.' : 'Docs.'}</text></svg>
       <div class="leyenda">${leg}</div></div>`
   }
 

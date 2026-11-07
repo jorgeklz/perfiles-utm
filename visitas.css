@@ -32,7 +32,7 @@
   position: absolute; top: calc(100% + 10px); right: 0; z-index: 60;
   width: 310px; max-width: calc(100vw - 24px); padding: 14px 16px;
   background: var(--sup); color: var(--texto); text-align: left;
-  border: 1px solid var(--borde); border-top: 3px solid var(--g3); border-radius: var(--rc);
+  border: 1px solid #e5e7eb; border-radius: var(--rc);
   box-shadow: var(--sombra2); font-size: 13px; line-height: 1.4;
 }
 .vis-pop[hidden] { display: none; }
@@ -40,8 +40,8 @@
 .vis-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 12px; }
 .vis-stats div { background: var(--g6); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .vis-stats b { font-size: 1.15rem; color: var(--g1); font-variant-numeric: tabular-nums; }
-.vis-stats span { font-size: 10px; font-weight: 700; color: var(--texto3); text-transform: uppercase; letter-spacing: .04em; }
-.vis-sub { font-size: 10px; font-weight: 700; color: var(--g2); text-transform: uppercase; letter-spacing: .07em; margin: 2px 0 6px; }
+.vis-stats span { font-size: 11px; font-weight: 600; color: var(--texto2); text-transform: none; letter-spacing: 0; }
+.vis-sub { font-size: 12px; font-weight: 700; color: var(--g2); text-transform: none; letter-spacing: 0; margin: 2px 0 6px; }
 .vis-lista { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .vis-lista li { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .vis-lista .vis-lugar { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
