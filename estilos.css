@@ -20,15 +20,15 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 /* ---- barra superior ---- */
 .topbar { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.94);
   backdrop-filter: saturate(180%) blur(10px); border-bottom: 1px solid var(--borde); }
-.topbar-inner { max-width: 1180px; margin: 0 auto; padding: 10px 24px;
+.topbar-inner { max-width: 1180px; margin: 0 auto; padding: 17px 24px;
   display: flex; align-items: center; gap: 14px; }
 .marca { display: flex; align-items: center; color: inherit; }
 .marca:hover { text-decoration: none; }
-.marca img { height: 52px; width: auto; }
+.marca img { height: 62px; width: auto; }
 
 /* título del portal, junto al logo, alineado a la izquierda */
 .topbar-titulo { margin: 0 auto 0 0; text-align: left; font-family: 'Montserrat', sans-serif;
-  font-size: 20px; font-weight: 800; color: var(--g1); line-height: 1.2; letter-spacing: -.01em; }
+  font-size: 22px; font-weight: 800; color: var(--g1); line-height: 1.2; letter-spacing: -.01em; }
 .topbar-titulo span { color: #c08f0a; }
 
 /* franja de estado sobre la barra: la fecha de los datos siempre visible.
@@ -51,8 +51,8 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .barra-amarilla { height: 4px; background: linear-gradient(90deg, var(--g2), var(--y3)); }
 
 @media (max-width: 720px) {
-  .topbar-inner { padding: 8px 14px; gap: 10px; }
-  .marca img { height: 42px; }
+  .topbar-inner { padding: 12px 14px; gap: 10px; }
+  .marca img { height: 48px; }
   .topbar-titulo { font-size: 17px; white-space: nowrap; }
   .franja-inner { padding: 5px 14px; justify-content: center; gap: 8px; }
   .franja-fuente { display: none; }
@@ -368,7 +368,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 @media (max-width: 560px) {
   /* En pantallas estrechas el logo se recorta al escudo para que el título
      quepa en una sola línea junto al contador. */
-  .marca img { height: 40px; width: 34px; object-fit: cover; object-position: left center; }
+  .marca img { height: 48px; width: 41px; object-fit: cover; object-position: left center; }
   .topbar-titulo { font-size: 16px; }
   .hero h1 { font-size: 24px; } .hero p { font-size: 14px; }
   .hx-bus input { height: 44px; font-size: 14px; padding-left: 40px; }
