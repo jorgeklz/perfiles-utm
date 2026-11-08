@@ -19,7 +19,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 
 /* ---- barra superior ---- */
 .topbar { position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.94);
-  backdrop-filter: saturate(180%) blur(10px); border-bottom: 1px solid var(--borde); }
+  backdrop-filter: saturate(180%) blur(10px); }
 .topbar-inner { max-width: 1180px; margin: 0 auto; padding: 17px 24px;
   display: flex; align-items: center; gap: 14px; }
 .marca { display: flex; align-items: center; color: inherit; }
@@ -52,6 +52,9 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .fecha-datos time { color: #374151; font-weight: 600; }
 
 .barra-amarilla { height: 4px; background: linear-gradient(90deg, var(--g2), var(--y3)); }
+/* mismo borde degradado en la parte superior de la barra blanca */
+.topbar::before { content: ""; display: block; height: 4px;
+  background: linear-gradient(90deg, var(--g2), var(--y3)); }
 
 @media (max-width: 720px) {
   .topbar-inner { padding: 17px 14px; gap: 10px; }
