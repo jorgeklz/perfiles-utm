@@ -51,8 +51,9 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .fecha-datos::after { content: ""; flex: 1; height: 1px; background: #e5e7eb; }
 .fecha-datos time { color: #374151; font-weight: 600; }
 
-.barra-amarilla { height: 4px; background: linear-gradient(90deg, var(--g2), var(--y3)); }
-/* mismo borde degradado en la parte superior de la barra blanca */
+/* el degradado queda solo en el borde superior (.topbar::before) */
+.barra-amarilla { display: none; }
+/* borde degradado verde a amarillo en la parte superior de la barra blanca */
 .topbar::before { content: ""; display: block; height: 4px;
   background: linear-gradient(90deg, var(--g2), var(--y3)); }
 
