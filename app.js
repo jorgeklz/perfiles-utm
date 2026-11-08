@@ -126,7 +126,7 @@
       : esc(iniciales(a))}</div>`
 
   // fecha de la última descarga de Scopus, en la barra superior y en el pie
-  const topFecha = document.getElementById('top-fecha')
+  let fechaHero = ''
   const pieFecha = document.getElementById('pie-fecha')
   if (D.fecha) {
     const [dia, hora] = String(D.fecha).trim().split(/\s+/)
@@ -134,9 +134,9 @@
     const fTxt = new Date(y, m - 1, d).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })
     const texto = hora ? `${fTxt}, ${hora} (GMT-5)` : fTxt
     const iso = hora ? `${dia}T${hora}-05:00` : dia
-    for (const el of [topFecha, pieFecha]) if (el) { el.dateTime = iso; el.textContent = texto }
+    for (const el of [pieFecha]) if (el) { el.dateTime = iso; el.textContent = texto }
+    fechaHero = `<div class="hero-fecha"><span>Datos de Scopus al <time datetime="${iso}">${texto}</time></span></div>`
   } else {
-    if (topFecha) { const fr = topFecha.closest('.franja-datos'); if (fr) fr.hidden = true }
     if (pieFecha) pieFecha.closest('.pie-fecha').hidden = true
   }
 
@@ -208,6 +208,7 @@
         <p>Refleja exclusivamente las investigaciones en las que los autores figuran con
            afiliación a la Universidad Técnica de Manabí.</p>
         ${buscadorHeroHTML()}
+        ${fechaHero}
         <div class="hero-stats">
           ${stat('autores', num(G.autores), 'Autores',
     'Investigadores UTM con al menos una publicación indexada en Scopus.')}
