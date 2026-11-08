@@ -143,6 +143,9 @@
   // año actual y métricas por autor restringidas a ese año (mismos criterios que
   // el histórico). Se usa D.porAutor para incluir fusiones y asignaciones manuales.
   const ANIO_ACTUAL = new Date().getFullYear()
+  // Publicación con fecha de portada de un año posterior al actual: salió en línea antes de su volumen.
+  const adelM = p => (p.y || 0) > ANIO_ACTUAL
+    ? `<span class="adelanto" title="Fecha de portada ${p.y}, posterior al año actual: se publicó en línea antes de su volumen.">En línea antes de su volumen</span> · ` : ''
   const ANUAL = (() => {
     const m = new Map()
     Object.entries(D.porAutor).forEach(([id, idxs]) => {
@@ -206,7 +209,7 @@
       <section class="hero"><div class="hero-inner">
         <h1>Producción científica de la UTM en Scopus</h1>
         <p>Refleja exclusivamente las investigaciones en las que los autores figuran con
-           afiliación a la Universidad Técnica de Manabí.</p>
+           afiliación a la Universidad Técnica de Manabí (UTM).</p>
         ${buscadorHeroHTML()}
         ${fechaHero}
         <div class="hero-stats">
@@ -422,7 +425,10 @@
   const fechaCorta = f => {
     if (!f) return ''
     const d = new Date(String(f).replace(' ', 'T'))
-    return isNaN(d) ? esc(f) : d.toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })
+    if (isNaN(d)) return esc(f)
+    const fecha = d.toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })
+    const hora = String(f).trim().split(/\s+/)[1]
+    return hora ? `${fecha}, ${hora.slice(0, 5)} (GMT-5)` : fecha
   }
   function filaNov(a, extra) {
     return `<a class="nov-fila" href="#/autor/${encodeURIComponent(a.id)}" title="Ver el perfil de ${esc(a.n)}">
@@ -452,7 +458,7 @@
       .map(a => filaNov(a, `<b class="nov-b nue">${plural(a.P, 'publicación', 'publicaciones')}</b>`))
     return `<div class="wrap portada" style="padding-bottom:0">
       <h2 class="dir-tit">Novedades de la última actualización</h2>
-      <div class="ayuda-filtros">Cambios respecto a la actualización del ${fechaCorta(N.fb)}.</div>
+      <div class="ayuda-filtros">Cambios entre la actualización anterior (${fechaCorta(N.fb)}) y la última (${fechaCorta(N.fa)}).</div>
       <div class="grid2">
         <div class="panel"><h3>Autores con nuevas publicaciones o citas <span class="nov-cuenta">${num(conNov.length)}</span></h3>
           ${listaNov('novAutores', conNov)}</div>
@@ -654,7 +660,7 @@
     const aut = au.length ? `<a href="#/autor/${encodeURIComponent(au[0].id)}">${esc(au[0].n)}</a>${au.length > 1 ? ' y ' + (au.length - 1) + ' más' : ''}` : ''
     const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
     const citas = `<span class="recip-citas" title="Citas recibidas según Scopus">${num(p.c || 0)} ${(p.c || 0) === 1 ? 'cita' : 'citas'}</span>`
-    return `<div class="recip"><div class="rt">${t}</div><div class="rm">${p.y || ''} · ${esc(p.j || '—')} · ${badgeQ(p.q)} · ${citas}${aut ? ' · ' + aut : ''}</div></div>`
+    return `<div class="recip"><div class="rt">${t}</div><div class="rm">${p.y || ''} · ${adelM(p)}${esc(p.j || '—')} · ${badgeQ(p.q)} · ${citas}${aut ? ' · ' + aut : ''}</div></div>`
   }
 
   function cardInv(a) {
@@ -1078,7 +1084,7 @@
           <div class="com-sel-lista">${comp.map(p => {
           const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
           const ret = p.r ? ` · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>` : ''
-          return `<div class="com-pub"><div class="com-pt">${t}</div><div class="com-pm">${p.y || '—'} · ${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${ret}</div></div>`
+          return `<div class="com-pub"><div class="com-pt">${t}</div><div class="com-pm">${p.y || '—'} · ${adelM(p)}${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${ret}</div></div>`
         }).join('')}</div>`
         comSel.style.display = 'block'
         comSel.querySelector('.com-sel-x').addEventListener('click', () => mostrarSel(null))
@@ -1197,7 +1203,7 @@
       ? ` · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>`
       : ''
     return `<div class="ctx-row"><div class="ctx-t">${t}</div>
-      <div class="ctx-m">${p.y || ''} · ${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${retirada}</div></div>`
+      <div class="ctx-m">${p.y || ''} · ${adelM(p)}${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${retirada}</div></div>`
   }
   // popover flotante contextual (junto al cursor)
   let popEl = null
@@ -1395,7 +1401,7 @@
       : esc(p.t)
     return `<div class="pub"><div class="anio"><b>${p.y || '—'}</b></div>
       <div class="cuerpo"><div class="t">${t}${dest ? ' <span class="mas-citada">★ Más citada</span>' : ''}</div>
-      <div class="m">${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}</div>${autoresLinea(p)}</div></div>`
+      <div class="m">${adelM(p)}${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}</div>${autoresLinea(p)}</div></div>`
   }
 
   // ---------- coautoría externa, temas y exportaciones del perfil ----------
@@ -1516,15 +1522,16 @@
   // El año en curso aún no ha terminado: sus barras se dibujan con otro tono y
   // queda fuera de la tendencia y del promedio, que compararían un año completo
   // con uno a medias.
-  const esParcial = (years) => years.length > 0 && years[years.length - 1] === ANIO_ACTUAL
-  const aniosCompletos = (years) => esParcial(years) ? years.slice(0, -1) : years
+  // También son parciales los años posteriores al actual (adelantos de volumen).
+  const esParcial = (years) => years.some(y => y >= ANIO_ACTUAL)
+  const aniosCompletos = (years) => years.filter(y => y < ANIO_ACTUAL)
 
   function barsAnio(porAnio, H = 150) {
     const years = Object.keys(porAnio).map(Number).sort((a, b) => a - b)
     if (!years.length) return '<div style="color:var(--texto3)">Sin datos.</div>'
     const vals = years.map(y => porAnio[y])
     const parcial = esParcial(years)
-    const nComp = years.length - (parcial ? 1 : 0)
+    const nComp = years.filter(y => y < ANIO_ACTUAL).length
     const max = Math.max(...vals)
     const n = years.length, W = Math.max(280, n * 36), base = H - 24, top = 14
     const paso = W / n, bw = Math.min(22, paso - 9)
@@ -1534,11 +1541,11 @@
     years.forEach((y, i) => {
       const x = i * paso + (paso - bw) / 2
       const yb = yFor(porAnio[y])
-      const enCurso = parcial && i === years.length - 1
+      const enCurso = y >= ANIO_ACTUAL
       const relleno = enCurso
         ? 'fill="#2e8a1f" fill-opacity=".45" stroke="#2e8a1f" stroke-width="1.2" stroke-dasharray="3 2"'
         : 'fill="#2e8a1f"'
-      s += `<rect x="${x}" y="${yb}" width="${bw}" height="${Math.max(1, base - yb)}" rx="4" ${relleno}>${enCurso ? `<title>${y}: año en curso, cifra parcial</title>` : ''}</rect>`
+      s += `<rect x="${x}" y="${yb}" width="${bw}" height="${Math.max(1, base - yb)}" rx="4" ${relleno}>${enCurso ? `<title>${y}: ${y === ANIO_ACTUAL ? 'año en curso' : 'adelanto de volumen'}, cifra parcial</title>` : ''}</rect>`
       // Las cifras se dibujan al final, sobre la línea de tendencia, con un halo
       // blanco detrás para que no se confundan con ella.
       rotulos += `<text x="${x + bw / 2}" y="${yb - 4}" font-size="9.5" text-anchor="middle" fill="#6b7563"
@@ -1581,7 +1588,7 @@
       <span>Año más productivo <b>${pico}</b> (${porAnio[pico]})</span>
       <span>Trayectoria <b>${span} año${span !== 1 ? 's' : ''}</b></span>
       <span>Tendencia <b style="color:#c07a12">${flecha} ${tend}</b> <em>(línea naranja)</em></span>
-      ${parcial ? `<span><em>* ${ANIO_ACTUAL} en curso: cifra parcial, no entra en el promedio ni en la tendencia.</em></span>` : ''}
+      ${parcial ? `<span><em>* ${years.filter(y => y >= ANIO_ACTUAL).join(' y ')}: ${years.some(y => y > ANIO_ACTUAL) ? 'cifras parciales (año en curso y adelantos de volumen)' : 'en curso, cifra parcial'}; no entran en el promedio ni en la tendencia.</em></span>` : ''}
     </div>`
   }
 
@@ -1631,7 +1638,7 @@
     const abierto = p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown'
     const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
     return `<div class="pub"><div class="anio"><b>${p.y || '—'}</b></div><div class="cuerpo"><div class="t">${t}</div>
-      <div class="m">${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${aut}</div></div></div>`
+      <div class="m">${adelM(p)}${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${aut}</div></div></div>`
   }
 
   function renderArea(area) {

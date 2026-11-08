@@ -377,6 +377,8 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .pubs { }
 .pub { display: flex; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--borde); }
 .pub:last-child { border-bottom: none; }
+.adelanto { display: inline-block; font-size: 11px; font-weight: 600; color: #8a6410;
+  background: #fff7e3; border: 1px solid #f0dfb0; border-radius: 999px; padding: 0 8px; }
 .pub .anio { flex-shrink: 0; width: 46px; text-align: center; }
 .pub .anio b { font-family: 'Montserrat', sans-serif; font-size: 15px; color: var(--texto); }
 .pub .cuerpo { min-width: 0; }
