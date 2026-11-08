@@ -450,7 +450,7 @@
       const a = porId.get(id)
       if (!a) return null
       const b = []
-      if (np) b.push(`<b class="nov-b pub">+${plural(np, 'publicación', 'publicaciones')}</b>`)
+      if (np) b.push(`<b class="nov-b npub">+${plural(np, 'publicación', 'publicaciones')}</b>`)
       if (cg) b.push(`<b class="nov-b cit">+${plural(cg, 'cita', 'citas')}</b>`)
       return filaNov(a, b.join(''))
     }).filter(Boolean)
