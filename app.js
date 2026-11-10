@@ -1067,7 +1067,10 @@
     if (mantenerScroll) window.scrollTo(0, scrollPrev)
 
     const btnPr = document.getElementById('btnPrintPerfil')
-    if (btnPr) btnPr.addEventListener('click', () => window.print())
+    if (btnPr) btnPr.addEventListener('click', () => {
+      window.dispatchEvent(new Event('beforeprint'))
+      window.print()
+    })
     document.querySelectorAll('.per-tab').forEach(b => b.addEventListener('click', () => {
       if (estado.periodoPerfil === b.dataset.per) return
       estado.periodoPerfil = b.dataset.per
@@ -1203,14 +1206,20 @@
     // lienzo
     const dpr = window.devicePixelRatio || 1
     let W = 0, H = 0
+    const vista = { k: 1, x: 0, y: 0 }
     const ctx = canvas.getContext('2d')
-    const medir = () => {
-      const nw = wrap.clientWidth, nh = wrap.clientHeight
+    const medir = (forzarW, forzarH) => {
+      const nw = forzarW || wrap.clientWidth, nh = forzarH || wrap.clientHeight
       if (!nw || !nh) return false
       if (nw === W && nh === H) return false
+      if (W > 0 && H > 0) {
+        const dx = (nw - W) / 2, dy = (nh - H) / 2
+        for (const n of nodos) { n.x += dx; n.y += dy }
+        vista.x += dx * (1 - vista.k)
+        vista.y += dy * (1 - vista.k)
+      }
       W = nw; H = nh
       canvas.width = W * dpr; canvas.height = H * dpr
-      canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
       return true
     }
     medir()
@@ -1222,7 +1231,6 @@
     })
 
     let alpha = 1, sobre = null, sel = null, grupoSel = null, arrastrando = null, paneando = false, raf = null, vivo = true
-    const vista = { k: 1, x: 0, y: 0 }
     const cortar = s => s.length > 22 ? s.slice(0, 21) + '…' : s
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
     const paso = () => {
@@ -1434,18 +1442,45 @@
     if (bOut) bOut.addEventListener('click', () => zoomA(1 / 1.3, W / 2, H / 2))
     if (bReset) bReset.addEventListener('click', () => { vista.k = 1; vista.x = 0; vista.y = 0; pinta() })
     let rt
+    const centrarNodos = () => {
+      if (!nodos.length || !W || !H) return
+      const c0 = nodos[0]
+      const dx = W / 2 - c0.x, dy = H / 2 - c0.y
+      if (dx || dy) {
+        for (const n of nodos) { n.x += dx; n.y += dy }
+      }
+    }
     const onResize = () => {
-      if (window.matchMedia && window.matchMedia('print').matches) return
+      if (medir()) { centrarNodos(); dibujar() }
       clearTimeout(rt)
-      rt = setTimeout(() => { if (medir()) { dibujar(); recalienta() } }, 200)
+      rt = setTimeout(() => recalienta(), 200)
     }
     const onBeforePrint = () => {
       clearTimeout(rt)
-      while (alpha > 0.08) { paso(); alpha *= 0.95 }
+      const pw = Math.min(wrap.clientWidth || W, 660)
+      const ph = wrap.clientHeight || H
+      medir(pw, ph)
+      while (alpha > 0.05) { paso(); alpha *= 0.95 }
+      vista.k = 1; vista.x = 0; vista.y = 0
+      centrarNodos()
       dibujar()
     }
+    const onAfterPrint = () => {
+      if (medir()) { centrarNodos(); dibujar() }
+    }
+    const mqlPrint = window.matchMedia ? window.matchMedia('print') : null
+    const onPrintMedia = e => {
+      if (e && e.matches) onBeforePrint()
+      else onAfterPrint()
+    }
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => {
+      if (medir()) { centrarNodos(); dibujar() }
+    }) : null
+    if (ro) ro.observe(wrap)
     window.addEventListener('resize', onResize)
     window.addEventListener('beforeprint', onBeforePrint)
+    window.addEventListener('afterprint', onAfterPrint)
+    if (mqlPrint && mqlPrint.addEventListener) mqlPrint.addEventListener('change', onPrintMedia)
 
     // leyenda interactiva: clic en un grupo lo enfoca en la red (atenúa el resto)
     const focoGrupo = g => {
@@ -1472,9 +1507,12 @@
 
     comStop = () => {
       vivo = false; if (raf) cancelAnimationFrame(raf)
+      if (ro) ro.disconnect()
       window.removeEventListener('mouseup', arriba)
       window.removeEventListener('resize', onResize)
       window.removeEventListener('beforeprint', onBeforePrint)
+      window.removeEventListener('afterprint', onAfterPrint)
+      if (mqlPrint && mqlPrint.removeEventListener) mqlPrint.removeEventListener('change', onPrintMedia)
     }
   }
 
