@@ -20,12 +20,17 @@
 
   const COLQ = { Q1: '#1e6b14', Q2: '#7bbf3a', Q3: '#e0902d', Q4: '#b23b30', 'N/A': '#a8a394', NC: '#c9c4b8' }
 
+  // Mínimo de publicaciones para entrar en el ranking de citas por publicación (C/P),
+  // evitando que un único trabajo muy citado distorsione los primeros puestos.
+  const MIN_PUBS_CP = 5
+  const MIN_PUBS_CP_ANUAL = 2
+
   // explicaciones de cada indicador (tooltip al pasar el cursor sobre el KPI)
   const AY = {
     P: 'Publicaciones (P): número de documentos indexados en Scopus. Se excluyen erratas, cartas, notas y editoriales.',
     C: 'Citas (C): total de citas recibidas por esas publicaciones según Scopus.',
     h: 'Índice h: el mayor número h tal que h publicaciones tienen al menos h citas cada una. Mide productividad e impacto a la vez.',
-    CP: 'C/P: citas por publicación; total de citas dividido entre el total de publicaciones (C ÷ P).',
+    CP: `C/P: citas por publicación; total de citas dividido entre el total de publicaciones (C ÷ P). El puesto en la UTM y el Top 10 exigen al menos ${MIN_PUBS_CP} publicaciones.`,
     i10: 'Índice i10: número de publicaciones con al menos 10 citas cada una.',
     g: 'Índice g: el mayor número g tal que las g publicaciones más citadas acumulan al menos g² citas en total. Da más peso a los trabajos muy citados.',
     m: 'Índice m: índice h dividido por los años de actividad desde la primera publicación. Permite comparar investigadores de distinta antigüedad.',
@@ -92,7 +97,10 @@
     const val = (a, m) => m === 'oa' ? (oaPct.get(a.id) || 0) : (a[m] || 0)
     const rank = new Map(D.autores.map(a => [a.id, {}]))
     ;['CP', 'i10', 'g', 'm', 'oa'].forEach(m => {
-      [...D.autores].sort((x, y) => val(y, m) - val(x, m))
+      const elegibles = m === 'CP'
+        ? D.autores.filter(a => (a.P || 0) >= MIN_PUBS_CP)
+        : D.autores
+      ;[...elegibles].sort((x, y) => val(y, m) - val(x, m) || (y.C - x.C) || (y.P - x.P))
         .forEach((a, i) => { rank.get(a.id)[m] = i + 1 })
     })
     return rank
@@ -246,9 +254,9 @@
         <div class="controles">
           <div class="buscador">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="q" placeholder="Buscar por nombre, apellido o Scopus ID…" autocomplete="off" />
+            <input id="q" type="search" aria-label="Buscar investigador en el directorio" placeholder="Buscar por nombre, apellido o Scopus ID…" autocomplete="off" />
           </div>
-          <select class="selector" id="orden">
+          <select class="selector" id="orden" aria-label="Ordenar directorio de investigadores">
             ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Ordenar: ${et}</option>`).join('')}
             <option value="ap">Ordenar: Apellido (A–Z)</option>
           </select>
@@ -558,17 +566,18 @@
 
   const SEL_ESTILO = 'margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400;height:auto;padding:6px 9px;font-size:12.5px'
   function destacadosHTML() {
+    const optTop = (k, et, minP) => `<option value="${k}">Por ${et.toLowerCase()}${k === 'CP' ? ` (mín. ${minP} pub.)` : ''}</option>`
     return `<div class="destacados">
       <div class="panel"><div class="top-cab">
         <div class="top-tabs">
           <button class="top-tab on" data-tab="anual">Top 10 del año ${ANIO_ACTUAL}</button>
           <button class="top-tab" data-tab="hist">Top 10 histórico</button>
         </div>
-        <select class="selector" id="topMetricAnual" style="${SEL_ESTILO}">
-          ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Por ${et.toLowerCase()}</option>`).join('')}
+        <select class="selector" id="topMetricAnual" aria-label="Indicador del Top 10 del año" style="${SEL_ESTILO}">
+          ${METRICAS_ORD.map(([k, et]) => optTop(k, et, MIN_PUBS_CP_ANUAL)).join('')}
         </select>
-        <select class="selector" id="topMetric" style="${SEL_ESTILO};display:none">
-          ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Por ${et.toLowerCase()}</option>`).join('')}
+        <select class="selector" id="topMetric" aria-label="Indicador del Top 10 histórico" style="${SEL_ESTILO};display:none">
+          ${METRICAS_ORD.map(([k, et]) => optTop(k, et, MIN_PUBS_CP)).join('')}
         </select></div>
         <div id="destTopAnual"></div>
         <div id="destTop" style="display:none"></div></div></div>`
@@ -613,7 +622,8 @@
   function pintarTop() {
     const cont = document.getElementById('destTop'); if (!cont) return
     const m = estado.topMetric
-    const top10 = [...D.autores]
+    const base = m === 'CP' ? D.autores.filter(a => (a.P || 0) >= MIN_PUBS_CP) : D.autores
+    const top10 = [...base]
       .sort((a, b) => (b[m] || 0) - (a[m] || 0) || (b.C - a.C) || (b.P - a.P))
       .slice(0, 10)
     cont.innerHTML = conPuestos(top10, a => fmtInd(m, a[m]), a => Number(a[m]) || 0)
@@ -630,7 +640,10 @@
   function pintarTopAnual() {
     const cont = document.getElementById('destTopAnual'); if (!cont) return
     const m = estado.topMetricAnual
-    const arr = [...ANUAL.entries()].filter(([id]) => porId.has(id))
+    const todos = [...ANUAL.entries()].filter(([id]) => porId.has(id))
+    const filtrados = m === 'CP' ? todos.filter(([, r]) => (r.P || 0) >= MIN_PUBS_CP_ANUAL) : todos
+    const base = filtrados.length ? filtrados : todos
+    const arr = [...base]
       .sort((x, y) => (y[1][m] || 0) - (x[1][m] || 0) || (y[1].C - x[1].C) || (y[1].P - x[1].P))
       .slice(0, 10)
     cont.innerHTML = arr.length
@@ -764,7 +777,7 @@
         ${kpi(a.P, 'Publicaciones', puestoTxt(a.rP), AY.P)}
         ${kpi(num(a.C), 'Citas', puestoTxt(a.rC), AY.C)}
         ${kpi(a.h, 'Índice h', puestoTxt(a.rH), AY.h)}
-        ${kpi(dec(a.CP, 2), 'Citas / pub.', puestoTxt(R.CP), AY.CP)}
+        ${kpi(dec(a.CP, 2), 'Citas / pub.', R.CP ? puestoTxt(R.CP) : `Mín. ${MIN_PUBS_CP} pub. para puesto`, AY.CP)}
         ${kpi(a.i10, 'Índice i10', puestoTxt(R.i10), AY.i10)}
         ${kpi(a.g ?? 0, 'Índice g', puestoTxt(R.g), AY.g)}
         ${kpi(dec(a.m ?? 0, 2), 'Índice m', puestoTxt(R.m), AY.m)}
@@ -826,14 +839,18 @@
     </div>
     ${TOP_PAGE_HTML}`
 
-    const topCit = new Set([...pubs].filter(p => (p.c || 0) > 0)
-      .sort((x, y) => (y.c || 0) - (x.c || 0)).slice(0, 3))
+    // Solo se marca la publicación número 1 en citas (cuando el autor tiene más de una),
+    // para que la etiqueta en singular ("★ Más citada") sea exacta.
+    const topCit = new Set(pubs.length > 1
+      ? [...pubs].filter(p => (p.c || 0) > 0).sort((x, y) => (y.c || 0) - (x.c || 0)).slice(0, 1)
+      : [])
     perfilPubs = pubs   // usado por el manejador delegado del popover
     wirePubs(pubsOrd, p => pubRow(p, topCit.has(p)))
-    paginar('coautCont', 'coautPager', coaut, coautRow, 5)
-    paginar('revCont', 'revPager', revistas, revistaRow, 5)
-    if ((a.cx || []).length) paginar('ceCoautCont', 'ceCoautPager', a.cx, coautExtRow, 5)
-    if ((a.ix || []).length) paginar('ceInstCont', 'ceInstPager', a.ix, instRow, 5)
+    const POR_PAG_PANEL = 10
+    paginar('coautCont', 'coautPager', coaut, coautRow, POR_PAG_PANEL)
+    paginar('revCont', 'revPager', revistas, revistaRow, POR_PAG_PANEL)
+    if ((a.cx || []).length) paginar('ceCoautCont', 'ceCoautPager', a.cx, coautExtRow, POR_PAG_PANEL)
+    if ((a.ix || []).length) paginar('ceInstCont', 'ceInstPager', a.ix, instRow, POR_PAG_PANEL)
     wireCoautExtTabs()
     wireComunidades(a, pubs)
   }
@@ -894,7 +911,15 @@
         }
     }
     const top = [...pesoCon.entries()].sort((x, y) => y[1] - x[1]).slice(0, 45)
-    if (top.length < 2) { canvas.style.display = 'none'; if (vacio) vacio.style.display = 'flex'; if (leyenda) leyenda.style.display = 'none'; return }
+    if (top.length < 2) {
+      canvas.style.display = 'none'
+      wrap.classList.add('com-vacio')
+      const zoom = wrap.querySelector('.com-zoom')
+      if (zoom) zoom.style.display = 'none'
+      if (vacio) vacio.style.display = 'flex'
+      if (leyenda) leyenda.style.display = 'none'
+      return
+    }
     const idset = new Set(top.map(([c]) => c))
 
     // comunidades por propagación de etiquetas sobre el grafo coautor-coautor
@@ -1031,20 +1056,47 @@
         return grupoSel != null && n.com === grupoSel
       }
       const rects = []
-      for (const i of nodos.map((_, k) => k).filter(conNombre)) {
+      // Reservar el círculo del nodo central para que ninguna etiqueta lo tape.
+      const c0 = nodos[0]
+      if (c0) {
+        const cx0 = c0.x * vista.k + vista.x, cy0 = c0.y * vista.k + vista.y, r0 = c0.r * vista.k + 4
+        rects.push([cx0 - r0, cy0 - r0, r0 * 2, r0 * 2])
+      }
+      const candidatos = nodos.map((_, k) => k).filter(conNombre)
+        .sort((a, b) => ((nodos[b].centro || b === sobre || b === sel) ? 1 : 0) - ((nodos[a].centro || a === sobre || a === sel) ? 1 : 0))
+      const aPintar = []
+      for (const i of candidatos) {
         if (atenuadoDe(i)) continue
         const n = nodos[i]
-        const sx = n.x * vista.k + vista.x, sy = n.y * vista.k + vista.y - n.r * vista.k - 5
-        if (sx < 0 || sx > W || sy < 8 || sy > H) continue
         const destacado = n.centro || i === sobre || sel === i
+        const gap = n.centro ? Math.max(12, n.r * vista.k + 11) : (n.r * vista.k + 7)
+        const sx = n.x * vista.k + vista.x, sy = n.y * vista.k + vista.y - gap
+        if (sx < 0 || sx > W || sy < 14 || sy > H) continue
         ctx.font = (destacado ? '600 ' : '') + '11px Montserrat, sans-serif'
         const txt = cortar(n.name), w = ctx.measureText(txt).width
-        const box = [sx - w / 2 - 2, sy - 11, w + 4, 13]
+        const padX = destacado ? 6 : 2, padTop = destacado ? 12 : 11, alto = destacado ? 17 : 13
+        const box = [sx - w / 2 - padX, sy - padTop, w + padX * 2, alto]
         if (!destacado && rects.some(r => solapa(r, box))) continue
         rects.push(box)
-        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.92)'
-        ctx.strokeText(txt, sx, sy)
-        ctx.fillStyle = '#17220f'; ctx.fillText(txt, sx, sy)
+        aPintar.push({ sx, sy, txt, destacado, box })
+      }
+      // Dibujar primero las etiquetas secundarias y al final las destacadas (con pastilla clara).
+      for (const et of aPintar.reverse()) {
+        if (et.destacado) {
+          const [bx, by, bw, bh] = et.box
+          ctx.beginPath()
+          if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 5)
+          else ctx.rect(bx, by, bw, bh)
+          ctx.fillStyle = 'rgba(255,255,255,0.94)'; ctx.fill()
+          ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(23,34,15,0.18)'; ctx.stroke()
+          ctx.font = '600 11px Montserrat, sans-serif'
+          ctx.fillStyle = '#17220f'; ctx.fillText(et.txt, et.sx, et.sy)
+        } else {
+          ctx.font = '11px Montserrat, sans-serif'
+          ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.92)'
+          ctx.strokeText(et.txt, et.sx, et.sy)
+          ctx.fillStyle = '#17220f'; ctx.fillText(et.txt, et.sx, et.sy)
+        }
       }
     }
     const bucle = () => {
@@ -1526,14 +1578,16 @@
   const esParcial = (years) => years.some(y => y >= ANIO_ACTUAL)
   const aniosCompletos = (years) => years.filter(y => y < ANIO_ACTUAL)
 
-  function barsAnio(porAnio, H = 150) {
+  function barsAnio(porAnio, H) {
     const years = Object.keys(porAnio).map(Number).sort((a, b) => a - b)
     if (!years.length) return '<div style="color:var(--texto3)">Sin datos.</div>'
     const vals = years.map(y => porAnio[y])
     const parcial = esParcial(years)
     const nComp = years.filter(y => y < ANIO_ACTUAL).length
     const max = Math.max(...vals)
-    const n = years.length, W = Math.max(280, n * 36), base = H - 24, top = 14
+    const n = years.length
+    if (H == null) H = n <= 2 ? 102 : n <= 4 ? 122 : 150
+    const W = Math.max(280, n * 36), base = H - 24, top = 14
     const paso = W / n, bw = Math.min(22, paso - 9)
     const yFor = v => base - (Math.max(0, v) / max) * (base - top)
     let s = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>`
@@ -1587,7 +1641,7 @@
       <span>Promedio <b>${prom}</b> pub./año${parcial && comp.length ? ' <em>(años cerrados)</em>' : ''}</span>
       <span>Año más productivo <b>${pico}</b> (${porAnio[pico]})</span>
       <span>Trayectoria <b>${span} año${span !== 1 ? 's' : ''}</b></span>
-      <span>Tendencia <b style="color:#c07a12">${flecha} ${tend}</b> <em>(línea naranja)</em></span>
+      ${comp.length >= 2 ? `<span>Tendencia <b style="color:#c07a12">${flecha} ${tend}</b> <em>(línea naranja)</em></span>` : ''}
       ${parcial ? `<span><em>* ${years.filter(y => y >= ANIO_ACTUAL).join(' y ')}: ${years.some(y => y > ANIO_ACTUAL) ? 'cifras parciales (año en curso y adelantos de volumen)' : 'en curso, cifra parcial'}; no entran en el promedio ni en la tendencia.</em></span>` : ''}
     </div>`
   }
