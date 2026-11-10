@@ -69,6 +69,8 @@ Es un sitio **estático**: HTML, CSS y JavaScript, más páginas ya generadas. N
 - `datos.js`: datos bibliométricos que consume el portal. Es el archivo más pesado.
 - `app.js`: lógica del portal interactivo.
 - `estilos.css` y `visitas.css`: estilos del sitio.
+- `mapa-mundo.js`: contornos de los países para el mapa de colaboración internacional.
+- `qrcode.js`: genera el código QR que lleva la ficha en PDF del investigador.
 - `logo_utm_2022.png`: logo institucional.
 - `robots.txt` y `sitemap.xml`: indicaciones para buscadores.
 - `p/`: una página HTML por investigador, nombrada con su ID de Scopus. Cada página trae los números del autor incrustados, con metadatos Open Graph y datos estructurados JSON-LD para los buscadores.
