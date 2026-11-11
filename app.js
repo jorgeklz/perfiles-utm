@@ -593,12 +593,42 @@
       }).join('')
       : '<span style="color:var(--texto3);font-size:var(--fs-sm)">Sin colaboración internacional registrada.</span>'
     const enRev = estado.panTab !== 'area'
+    // Distribución institucional por cuartil SJR y tipo, con las mismas métricas del perfil
+    const gq = {}, gt = {}
+    let gAut = 0, gPrim = 0, gCit = 0
+    D.pubs.forEach(p => {
+      gq[p.q] = (gq[p.q] || 0) + 1
+      gt[p.st || 'Otro'] = (gt[p.st || 'Otro'] || 0) + 1
+      gAut += p.nc || (p.au || []).length || 1
+      if (p.fa != null && porId.has(String(p.fa))) gPrim++
+      if ((p.c || 0) > 0) gCit++
+    })
+    const nP = D.pubs.length || 1
+    const distHTML = `<div class="panel"><h3>Distribución por cuartil SJR y tipo</h3>${donut(gq)}
+        <div class="subtitulo-panel">Por tipo de documento</div>${tiposBarras(gt)}
+        <div class="metricas-autoria">
+          <div class="ma"><b>${dec(gAut / nP, 1)}</b><span>Autores por publicación (promedio)</span></div>
+          <div class="ma"><b>${Math.round(100 * gPrim / nP)}%</b><span>Publicaciones con primer autor UTM</span></div>
+          <div class="ma"><b>${dec(100 * gCit / nP, 1)}%</b><span>Publicaciones con al menos 1 cita</span></div>
+        </div>
+        <div class="ctx-hint">Clic en un cuartil o tipo para ver sus publicaciones.</div></div>`
     return `<div class="wrap portada" style="padding-bottom:0">
       <h2 class="dir-tit">Panorama institucional</h2>
       <div class="ayuda-filtros">Producción científica de la Universidad Técnica de Manabí indexada en Scopus, en conjunto.</div>
       <div class="panel" style="margin-bottom:16px"><h3>Publicaciones por año</h3>${barsAnio(GI.porAnio, 200)}${infoAnios(GI.porAnio)}
         <div class="ctx-hint">Clic en una barra para ver las publicaciones de ese año.</div></div>
       <div class="grid2">
+        ${distHTML}
+        <div class="panel"><h3>Colaboración internacional</h3>
+          <div class="metricas-autoria intl" style="margin-top:0;border-top:none;padding-top:0">
+            <div class="ma"><b>${GI.pctIntl}%</b><span>Publicaciones con coautoría internacional</span></div>
+            <div class="ma"><b>${GI.nPaises}</b><span>Países colaboradores</span></div>
+          </div>
+          <div class="ce-sub">Principales países</div>
+          <div class="ce-chips">${paisesHTML}</div>
+          <div class="ctx-hint">Clic en un país para ver las publicaciones y los autores que colaboran.</div></div>
+      </div>
+      <div class="grid2" style="grid-template-columns:1fr">
         <div class="panel">
           <div class="top-tabs" style="margin-bottom:12px">
             <button type="button" class="top-tab pan-tab${enRev ? ' on' : ''}" data-pan="rev">${ico('pubs')}<span>Fuentes más frecuentes</span></button>
@@ -613,14 +643,6 @@
             <div class="ctx-hint">Clic en un área para ver sus publicaciones o en ↗ para abrir el área completa.</div>
           </div>
         </div>
-        <div class="panel"><h3>Colaboración internacional</h3>
-          <div class="metricas-autoria intl" style="margin-top:0;border-top:none;padding-top:0">
-            <div class="ma"><b>${GI.pctIntl}%</b><span>Publicaciones con coautoría internacional</span></div>
-            <div class="ma"><b>${GI.nPaises}</b><span>Países colaboradores</span></div>
-          </div>
-          <div class="ce-sub">Principales países</div>
-          <div class="ce-chips">${paisesHTML}</div>
-          <div class="ctx-hint">Clic en un país para ver las publicaciones y los autores que colaboran.</div></div>
       </div>
     </div>`
   }
@@ -2173,6 +2195,24 @@
       ${nombre}
       <span class="ctx-aut-n">${a.n} pub.</span></div>`
   }
+  // Tono de la barra de título del popup, por grupo de función y con la paleta del portal:
+  // verde = producción, azul = colaboración, ocre = temas. Cuartil SJR usa el color de cada Q del
+  // gráfico de distribución; el rol de autoría, el de su gráfico en versión oscura.
+  const POP_TONO = { 'Colaboración internacional': '#2f4f7a', 'Filiación externa': '#2f4f7a', 'Coautor externo': '#2f4f7a',
+    'Área temática': '#8a5a0c', 'Tema recurrente': '#8a5a0c' }
+  const POP_TONO_ROL = { '#1e6b14': '#185a10', '#e0902d': '#9a5f0a', '#4a6fa5': '#2f4f7a' }
+  const POP_CLAROS = ['#7bbf3a', '#e0902d', '#a8a394', '#c9c4b8']
+  function tonoPop(sub, color) {
+    const c = String(color || '').toLowerCase()
+    if (/^Cuartil SJR/.test(sub) && /^#[0-9a-f]{6}$/.test(c)) return c
+    if (/^Rol de autoría/.test(sub) && POP_TONO_ROL[c]) return POP_TONO_ROL[c]
+    const k = Object.keys(POP_TONO).find(x => sub.startsWith(x))
+    return k ? POP_TONO[k] : '#185a10'
+  }
+  function estiloPop(sub, color) {
+    const t = tonoPop(sub, color), claro = POP_CLAROS.includes(t)
+    return `--pop-t:${t};--pop-fg:${claro ? '#16210e' : '#fff'};--pop-b:${claro ? '#16210e' : t}`
+  }
   function mostrarPopover(ev, titulo, lista, color, autores, autoresUtm, opts) {
     cerrarPop()
     color = color || '#2e8a1f'
@@ -2191,7 +2231,7 @@
     const conAutores = autores && autores.length
     const conUtm = autoresUtm && autoresUtm.length
     const badgeTxt = `${lista.length} pub.${lista.length > cap && !conAutores && !conUtm ? ` · últ. ${cap}` : ''}`
-    const cabHtml = `<div class="pop-cab">
+    const cabHtml = `<div class="pop-cab" style="${estiloPop(sub, color)}">
       <span class="pop-ico">${iconoHtml}</span>
       <div class="pop-tit-wrap">
         <div class="pop-sub">${esc(sub)}</div>
@@ -2307,7 +2347,7 @@
     popEl = document.createElement('div')
     popEl.className = 'popover-ctx'
     let fmt = 'apa'
-    popEl.innerHTML = `<div class="pop-cab">
+    popEl.innerHTML = `<div class="pop-cab" style="${estiloPop('Referencia bibliográfica')}">
       <span class="pop-ico">${ico('citas')}</span>
       <div class="pop-tit-wrap">
         <div class="pop-sub">Referencia bibliográfica</div>
