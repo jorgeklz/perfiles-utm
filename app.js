@@ -313,6 +313,7 @@
         <p>Refleja exclusivamente las investigaciones en las que los autores figuran con
            afiliación a la Universidad Técnica de Manabí (UTM).</p>
         ${buscadorHeroHTML()}
+        <div class="hero-panel">
         ${fechaHero}
         <div class="hero-stats">
           ${stat('autores', num(G.autores), 'Autores',
@@ -331,7 +332,7 @@
             'El mayor número g tal que las g publicaciones más citadas acumulan al menos g² citas en total.')}
           ${stat('m', dec(G.m, 2), 'Índice m',
             'Índice h dividido por los años desde la primera publicación indexada. Permite comparar el ritmo de crecimiento del impacto.')}
-        </div></div></section>
+        </div></div></div></section>
       ${panoramaHTML()}
       <div class="wrap" style="padding-bottom:0">
         <h2 class="dir-tit">Top 10 investigadores</h2>
@@ -1402,7 +1403,7 @@
       if (h) sobre += `<path d="${d}" fill="${col(h.n)}" stroke="#fff" stroke-width=".6" data-cat="pais" data-val="${esc(h.pais)}" style="cursor:pointer"><title>${esc(h.pais)}: ${h.n} pub. conjunta${h.n === 1 ? '' : 's'}</title></path>`
       else base += `<path d="${d}" fill="#eceee7" stroke="#fff" stroke-width=".6"/>`
     })
-    return `<div class="mapa-colab"><svg viewBox="0 0 ${M.w} ${M.h}" width="100%" role="img" aria-label="Mapa de países de los coautores">${base}${sobre}</svg>
+    return `<div class="mapa-colab"><svg viewBox="0 12 ${M.w} ${M.h - 56}" width="100%" role="img" aria-label="Mapa de países de los coautores">${base}${sobre}</svg>
       <div class="mapa-leyenda"><span>1 pub.</span><span class="mapa-barra">${ESC.map(c => `<i style="background:${c}"></i>`).join('')}</span><span>${max} pub.</span>
       <em>Clic en un país para ver las publicaciones conjuntas.</em></div>
       </div>`
@@ -2778,9 +2779,12 @@
     const nComp = years.filter(y => y < ANIO_ACTUAL).length
     const max = Math.max(...vals)
     const n = years.length
-    if (H == null) H = n <= 2 ? 102 : n <= 4 ? 122 : 150
-    const W = Math.max(280, n * 36), base = H - 24, top = 14
-    const paso = W / n, bw = Math.min(22, paso - 9)
+    const ancha = ((document.documentElement && document.documentElement.clientWidth) || 1200) >= 700
+    if (ancha && H != null) H = 170
+    else if (H != null) H = Math.round(H * 1.12)
+    if (H == null) H = ancha ? 142 : (n <= 2 ? 110 : n <= 4 ? 132 : 164)
+    const W = ancha ? Math.max(520, n * (n >= 10 ? 76 : 52)) : Math.max(n >= 10 ? 400 : 440, n * (n >= 10 ? 30 : 44)), base = H - 24, top = 14
+    const paso = W / n, bw = ancha ? Math.min(n >= 10 ? 22 : 16, paso - 16) : Math.min(30, paso - 12)
     const yFor = v => base - (Math.max(0, v) / max) * (base - top)
     let s = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>`
     let rotulos = ''
@@ -2810,7 +2814,7 @@
     years.forEach((y, i) => {
       s += `<rect x="${(i * paso).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${base}" fill="transparent" data-cat="anio" data-val="${y}" style="cursor:pointer"><title>Ver publicaciones de ${y}</title></rect>`
     })
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 10}px">${s}</svg>`
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>`
   }
 
   function infoAnios(porAnio) {
