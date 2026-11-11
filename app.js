@@ -4,8 +4,8 @@
   const app = document.getElementById('app')
   let perfilPubs = null   // publicaciones del perfil activo (para el popover contextual)
   // botón "Inicio de la página" (se muestra al final de cada vista, antes del pie)
-  const TOP_PAGE_HTML = '<div class="wrap" style="padding-top:0;text-align:center">' +
-    '<button class="top-page" title="Ir al inicio de la página">↑ Inicio de la página</button></div>'
+  // Ya no hay botón al final de cada vista: "Ir a arriba" es un botón flotante global (ver más abajo).
+  const TOP_PAGE_HTML = ''
   const porId = new Map(D.autores.map(a => [a.id, a]))
   const num = n => (n || 0).toLocaleString('es-EC')
   // Decimales con coma, como corresponde en español: 6,53 y no 6.53. Así no se
@@ -1543,12 +1543,14 @@
   }
 
   // ---------- perfil ----------
+  // Ruta de navegación: "Inicio › página actual". El primer tramo vuelve a la portada.
+  const migas = actual => `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span><span class="mg-act" aria-current="page">${esc(actual)}</span></nav>`
   function renderPerfil(id, mantenerScroll) {
     const a = porId.get(id)
     if (!a) {
       perfilPubs = null
       aplicarFiltroCtxPubs = null
-      app.innerHTML = `<div class="wrap"><a class="volver" href="#/">← Volver a la página principal</a>
+      app.innerHTML = `<div class="wrap">${migas('Investigador no encontrado')}
         <div class="panel"><div class="vacio">Investigador no encontrado.</div></div></div>`
       return
     }
@@ -1660,7 +1662,7 @@
     }
     const scrollPrev = mantenerScroll ? window.scrollY : 0
     app.innerHTML = `<div class="wrap">
-      <a class="volver" href="#/">← Volver a la página principal</a>
+      ${migas(a.n)}
       <div class="perfil-hero">
         ${avatar(a)}
         <div style="flex:1;min-width:240px">
@@ -3125,7 +3127,7 @@
     const slug = 'area-' + (area || 'utm').toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
     app.innerHTML = `<div class="wrap">
-      <a class="volver" href="#/">← Volver a la página principal</a>
+      ${migas(area)}
       <div class="perfil-hero" style="border-left-color:var(--g3)">
         <div style="flex:1"><h1>${esc(area)}</h1>
           <div class="sub">Área temática de Scopus · ${num(lista.length)} publicaciones UTM · ${num(autArea.length)} investigadores UTM</div></div></div>
@@ -3160,7 +3162,7 @@
     const mayus = x => x.charAt(0).toUpperCase() + x.slice(1)
     const item = (t, cuerpo) => `<div class="met-item"><h3>${t}</h3><p>${mayus(cuerpo)}</p></div>`
     app.innerHTML = `<div class="wrap">
-      <a class="volver" href="#/">← Volver a la página principal</a>
+      ${migas('Metodología')}
       <div class="perfil-hero" style="border-left-color:var(--g3)">
         <div style="flex:1"><h1>Metodología</h1>
           <div class="sub">Cómo se obtienen y se calculan las cifras de este portal</div></div></div>
@@ -3387,6 +3389,28 @@
     ev.preventDefault()
     window.open(a.href, '_blank', 'noopener,noreferrer')
   })
+  // Botón flotante "Ir a arriba": aparece al bajar y desaparece arriba.
+  const btnArriba = document.createElement('button')
+  btnArriba.type = 'button'
+  btnArriba.className = 'ir-arriba'
+  btnArriba.setAttribute('aria-label', 'Ir al inicio de la página')
+  btnArriba.tabIndex = -1
+  btnArriba.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg><span>Ir a arriba</span>'
+  document.body.appendChild(btnArriba)
+  const sinMovimiento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  btnArriba.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: sinMovimiento ? 'auto' : 'smooth' }); btnArriba.blur() })
+  let tickArriba = false
+  const vigilaArriba = () => {
+    if (tickArriba) return
+    tickArriba = true
+    requestAnimationFrame(() => {
+      tickArriba = false
+      const ver = window.scrollY > 500
+      btnArriba.classList.toggle('ver', ver)
+      btnArriba.tabIndex = ver ? 0 : -1
+    })
+  }
+  window.addEventListener('scroll', vigilaArriba, { passive: true })
   window.addEventListener('hashchange', () => { cerrarPop(); cerrarGlobo(); router() })
   router()
 })()
