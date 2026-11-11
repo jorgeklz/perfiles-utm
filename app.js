@@ -1291,22 +1291,33 @@
   const claveFecha = p => p.d || ((p.y || 0) + '-00-00')
   function destacadasPubs(ps, id) {
     if (ps.length < 2) return []
-    const usadas = new Set(), res = []
-    const tomar = (et, ic, lista, extra) => {
-      const p = lista.find(x => !usadas.has(x))
-      if (p) { usadas.add(p); res.push({ et, ic, p, extra: extra ? extra(p) : '' }) }
-    }
+    // Cada categoría toma a su ganadora real, sin saltarse publicaciones ya usadas. Si una misma
+    // publicación gana varias categorías, se muestra una sola vez con las etiquetas juntas.
+    const cand = []
     const porCitas = [...ps].filter(p => (p.c || 0) > 0).sort((a, b) => (b.c || 0) - (a.c || 0) || (b.y || 0) - (a.y || 0))
     const rec = [...ps].sort((a, b) => claveFecha(b).localeCompare(claveFecha(a)))
-    tomar('Más citada', 'citas', porCitas)
+    const poner = (et, ic, p, extra) => { if (p) cand.push({ et, ic, p, extra: extra ? extra(p) : '' }) }
+    poner('Más citada', 'citas', porCitas[0])
     const q1 = rec.filter(p => p.q === 'Q1')
-    if (q1.length) tomar('Más reciente en Q1', 'reciente', q1)
-    else tomar('Más reciente en Q2', 'reciente', rec.filter(p => p.q === 'Q2'))
+    if (q1.length) poner('Más reciente en Q1', 'reciente', q1[0])
+    else poner('Más reciente en Q2', 'reciente', rec.find(p => p.q === 'Q2'))
     const rel = [...ps].filter(p => (p.c || 0) >= 3 && MEDIA_ANIO[p.y] > 0)
       .sort((a, b) => (b.c / MEDIA_ANIO[b.y]) - (a.c / MEDIA_ANIO[a.y]))
-    tomar('Mayor impacto relativo', 'ritmo', rel,
+    poner('Mayor impacto relativo', 'ritmo', rel[0],
       p => `${dec(p.c / MEDIA_ANIO[p.y], 1)} veces el promedio de citas de las publicaciones UTM de ${p.y}`)
-    tomar('Más citada como primer autor', 'rol', porCitas.filter(p => rolEnPub(p, id) === 'primero'))
+    poner('Más citada como primer autor', 'rol', porCitas.find(p => rolEnPub(p, id) === 'primero'))
+    const res = []
+    cand.forEach(c => {
+      const previa = res.find(r => r.p === c.p)
+      if (previa) { previa.ets.push(c.et); if (c.extra && !previa.extra) previa.extra = c.extra }
+      else res.push({ ets: [c.et], ic: c.ic, p: c.p, extra: c.extra })
+    })
+    res.forEach(r => {
+      const ets = r.ets.includes('Más citada') && r.ets.includes('Más citada como primer autor')
+        ? ['Más citada y como primer autor', ...r.ets.filter(e => e !== 'Más citada' && e !== 'Más citada como primer autor')]
+        : r.ets
+      r.et = ets.join(' · ')
+    })
     return res
   }
   function destacadasHTML(ps, id) {
