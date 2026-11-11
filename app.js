@@ -1429,7 +1429,7 @@
       if (h) sobre += `<path d="${d}" fill="${col(h.n)}" stroke="#fff" stroke-width=".6" data-cat="pais" data-val="${esc(h.pais)}" style="cursor:pointer"><title>${esc(h.pais)}: ${h.n} pub. conjunta${h.n === 1 ? '' : 's'}</title></path>`
       else base += `<path d="${d}" fill="#eceee7" stroke="#fff" stroke-width=".6"/>`
     })
-    return `<div class="mapa-colab"><svg viewBox="0 12 ${M.w} ${M.h - 56}" width="100%" role="img" aria-label="Mapa de países de los coautores">${base}${sobre}</svg>
+    return `<div class="mapa-colab"><div class="mapa-scroll"><svg viewBox="0 12 ${M.w} ${M.h - 56}" width="100%" role="img" aria-label="Mapa de países de los coautores">${base}${sobre}</svg></div>
       <div class="mapa-leyenda"><span>1 pub.</span><span class="mapa-barra">${ESC.map(c => `<i style="background:${c}"></i>`).join('')}</span><span>${max} pub.</span>
       <em>Clic en un país para ver las publicaciones conjuntas.</em></div>
       </div>`
@@ -2619,6 +2619,11 @@
     return `<span class="insig-q" style="background:${c}1e;color:${q === 'Q2' ? '#3f7d12' : c};cursor:help" title="${esc(tipCuartil(q))}">${esc(q)}</span>`
   }
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
+  // Mapa de coautores en móvil: más alto y desplazable; se centra en América al aparecer.
+  new MutationObserver(() => document.querySelectorAll('.mapa-scroll:not([data-c])').forEach(m => {
+    m.dataset.c = '1'
+    if (m.scrollWidth > m.clientWidth) m.scrollLeft = (m.scrollWidth - m.clientWidth) * 0.2
+  })).observe(document.body, { childList: true, subtree: true })
   function notaExUtm(a) {
     return a && a.xu
       ? `<div class="ex-utm-mini" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la Universidad Técnica de Manabí.">⚑ Sin afiliación vigente</div>`

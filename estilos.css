@@ -822,3 +822,9 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 @media (max-width: 680px) { .enlaces { display: grid; grid-template-columns: 1fr 1fr; } .enlaces .btn-ext { justify-content: center; text-align: center; } }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid #c08f0a; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+
+.mapa-scroll { border-radius: 10px; }
+@media (max-width: 680px) {
+  .mapa-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; background: #f6f8f3; }
+  .mapa-scroll svg { width: 165%; max-width: none; }
+}
