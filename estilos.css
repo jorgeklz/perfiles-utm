@@ -372,7 +372,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .panel { background: var(--sup); border: 1px solid var(--borde); border-radius: var(--r);
   padding: 18px 20px; box-shadow: var(--sombra); min-width: 0; overflow-wrap: anywhere; }
 /* títulos de panel en tipo oración (no versalitas), en toda la app */
-.panel h3 { font-family: 'Montserrat', sans-serif; font-size: var(--fs-base); font-weight: 700; text-transform: none;
+.panel h2, .panel h3 { font-family: 'Montserrat', sans-serif; font-size: var(--fs-base); font-weight: 700; text-transform: none;
   letter-spacing: 0; color: var(--texto2); margin-bottom: 14px; }
 
 /* fingerprint de áreas: chips escalados por frecuencia */
@@ -552,7 +552,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   .grid2 { display: block; }
   .grid2 > .panel { margin-bottom: 14px; }
   .panel { box-shadow: none; margin-bottom: 14px; }
-  .panel h3, .subtitulo-panel { break-after: avoid; page-break-after: avoid; }
+  .panel h2, .panel h3, .subtitulo-panel { break-after: avoid; page-break-after: avoid; }
   .donut-fila, .com-wrap, .kpi, .pub, .revista-fila, .coautor, .ce-inst, .area-fila, .perfil-hero { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
   .com-wrap canvas { object-fit: contain; margin: 0 auto; }
   a { color: inherit; text-decoration: none; }
@@ -680,7 +680,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   .grid2 { gap: 13px; margin-bottom: 14px; }
   .panel { padding: 14px 15px; }
   .panel-fuentes { margin-bottom: 14px; }
-  .panel h3 { font-size: var(--fs-sm); margin-bottom: 10px; }
+  .panel h2, .panel h3 { font-size: var(--fs-sm); margin-bottom: 10px; }
   .subtitulo-panel { font-size: var(--fs-xs); margin: 14px 0 8px; }
   .metricas-autoria { grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 8px; margin-top: 12px; padding-top: 11px; }
   .metricas-autoria .ma { padding: 9px 11px; }
@@ -814,3 +814,11 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 
 /* Líneas de investigación: total de publicaciones junto al nombre del área */
 .tev-tot { font-size: var(--fs-2xs); font-weight: 600; color: var(--texto3); }
+
+/* Mejoras de la ronda: novedades sin autores nuevos, filas recortadas en móvil, foco visible y movimiento reducido */
+.grid1 { grid-template-columns: 1fr !important; }
+.tf-oculta { display: none; }
+.tf-abierta .tf-oculta { display: grid; }
+@media (max-width: 680px) { .enlaces { display: grid; grid-template-columns: 1fr 1fr; } .enlaces .btn-ext { justify-content: center; text-align: center; } }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid #c08f0a; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }

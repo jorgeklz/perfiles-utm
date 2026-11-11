@@ -704,13 +704,16 @@
     return `<div class="wrap portada" style="padding-bottom:0">
       <h2 class="dir-tit">Novedades de la última actualización</h2>
       <div class="ayuda-filtros">Cambios entre la actualización anterior (${fechaCorta(N.fb)}) y la última (${fechaCorta(N.fa)}).</div>
-      <div class="grid2">
+      <div class="grid2${nuevos.length ? '' : ' grid1'}">
         <div class="panel"><h3>Autores con nuevas publicaciones o citas <span class="nov-cuenta">${num(conNov.length)}</span></h3>
           ${listaNov('novAutores', conNov)}</div>
-        <div class="panel"><h3>Autores nuevos <span class="nov-cuenta">${num(nuevos.length)}</span></h3>
+        ${nuevos.length
+          ? `<div class="panel"><h3>Autores nuevos <span class="nov-cuenta">${num(nuevos.length)}</span></h3>
           <div class="ayuda-filtros" style="margin:-4px 0 8px">Aparecen por primera vez en el portal.</div>
-          ${listaNov('novNuevos', nuevos)}</div>
+          ${listaNov('novNuevos', nuevos)}</div>`
+          : ''}
       </div>
+      ${nuevos.length ? '' : '<div class="ayuda-filtros">No hay autores nuevos en esta actualización.</div>'}
     </div>`
   }
   // "Ver todos" de las listas de novedades (delegado: la portada se repinta)
@@ -1215,7 +1218,7 @@
     }
     const parcial = serie.some(r => r.y >= ANIO_ACTUAL)
     const ast = parcial ? `<span><em>* Año en curso: cifra parcial.</em></span>` : ''
-    return `<div class="panel panel-evo"><h3>Evolución en el tiempo</h3>
+    return `<div class="panel panel-evo"><h2>Evolución en el tiempo</h2>
       <div class="top-tabs" style="margin-bottom:12px">
         <button type="button" class="top-tab evo-tab on" data-evo="h">${ico('trayectoria')}<span>Índice h y citas</span></button>
         <button type="button" class="top-tab evo-tab" data-evo="rol">${ico('rol')}<span>Rol de autoría</span></button>
@@ -1298,7 +1301,7 @@
         ? '<div class="revistas" id="revCont"></div><div class="paginacion" id="revPager"></div>'
         : vacio('Sin datos de revistas o conferencias.'),
     }
-    return `<div class="panel panel-tev panel-fuentes" style="margin-bottom:18px"><h3>Temas y fuentes de publicación</h3>
+    return `<div class="panel panel-tev panel-fuentes" style="margin-bottom:18px"><h2>Temas y fuentes de publicación</h2>
       <div class="top-tabs" style="margin-bottom:12px">${tabs.map(([k, ic, et]) =>
         `<button type="button" class="top-tab tf-tab" data-tf="${k}">${ico(ic)}<span>${et}</span></button>`).join('')}</div>
       ${tabs.map(([k]) => `<div class="tf-pane" data-tf="${k}">${panes[k]}</div>`).join('')}</div>`
@@ -1347,7 +1350,7 @@
   function destacadasHTML(ps, id) {
     const d = destacadasPubs(ps, id)
     if (d.length < 2) return ''
-    return `<div class="panel panel-dest"><h3>Publicaciones destacadas</h3><div class="dest-grid">${d.map(x => {
+    return `<div class="panel panel-dest"><h2>Publicaciones destacadas</h2><div class="dest-grid">${d.map(x => {
       const p = x.p
       const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
       return `<div class="dest-card"><div class="dest-et">${ico(x.ic)}<span>${esc(x.et)}</span></div>
@@ -1618,14 +1621,14 @@
         ${kpi(kI10, 'Índice i10', subRank(R.i10), AY.i10)}
         ${kpi(kG, 'Índice g', subRank(R.g), AY.g)}
         ${kpi(dec(kM, 2), 'Índice m', subRank(R.m), AY.m)}
-        ${kpi(pctOA + '%', 'Acceso abierto', subRank(R.oa), AY.oa)}
+        ${kpi(pctOA + '%', 'Acceso abierto', per === 'todo' ? (R.oa && R.oa <= 100 ? puestoTxt(R.oa) : '') : etPer, AY.oa)}
       </div>
       ${destacadasHTML(pubs, a.id)}
 
       <div class="grid2">
-        <div class="panel"><h3>Publicaciones por año</h3>${barsAnio(porAnio)}${infoAnios(porAnio)}
+        <div class="panel"><h2>Publicaciones por año</h2>${barsAnio(porAnio)}${infoAnios(porAnio)}
           <div class="ctx-hint">Clic en una barra para ver las publicaciones de ese año.</div></div>
-        <div class="panel"><h3>Distribución por cuartil SJR y tipo</h3>${donut(cq)}
+        <div class="panel"><h2>Distribución por cuartil SJR y tipo</h2>${donut(cq)}
           <div class="subtitulo-panel">Por tipo de documento</div>${tiposBarras(ct)}
           <div class="metricas-autoria">
             <div class="ma"><b>${mApu == null ? 'N/D' : dec(mApu, 1)}</b><span>Autores por publicación (promedio)</span></div>
@@ -1639,7 +1642,7 @@
 
       ${temasFuentesHTML(pubs, areas, revistas.length)}
 
-      <div class="panel" style="margin-bottom:18px"><h3>Coautorías</h3>${coautoriaExterna(extData, coaut.length, a.n)}</div>
+      <div class="panel" style="margin-bottom:18px"><h2>Coautorías</h2>${coautoriaExterna(extData, coaut.length, a.n)}</div>
 
       ${panelPubsHTML('Publicaciones', pubs.length, true, a.id)}
     </div>
@@ -2405,7 +2408,7 @@
 
   // panel de publicaciones con filtros cruzados, buscador, exportación y paginación
   function panelPubsHTML(titulo, n, conOrden, autorId) {
-    return `<div class="panel" id="panelPubs"><h3 class="h3-flex">
+    return `<div class="panel" id="panelPubs"><h2 class="h3-flex">
       <span id="pubTitCont" data-base="${esc(titulo)}">${esc(titulo)} (${num(n)})</span>
       <span class="pp-ctrl">
         ${conOrden ? `<select class="selector" id="pubOrden" aria-label="Ordenar publicaciones">
@@ -2417,7 +2420,7 @@
           <option value="25">Ítems por página: 25</option>
           <option value="50">Ítems por página: 50</option>
           <option value="0">Ítems por página: Todas</option>
-        </select></span></h3>
+        </select></span></h2>
       <div class="pub-filtros">
         <input id="pubQ" class="entrada pub-busq" placeholder="Filtrar por título, revista, coautor o DOI…" aria-label="Filtrar publicaciones por texto">
         <div class="pub-fchips">
@@ -2618,21 +2621,59 @@
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
   function notaExUtm(a) {
     return a && a.xu
-      ? `<div class="ex-utm-mini" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Sin afiliación vigente con la Universidad Técnica de Manabí.</div>`
+      ? `<div class="ex-utm-mini" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la Universidad Técnica de Manabí.">⚑ Sin afiliación vigente</div>`
       : ''
   }
   // Autores de la publicación: los primeros por orden de firma y, cuando hay
   // muchos, también el último. El total va al final.
+  // Los firmantes que son investigadores UTM enlazan a su perfil. La firma de Scopus ("Apellido I.")
+  // se empareja con el nombre del autor UTM por apellido e inicial, solo entre los autores UTM de esa publicación.
+  const limpiaClave = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const CLAVE_UTM = new Map()
+  function claveUtm(id) {
+    if (CLAVE_UTM.has(id)) return CLAVE_UTM.get(id)
+    const a = porId.get(String(id))
+    let k = null
+    if (a && a.n) { const [ap, nom] = a.n.split(','); k = limpiaClave(ap) + '|' + limpiaClave((nom || '').trim()[0]) }
+    CLAVE_UTM.set(id, k)
+    return k
+  }
+  function claveFirma(nombre) {
+    const t = String(nombre || '').trim().split(/\s+/)
+    const ult = t[t.length - 1]
+    if (t.length > 1 && /^([A-ZÁÉÍÓÚÑ]\.?-?)+$/.test(ult)) return limpiaClave(t.slice(0, -1).join(' ')) + '|' + limpiaClave(ult[0])
+    return limpiaClave(nombre) + '|'
+  }
   function autoresLinea(p) {
     const prim = p.au || []
     if (!prim.length) return ''
     const total = p.nc || prim.length
+    const utm = new Map()
+    ;(p.u || []).forEach(id => { const k = claveUtm(id); if (k && !utm.has(k)) utm.set(k, id) })
+    // Respaldo: la firma lleva solo una parte del apellido compuesto ("Pinargote L." para "Cedeño-Pinargote, Lady").
+    const parcial = new Map()
+    ;(p.u || []).forEach(id => {
+      const a = porId.get(String(id))
+      if (!a || !a.n) return
+      const [ap, nom] = a.n.split(',')
+      const ini = limpiaClave((nom || '').trim()[0])
+      String(ap).split(/[\s\-‑]+/).map(limpiaClave).filter(t => t.length > 2).forEach(t => {
+        const k = t + '|' + ini
+        parcial.set(k, parcial.has(k) && parcial.get(k) !== id ? null : id)
+      })
+    })
+    const firma = nombre => {
+      const kf = claveFirma(nombre)
+      const id = utm.get(kf) || parcial.get(kf)
+      return id ? `<a href="#/autor/${encodeURIComponent(id)}" title="Ver el perfil de este investigador UTM">${esc(nombre)}</a>` : esc(nombre)
+    }
+    const lista = prim.map(firma).join('; ')
     let txt
     if (p.uf && total > prim.length) {
       const ocultos = total - prim.length - 1
-      txt = esc(prim.join('; ')) + (ocultos > 0 ? ` … +${ocultos} … ` : '; ') + esc(p.uf) + ` · ${total} autores`
+      txt = lista + (ocultos > 0 ? ` … +${ocultos} … ` : '; ') + firma(p.uf) + ` · ${total} autores`
     } else {
-      txt = esc(prim.join('; ')) + (total > prim.length ? ` … (+${total - prim.length} más)` : '')
+      txt = lista + (total > prim.length ? ` … (+${total - prim.length} más)` : '')
     }
     return `<div class="m aut-pub">${txt}</div>`
   }
@@ -2723,6 +2764,21 @@
     }
     tabs.forEach(t => t.addEventListener('click', () => activar(t.dataset.tf)))
     activar(tabs[0].dataset.tf)
+    // En móvil, las listas largas muestran 6 filas y un botón para ver el resto.
+    if (window.matchMedia && window.matchMedia('(max-width: 680px)').matches) {
+      panes.forEach(p => {
+        const filas = [...p.querySelectorAll('.tev-fila')]
+        if (filas.length <= 7) return
+        filas.slice(6).forEach(f => f.classList.add('tf-oculta'))
+        const b = document.createElement('button')
+        b.type = 'button'; b.className = 'nov-mas'; b.textContent = `Ver las ${filas.length} filas`
+        b.addEventListener('click', () => {
+          const abre = !p.classList.toggle('tf-abierta')
+          b.textContent = abre ? `Ver las ${filas.length} filas` : 'Ver menos'
+        })
+        filas[filas.length - 1].parentNode.appendChild(b)
+      })
+    }
   }
   // Conmuta las pestañas de Colaboración externa: misma lógica visual del Top 10.
   function wireCoautExtTabs(alActivar) {
@@ -2957,7 +3013,7 @@
         <div style="flex:1"><h1>${esc(area)}</h1>
           <div class="sub">Área temática de Scopus · ${num(lista.length)} publicaciones UTM · ${num(autArea.length)} investigadores UTM</div></div></div>
       ${autArea.length ? `<div class="panel" style="margin-bottom:18px">
-        <h3>Investigadores UTM en esta área (${num(autArea.length)})</h3>
+        <h2>Investigadores UTM en esta área (${num(autArea.length)})</h2>
         <div class="coautores" id="areaAutCont"></div>
         <div class="paginacion" id="areaAutPager"></div>
       </div>` : ''}
