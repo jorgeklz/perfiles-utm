@@ -196,7 +196,7 @@
     const texto = hora ? `${fTxt}, ${hora} (GMT-5)` : fTxt
     const iso = hora ? `${dia}T${hora}-05:00` : dia
     for (const el of [pieFecha]) if (el) { el.dateTime = iso; el.textContent = texto }
-    fechaHero = `<div class="hero-fecha"><span>Datos de Scopus al <time datetime="${iso}">${texto}</time></span></div>`
+    fechaHero = `<div class="hero-fecha"><span>Datos de Scopus al <time datetime="${iso}">${texto}</time></span> <a class="hero-metod" href="#/metodologia" title="Cómo se calculan los indicadores" aria-label="Cómo se calculan los indicadores"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M9.4 9.4a2.7 2.7 0 0 1 5.2 1c0 1.8-2.6 2.2-2.6 3.9"/><circle cx="12" cy="17.4" r=".6" fill="currentColor"/></svg></a></div>`
   } else {
     if (pieFecha) pieFecha.closest('.pie-fecha').hidden = true
   }
@@ -366,6 +366,7 @@
           <button type="button" class="btn-filtro-vig${estado.soloVig ? ' on' : ''}" id="btnVigente"
             aria-pressed="${estado.soloVig ? 'true' : 'false'}"
             title="Mostrar únicamente investigadores con afiliación UTM vigente en Scopus">${ico('primerAutor')}<span>Solo filiación vigente</span></button>
+          <button type="button" class="btn-exp" id="btnExpDir" title="Descargar en CSV los investigadores de la lista, con los filtros aplicados">${ico('csv')}<span>CSV</span></button>
           <div class="conteo" id="conteo"></div>
         </div>
         <div class="alfabeto" id="alf"></div>
@@ -392,6 +393,17 @@
     q.addEventListener('input', () => { estado.q = q.value; estado.pagina = 1; pintar(); verDirectorio(false) })
     orden.addEventListener('change', () => { estado.orden = orden.value; estado.pagina = 1; pintar(); verDirectorio(false) })
     if (areaDir) areaDir.addEventListener('change', () => { estado.area = areaDir.value; estado.pagina = 1; pintar(); verDirectorio(false) })
+    const btnExpDir = document.getElementById('btnExpDir')
+    if (btnExpDir) btnExpDir.addEventListener('click', () => {
+      const cel = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`
+      const nd = (v, d) => v == null || v === '' ? '' : cel(dec(v, d))
+      const cab = ['ID Scopus', 'Investigador', 'Publicaciones', 'Citas', 'Índice h', 'Índice i10', 'Índice g', 'Citas por publicación', 'Índice m',
+        'Primer año', 'Último año', 'Afiliación UTM vigente'].map(cel).join(',')
+      const filas = filtrar().map(a => [cel(a.id), cel(a.n), a.P || 0, a.C || 0, a.h || 0, a.i10 || 0, a.g || 0, nd(a.CP, 2), nd(a.m, 2),
+        a.pa || '', a.ua || '', cel(a.xu ? 'No' : 'Sí')].join(','))
+      const hoy = new Date().toISOString().slice(0, 10)
+      descargarArchivo(`directorio-utm-${hoy}.csv`, '\uFEFF' + [cab, ...filas].join('\n'), 'text/csv;charset=utf-8')
+    })
     if (btnVig) btnVig.addEventListener('click', () => {
       estado.soloVig = !estado.soloVig
       btnVig.classList.toggle('on', estado.soloVig)
@@ -461,6 +473,26 @@
     </div>`
   }
 
+  // Revistas y conferencias con su número de publicaciones, para las sugerencias del buscador.
+  let REV_SUG = null
+  function revistasSug() {
+    if (!REV_SUG) {
+      const m = new Map()
+      D.pubs.forEach(p => { if (p.j) m.set(p.j, (m.get(p.j) || 0) + 1) })
+      REV_SUG = [...m.entries()].map(([n, c]) => [n, c, norm(n)]).sort((a, b) => b[1] - a[1])
+    }
+    return REV_SUG
+  }
+  // Abre la ventana de publicaciones de una revista, como al hacer clic en ella en cualquier gráfica.
+  function abrirRevista(nombre, origen) {
+    const t = document.createElement('span')
+    t.dataset.cat = 'revista'; t.dataset.val = nombre
+    t.style.cssText = 'position:fixed;left:50%;top:25%;width:1px;height:1px;pointer-events:none'
+    app.appendChild(t)
+    t.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: Math.round(window.innerWidth / 2), clientY: Math.round(window.innerHeight * 0.25) }))
+    t.remove()
+  }
+
   function wireBuscadorHero() {
     const inp = document.getElementById('qHero'); if (!inp) return
     const caja = document.getElementById('qHeroSug')
@@ -513,9 +545,14 @@
         .filter(([ar]) => { const na = norm(ar); return tokens.every(tk => na.includes(tk)) })
         .slice(0, 3)
 
+      // Revistas y conferencias que coinciden con el texto
+      const visRev = txt.length >= 3
+        ? revistasSug().filter(([, , nn]) => tokens.every(tk => nn.includes(tk))).slice(0, 3)
+        : []
+
       let html = ''
       if (visAut.length) {
-        if (visTema.length || visAreas.length) html += '<div class="hx-sec">Investigadores</div>'
+        if (visTema.length || visAreas.length || visRev.length) html += '<div class="hx-sec">Investigadores</div>'
         html += visAut.map(a => `<button type="button" role="option" data-autor="${esc(a.id)}">${avatar(a)}
           <span class="sn">${esc(a.n)}</span>
           <span class="sm">${a.P} pub. · ${num(a.C)} citas</span></button>`).join('')
@@ -538,6 +575,13 @@
           <span class="sn">${esc(ar)}</span>
           <span class="sm">${num(c)} pub. UTM</span></button>`).join('')
       }
+      if (visRev.length) {
+        html += '<div class="hx-sec">Revistas y conferencias</div>'
+        html += visRev.map(([n, c]) => `<button type="button" role="option" data-revista="${esc(n)}">
+          <span class="hx-area-ic">${ico('fuente')}</span>
+          <span class="sn">${esc(n)}</span>
+          <span class="sm">${num(c)} pub. UTM</span></button>`).join('')
+      }
       if (!html) {
         html = '<div class="svacio">Sin coincidencias por nombre, tema ni ID de Scopus.</div>'
       }
@@ -546,6 +590,8 @@
       // mousedown y no click: se adelanta al blur del campo.
       caja.querySelectorAll('button[data-autor]').forEach(b =>
         b.addEventListener('mousedown', (ev) => { ev.preventDefault(); irA(b.dataset.autor) }))
+      caja.querySelectorAll('button[data-revista]').forEach(b =>
+        b.addEventListener('mousedown', (ev) => { ev.preventDefault(); cerrar(); inp.blur(); abrirRevista(b.dataset.revista) }))
       caja.querySelectorAll('button[data-area]').forEach(b =>
         b.addEventListener('mousedown', (ev) => { ev.preventDefault(); irArea(b.dataset.area) }))
       const todos = caja.querySelector('button[data-todos]')
@@ -703,7 +749,7 @@
       .map(a => filaNov(a, `<b class="nov-b nue">${plural(a.P, 'publicación', 'publicaciones')}</b>`))
     return `<div class="wrap portada" style="padding-bottom:0">
       <h2 class="dir-tit">Novedades de la última actualización</h2>
-      <div class="ayuda-filtros">Cambios entre la actualización anterior (${fechaCorta(N.fb)}) y la última (${fechaCorta(N.fa)}).</div>
+      <div class="ayuda-filtros">Cambios entre la actualización anterior (${fechaCorta(N.fb)}) y la última (${fechaCorta(N.fa)}). <a href="novedades.xml" target="_blank" rel="noopener noreferrer" data-nueva="1" title="Feed RSS para recibir estas novedades en un lector de noticias">Suscribirse por RSS</a></div>
       <div class="grid2${nuevos.length ? '' : ' grid1'}">
         <div class="panel"><h3>Autores con nuevas publicaciones o citas <span class="nov-cuenta">${num(conNov.length)}</span></h3>
           ${listaNov('novAutores', conNov)}</div>
@@ -1192,6 +1238,34 @@
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 14}px" role="img" aria-label="Porcentaje de publicaciones en Q1 y Q2 por año">${s}${ejeAnios(serie, paso, base)}</svg>`
   }
 
+  // Hitos del investigador: primeras veces y cifras redondas, a partir de sus publicaciones y de su serie anual.
+  function hitosAutor(pubs, id, serie) {
+    const cron = pubs.filter(p => p.y).sort((a, b) => claveFecha(a).localeCompare(claveFecha(b)))
+    if (!cron.length) return []
+    const corto = t => { const x = String(t || 'Sin título'); return x.length > 95 ? x.slice(0, 92).trimEnd() + '…' : x }
+    const out = []
+    const poner = (y, et, p) => out.push({ y, et, t: p ? corto(p.t) : '', p })
+    poner(cron[0].y, 'Primera publicación en Scopus', cron[0])
+    const q1 = cron.find(p => p.q === 'Q1')
+    if (q1) poner(q1.y, 'Primera publicación en una revista Q1', q1)
+    else { const q2 = cron.find(p => p.q === 'Q2'); if (q2) poner(q2.y, 'Primera publicación en una revista Q2', q2) }
+    const pa = cron.find(p => rolEnPub(p, id) === 'primero')
+    if (pa && pa !== cron[0]) poner(pa.y, 'Primera publicación como primer autor', pa)
+    ;[10, 25, 50, 100, 150, 200, 300].forEach(n => { if (cron.length >= n) poner(cron[n - 1].y, `Publicación número ${n}`, cron[n - 1]) })
+    ;[5, 10, 15, 20, 30, 40].forEach(n => {
+      const r = serie.find(x => x.h >= n)
+      if (r) poner(r.y, `Índice h de ${n}`, null)
+    })
+    const porAnio = {}
+    cron.forEach(p => { porAnio[p.y] = (porAnio[p.y] || 0) + 1 })
+    const mejor = Object.entries(porAnio).sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]
+    if (mejor && mejor[1] >= 3) out.push({ y: +mejor[0], et: `Año más productivo: ${mejor[1]} publicaciones`, t: '', p: null })
+    return out.sort((a, b) => a.y - b.y)
+  }
+  function hitosHTML(hitos) {
+    return `<div class="hitos">${hitos.map(h => `<div class="hito"><span class="hito-y">${h.y}</span><span class="hito-p" aria-hidden="true"></span>
+      <div class="hito-c"><b>${esc(h.et)}</b>${h.t ? `<span>${h.p && h.p.doi ? `<a href="https://doi.org/${esc(h.p.doi)}" target="_blank" rel="noreferrer" title="Abrir la publicación">${esc(h.t)}</a>` : esc(h.t)}</span>` : ''}</div></div>`).join('')}</div>`
+  }
   function evolucionHTML(pubs, id) {
     const serie = serieAnual(pubs, id)
     if (!serie.length) return ''
@@ -1216,6 +1290,7 @@
       const f = arr => { const a = arr.reduce((s, r) => s + r.q12, 0), b = arr.reduce((s, r) => s + r.nq, 0); return b ? pct(a, b) + '%' : 'N/D' }
       notaQ = `<span>Q1 y Q2: <b>${f(A)}</b> en ${per.etA} y <b>${f(B)}</b> en ${per.etB}</span>`
     }
+    const hitos = hitosAutor(pubs, id, serie)
     const parcial = serie.some(r => r.y >= ANIO_ACTUAL)
     const ast = parcial ? `<span><em>* Año en curso: cifra parcial.</em></span>` : ''
     return `<div class="panel panel-evo"><h2>Evolución en el tiempo</h2>
@@ -1223,6 +1298,7 @@
         <button type="button" class="top-tab evo-tab on" data-evo="h">${ico('trayectoria')}<span>Índice h y citas</span></button>
         <button type="button" class="top-tab evo-tab" data-evo="rol">${ico('rol')}<span>Rol de autoría</span></button>
         <button type="button" class="top-tab evo-tab" data-evo="q">${ico('calidad')}<span>Calidad de las revistas</span></button>
+        ${hitos.length >= 2 ? `<button type="button" class="top-tab evo-tab" data-evo="hitos">${ico('citas')}<span>Hitos</span></button>` : ''}
       </div>
       <div class="evo-pane" data-evo="h">
         <div class="evo-tit">Índice h acumulado (línea naranja) y citas de las publicaciones de cada año (barras)</div>
@@ -1244,6 +1320,10 @@
         <div class="info-anios"><span>Q1 y Q2 en total: <b>${nq ? pct(q12, nq) + '%' : 'N/D'}</b> (${q12} de ${nq})</span>${notaQ}${ast}</div>
         <div class="ctx-hint">Solo cuentan las publicaciones con cuartil SJR (Q1 a Q4); ponencias, capítulos y libros quedan fuera. Clic en una barra para ver sus publicaciones Q1 y Q2.</div>
       </div>
+      ${hitos.length >= 2 ? `<div class="evo-pane" data-evo="hitos" style="display:none">
+        <div class="evo-tit">Primeras veces y cifras redondas de su trayectoria en Scopus</div>
+        ${hitosHTML(hitos)}
+      </div>` : ''}
     </div>`
   }
   function wireEvolucion() {
@@ -2140,7 +2220,33 @@
   // popover flotante contextual (junto al cursor)
   let popEl = null
   const fueraPop = e => { if (popEl && !popEl.contains(e.target)) cerrarPop() }
-  const escPop = e => { if (e.key === 'Escape') cerrarPop() }
+  let focoOrigen = null
+  const escPop = e => {
+    if (e.key === 'Escape') { cerrarPop(); return }
+    // Tab queda dentro de la ventana mientras está abierta.
+    if (e.key !== 'Tab' || !popEl) return
+    const f = [...popEl.querySelectorAll('a[href], button, input, select, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.offsetParent !== null)
+    if (!f.length) { e.preventDefault(); return }
+    const i = f.indexOf(document.activeElement)
+    if (e.shiftKey && (i <= 0)) { e.preventDefault(); f[f.length - 1].focus() }
+    else if (!e.shiftKey && (i === f.length - 1 || i < 0)) { e.preventDefault(); f[0].focus() }
+  }
+  // Al abrir: el foco pasa a la ventana. Al cerrar: vuelve al elemento desde el que se abrió.
+  function origenPop(ev) {
+    let o = document.activeElement
+    if (!o || o === document.body) {
+      o = ev && ev.target && ev.target.closest ? ev.target.closest('[data-cat],[data-cite]') : null
+      if (o && !o.hasAttribute('tabindex') && !/^(a|button|input|select)$/i.test(o.tagName)) o.setAttribute('tabindex', '-1')
+    }
+    return o
+  }
+  function armarPop(previo) {
+    focoOrigen = previo || null
+    popEl.setAttribute('role', 'dialog')
+    popEl.setAttribute('aria-label', (popEl.querySelector('.pop-val') || {}).textContent || 'Detalle')
+    const x = popEl.querySelector('.pop-x')
+    if (x) x.focus({ preventScroll: true })
+  }
   // País elegido (en el mapa o en la lista): se resalta en ambos mientras el menú contextual está abierto.
   function marcarPais(val) {
     document.querySelectorAll('[data-cat="pais"].sel').forEach(x => x.classList.remove('sel'))
@@ -2157,6 +2263,8 @@
     popEl.remove(); popEl = null
     document.removeEventListener('mousedown', fueraPop, true)
     document.removeEventListener('keydown', escPop)
+    const o = focoOrigen; focoOrigen = null
+    if (o && o.isConnected && o.focus) o.focus({ preventScroll: true })
   }
   // Nombre de país (en inglés, como lo da Scopus) a código ISO-2, para la bandera.
   const PAIS_ISO = {
@@ -2218,6 +2326,7 @@
     return `--pop-t:${t};--pop-fg:${claro ? '#16210e' : '#fff'};--pop-b:${claro ? '#16210e' : t}`
   }
   function mostrarPopover(ev, titulo, lista, color, autores, autoresUtm, opts) {
+    const previo = focoOrigen || origenPop(ev)
     cerrarPop()
     color = color || '#2e8a1f'
     opts = opts || {}
@@ -2292,6 +2401,7 @@
     popEl.querySelector('.pop-x').addEventListener('click', cerrarPop)
     setTimeout(() => document.addEventListener('mousedown', fueraPop, true), 0)
     document.addEventListener('keydown', escPop)
+    armarPop(previo)
   }
 
   // Generación de citas (APA 7 y BibTeX) y exportación de publicaciones
@@ -2344,6 +2454,7 @@
   }
 
   function mostrarCitaPopover(ev, p) {
+    const previo = focoOrigen || origenPop(ev)
     cerrarPop()
     if (!p) return
     const apa = citaAPA(p)
@@ -2404,6 +2515,7 @@
     popEl.querySelector('.pop-x').addEventListener('click', cerrarPop)
     setTimeout(() => document.addEventListener('mousedown', fueraPop, true), 0)
     document.addEventListener('keydown', escPop)
+    armarPop(previo)
   }
 
   // panel de publicaciones con filtros cruzados, buscador, exportación y paginación
@@ -2620,7 +2732,7 @@
   }
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
   // Mapa de coautores en móvil: más alto y desplazable; se centra en América al aparecer.
-  new MutationObserver(() => document.querySelectorAll('.mapa-scroll:not([data-c])').forEach(m => {
+  if (typeof MutationObserver !== 'undefined') new MutationObserver(() => document.querySelectorAll('.mapa-scroll:not([data-c])').forEach(m => {
     m.dataset.c = '1'
     if (m.scrollWidth > m.clientWidth) m.scrollLeft = (m.scrollWidth - m.clientWidth) * 0.2
   })).observe(document.body, { childList: true, subtree: true })
@@ -3033,6 +3145,59 @@
     }
   }
 
+  // ---------- metodología ----------
+  function renderMetodologia() {
+    perfilPubs = null
+    aplicarFiltroCtxPubs = null
+    const fecha = (() => {
+      if (!D.fecha) return 'la fecha de la última actualización'
+      const [dia, hora] = String(D.fecha).trim().split(/\s+/)
+      const [y, m, d] = dia.split('-').map(Number)
+      const f = new Date(y, m - 1, d).toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })
+      return hora ? `${f}, ${hora} (GMT-5)` : f
+    })()
+    const sinAfil = D.autores.filter(a => a.xu).length
+    const mayus = x => x.charAt(0).toUpperCase() + x.slice(1)
+    const item = (t, cuerpo) => `<div class="met-item"><h3>${t}</h3><p>${mayus(cuerpo)}</p></div>`
+    app.innerHTML = `<div class="wrap">
+      <a class="volver" href="#/">← Volver a la página principal</a>
+      <div class="perfil-hero" style="border-left-color:var(--g3)">
+        <div style="flex:1"><h1>Metodología</h1>
+          <div class="sub">Cómo se obtienen y se calculan las cifras de este portal</div></div></div>
+      <div class="grid2">
+        <div class="panel"><h2>Fuente y fecha de corte</h2>
+          ${item('¿De dónde salen los datos?', 'Todo proviene de Scopus. El portal no usa otras bases de datos ni cifras ingresadas a mano.')}
+          ${item('Fecha de corte', `Los datos de esta versión corresponden al ${esc(fecha)}. Lo que se publique o se cite después aparece en la siguiente actualización.`)}
+          ${item('Año en curso', 'Las cifras del año en curso son parciales. Por eso no entran en los promedios ni en la tendencia de las gráficas, y sus barras se dibujan con trazo punteado.')}
+          ${item('Novedades', 'La portada compara la última actualización con la anterior: muestra autores con publicaciones o citas nuevas y autores que aparecen por primera vez.')}
+        </div>
+        <div class="panel"><h2>¿Quién aparece y qué se cuenta?</h2>
+          ${item('Autores UTM', 'Son los investigadores con publicaciones indexadas en Scopus con filiación a la Universidad Técnica de Manabí.')}
+          ${item('Afiliación vigente', `Scopus asigna a cada autor una afiliación actual. Si ya no es la UTM, el portal conserva su producción con filiación UTM y lo marca como «Sin afiliación vigente». Hoy son ${num(sinAfil)} autores.`)}
+          ${item('Publicaciones', 'Documentos indexados en Scopus. Se excluyen erratas, cartas, notas y editoriales.')}
+          ${item('Citas', 'Las que Scopus registra a la fecha de corte. Scopus no entrega el historial año a año, así que el índice h de cada año se calcula con las citas actuales de las publicaciones hasta ese año.')}
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h2>Indicadores</h2>
+          ${item('Índice h', AY.h.replace(/^Índice h: /, ''))}
+          ${item('Índice g', AY.g.replace(/^Índice g: /, ''))}
+          ${item('Índice i10', AY.i10.replace(/^Índice i10: /, ''))}
+          ${item('Índice m', AY.m.replace(/^Índice m: /, ''))}
+          ${item('Citas por publicación (C/P)', `Total de citas dividido entre el total de publicaciones. Para entrar en el puesto y en el Top 10 se exigen al menos ${MIN_PUBS_CP} publicaciones, así un solo trabajo muy citado no distorsiona la clasificación.`)}
+          ${item('Acceso abierto', 'Porcentaje de publicaciones disponibles sin suscripción, según el estado Open Access de Scopus.')}
+        </div>
+        <div class="panel"><h2>Puesto y cuartiles</h2>
+          ${item('Puesto en la UTM', 'Se ordena a todos los autores del portal, de mayor a menor, en cada indicador. Si hay empate, decide el total de citas y luego el de publicaciones. En acceso abierto el puesto solo se muestra entre los 100 primeros.')}
+          ${item('Cuartil SJR', 'Es el mejor cuartil de la revista según SCImago (SJR) en el año de la publicación. Si ese año no está disponible, se toma el de los años más cercanos, y como respaldo se usa el cuartil de CiteScore de Scopus.')}
+          ${item('N/A y NC', 'N/A corresponde a documentos a los que no se aplica un cuartil, como las ponencias en conferencias. NC significa que no se encontró cuartil para esa revista en ese año.')}
+          ${item('Colores', 'Q1 verde oscuro, Q2 verde claro, Q3 naranja, Q4 rojo, N/A gris y NC gris claro, igual en todas las gráficas y ventanas del portal.')}
+        </div>
+      </div>
+    </div>
+    ${TOP_PAGE_HTML}`
+  }
+
   // ---------- router ----------
   const TITULO = 'Investigadores UTM · Producción científica Scopus'
   function router() {
@@ -3042,6 +3207,9 @@
       renderPerfil(id)
       const a = porId.get(id)
       document.title = a ? `${a.n} · ${TITULO}` : TITULO
+    } else if (h === '#/metodologia') {
+      renderMetodologia()
+      document.title = `Metodología · ${TITULO}`
     } else if (h.indexOf('#/area/') === 0) {
       const ar = decodeURIComponent(h.slice(7))
       renderArea(ar)
@@ -3212,6 +3380,13 @@
   })
   window.addEventListener('scroll', cerrarGlobo, { passive: true })
 
+  // Enlaces marcados con data-nueva: siempre en una pestaña nueva, también dentro de una vista previa incrustada.
+  document.addEventListener('click', ev => {
+    const a = ev.target.closest && ev.target.closest('a[data-nueva]')
+    if (!a) return
+    ev.preventDefault()
+    window.open(a.href, '_blank', 'noopener,noreferrer')
+  })
   window.addEventListener('hashchange', () => { cerrarPop(); cerrarGlobo(); router() })
   router()
 })()

@@ -828,3 +828,41 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   .mapa-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; background: #f6f8f3; }
   .mapa-scroll svg { width: 165%; max-width: none; }
 }
+
+.hero-metod { display: inline-flex; vertical-align: middle; margin-left: 8px; color: #fff; opacity: .85; border-radius: 50%; }
+.hero-metod:hover { opacity: 1; text-decoration: none; color: #e8c25a; }
+.met-item { padding: 9px 0; border-bottom: 1px solid var(--borde); }
+.met-item:last-child { border-bottom: none; }
+.met-item h3 { margin: 0 0 3px; font-size: var(--fs-base); color: var(--g1); }
+.met-item p { margin: 0; font-size: var(--fs-sm); line-height: 1.55; color: var(--texto2); }
+
+
+/* Estado de carga: el logo de la UTM dentro de dos círculos que giran en sentidos opuestos */
+.cargando { min-height: 62vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+.cargando p { margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--g2); letter-spacing: .2px; }
+.cg-rueda { position: relative; width: 108px; height: 108px; display: flex; align-items: center; justify-content: center; }
+.cg-rueda img { height: 54px; width: 54px; object-fit: cover; object-position: left center; position: relative; }
+.cg-anillo { position: absolute; inset: 0; border-radius: 50%; border: 4px solid #e3eadb; border-top-color: var(--g3); border-right-color: var(--g3);
+  animation: cg-gira 1.1s linear infinite; }
+.cg-anillo.cg-in { inset: 13px; border-width: 3px; border-color: #f1e7c8; border-bottom-color: #c08f0a; border-left-color: #c08f0a;
+  animation-duration: 1.5s; animation-direction: reverse; }
+@keyframes cg-gira { to { transform: rotate(360deg); } }
+
+/* Hitos: línea de tiempo con el año en texto y un punto sobre la línea */
+.hitos { display: flex; flex-direction: column; margin-top: 8px; }
+.hito { display: grid; grid-template-columns: 44px 14px minmax(0, 1fr); gap: 0 10px; }
+.hito-y { text-align: right; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: var(--fs-sm); color: var(--g1); padding-top: 1px; }
+.hito-p { position: relative; }
+.hito-p::before { content: ""; position: absolute; left: 50%; top: 5px; width: 9px; height: 9px; margin-left: -6px; box-sizing: content-box;
+  border: 2px solid var(--g3); border-radius: 50%; background: #fff; }
+.hito-p::after { content: ""; position: absolute; left: 50%; top: 20px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--borde); }
+.hito:last-child .hito-p::after { display: none; }
+.hito-c { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-bottom: 14px; }
+.hito:last-child .hito-c { padding-bottom: 2px; }
+.hito-c b { font-size: var(--fs-sm); color: var(--texto); }
+.hito-c span { font-size: var(--fs-xs); color: var(--texto3); overflow-wrap: anywhere; }
+
+.hito-c span a { color: var(--g2); text-decoration: underline; text-decoration-color: rgba(30, 107, 20, .35); text-underline-offset: 2px; }
+.hito-c span a:hover { color: var(--g1); text-decoration-color: currentColor; }
+.hero-fecha a.hero-metod, .hero-fecha a.hero-metod:visited { color: #fff; opacity: 1; }
+.hero-fecha a.hero-metod:hover { color: #e8c25a; }

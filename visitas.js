@@ -90,7 +90,7 @@
   }
   function bandera(codigo) {
     if (!codigo || !/^[A-Z]{2}$/.test(codigo)) return '<span class="vis-bandera vacia">' + IC_WORLD + "</span>";
-    return '<img class="vis-bandera" src="https://flagcdn.com/' + codigo.toLowerCase() + '.svg" alt="" width="18" height="13" loading="lazy">';
+    return '<img class="vis-bandera" src="https://flagcdn.com/' + codigo.toLowerCase() + '.svg" alt="" width="18" height="13" decoding="async">';
   }
   function lugar(v) {
     var p = esc(pais(v.codigo));
@@ -202,10 +202,27 @@
       .catch(function () { /* se reintenta en el próximo ciclo */ });
   }
 
+  // La bandera tardaba porque todo esperaba a la geolocalización y luego a descargar la imagen.
+  // Ahora se pinta al instante con la última respuesta guardada, se piden los datos en paralelo
+  // a la geolocalización y las banderas se precargan en cuanto se conocen.
+  var CLAVE_CACHE = "vis_cache_v1";
+  function precargar(r) {
+    ((r && r.recientes) || []).concat((r && r.top) || []).forEach(function (v) {
+      if (v && /^[A-Z]{2}$/.test(v.codigo || "")) { var i = new Image(); i.src = "https://flagcdn.com/" + v.codigo.toLowerCase() + ".svg"; }
+    });
+  }
+  function guardar(r) { try { localStorage.setItem(CLAVE_CACHE, JSON.stringify(r)); } catch (e) { /* sin almacenamiento */ } }
+  try {
+    var previo = JSON.parse(localStorage.getItem(CLAVE_CACHE) || "null");
+    if (previo && previo.total != null) { datos = previo; precargar(previo); pintar(); }
+  } catch (e) { /* caché ilegible: se ignora */ }
+  if (!datos) {
+    rpc("resumen_visitas").then(function (r) { if (!datos) { precargar(r); datos = r; pintar(); } }).catch(function () { /* lo cubre el registro */ });
+  }
   geolocalizar()
     .then(function (geo) { return rpc("registrar_visita", geo); })
-    .then(function (r) { datos = r; pintar(); })
-    .catch(function (e) { caja.hidden = true; if (window.console) console.warn("Contador de visitas:", e.message); });
+    .then(function (r) { guardar(r); precargar(r); datos = r; pintar(); })
+    .catch(function (e) { if (!datos) caja.hidden = true; if (window.console) console.warn("Contador de visitas:", e.message); });
   setInterval(refrescar, REFRESCO_MS);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) refrescar(); });
 })();
