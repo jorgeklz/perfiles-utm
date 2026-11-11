@@ -1728,7 +1728,6 @@
             <a class="btn-ext" href="https://scholar.google.com/citations?view_op=search_authors&mauthors=${orcid}" target="_blank" rel="noreferrer">${ico('scholar')}<span>Buscar en Google Scholar ↗</span></a>
             <a class="btn-ext" href="https://www.researchgate.net/search/researcher?q=${orcid}" target="_blank" rel="noreferrer">${ico('rg')}<span>Buscar en ResearchGate ↗</span></a>
             <button type="button" class="btn-ext btn-print" id="btnFichaA4" title="Ficha de una página (A4) con indicadores, mejores publicaciones y código QR, lista para guardar en PDF">${ico('print')}<span>Ficha A4</span></button>
-            <button type="button" class="btn-ext btn-print" id="btnPrintPerfil" title="Imprimir o guardar el perfil completo en PDF, con resumen de indicadores y código QR">${ico('print')}<span>Perfil completo</span></button>
             <button type="button" class="btn-ext" id="btnCompartir" title="Copia el enlace de la página del perfil, que al pegarlo en WhatsApp, LinkedIn o correo muestra una tarjeta con sus indicadores">${ico('enlace')}<span>Compartir</span></button>
           </div>
         </div>
@@ -1788,15 +1787,12 @@
     if (btnComp) btnComp.addEventListener('click', () => {
       const lbl = btnComp.querySelector('span'), orig = lbl.textContent
       const url = location.href.split('#')[0].replace(/[^/]*$/, '') + 'p/' + encodeURIComponent(a.id) + '.html'
+        // El parámetro cambia con cada actualización de datos: así WhatsApp y LinkedIn vuelven a leer la tarjeta
+        + '?v=' + String(D.fecha || '').replace(/\D/g, '')
       copiarTexto(url)
         .then(() => { lbl.textContent = 'Enlace copiado' })
         .catch(() => { lbl.textContent = 'No se pudo copiar' })
       setTimeout(() => { lbl.textContent = orig }, 2200)
-    })
-    const btnPr = document.getElementById('btnPrintPerfil')
-    if (btnPr) btnPr.addEventListener('click', () => {
-      window.dispatchEvent(new Event('beforeprint'))
-      window.print()
     })
     document.querySelectorAll('.per-tab').forEach(b => b.addEventListener('click', () => {
       if (estado.periodoPerfil === b.dataset.per) return
