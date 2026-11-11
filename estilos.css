@@ -862,7 +862,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .hito-c b { font-size: var(--fs-sm); color: var(--texto); }
 .hito-c span { font-size: var(--fs-xs); color: var(--texto3); overflow-wrap: anywhere; }
 
-.hito-c span a { color: var(--g2); text-decoration: underline; text-decoration-color: rgba(30, 107, 20, .35); text-underline-offset: 2px; }
-.hito-c span a:hover { color: var(--g1); text-decoration-color: currentColor; }
+.hito-c span a { color: var(--g2); text-decoration: none; }
+.hito-c span a:hover { color: var(--g1); text-decoration: none; }
 .hero-fecha a.hero-metod, .hero-fecha a.hero-metod:visited { color: #fff; opacity: 1; }
 .hero-fecha a.hero-metod:hover { color: #e8c25a; }
