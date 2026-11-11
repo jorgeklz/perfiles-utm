@@ -753,10 +753,10 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 @media (max-width: 680px) { .tev-fila { grid-template-columns: 1fr auto; } .tev-b { grid-column: 1 / -1; } .tev-p { grid-column: 1; } }
 
 
-.aviso-perfil { margin: 0 0 14px; border: 1px solid #e8d38c; background: #fdf8e4; border-radius: 10px; font-size: var(--fs-sm); color: #6b5200; }
+.aviso-perfil { margin: 0 0 14px; border: 1px solid #c9d0bd; background: #e4e8dc; border-radius: 10px; font-size: var(--fs-sm); color: #3f4838; }
 .aviso-perfil summary { display: flex; align-items: center; gap: 7px; padding: 8px 12px; cursor: pointer; font-weight: 700; list-style: none; }
 .aviso-perfil summary::-webkit-details-marker { display: none; }
-.aviso-perfil .ic-svg { width: 15px; height: 15px; flex: none; }
+.aviso-perfil .ic-svg { width: 15px; height: 15px; flex: none; color: #6c7762; }
 .aviso-perfil ul { margin: 0; padding: 2px 14px 10px 30px; line-height: 1.5; }
 
 .mapa-colab svg { display: block; background: #f6f8f3; border-radius: 10px; }

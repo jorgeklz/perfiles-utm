@@ -1,2 +1,9 @@
 .DS_Store
 *.tmp
+# Solo se publica lo que el portal necesita (ver lista blanca en backend-node/src/github.js)
+README.md
+package-lock.json
+supabase/
+*.bak
+*.map
+.env*
