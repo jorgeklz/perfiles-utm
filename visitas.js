@@ -15,6 +15,24 @@
 
   var cfg = (window.SITE_CONFIG || {}).visitas || {};
   if (!cfg.url || !cfg.clave) return;
+  if (!/^https?:\/\//.test(cfg.url)) cfg.url = "https://" + cfg.url; // tolera la URL sin https://
+
+  // Eventos de uso (búsquedas, perfiles abiertos, descargas). Sin IP ni cookies: solo el tipo,
+  // un texto corto y, en las búsquedas, cuántos resultados hubo. Si la tabla no existe o falla
+  // la red, no pasa nada. Máximo 40 eventos por visita a la página.
+  var enviados = 0;
+  window.registrarEvento = function (tipo, detalle, n) {
+    if (enviados >= 40) return;
+    enviados++;
+    try {
+      var h = { apikey: cfg.clave, "Content-Type": "application/json" };
+      if (/^eyJ/.test(cfg.clave)) h.Authorization = "Bearer " + cfg.clave;
+      fetch(cfg.url.replace(/\/+$/, "") + "/rest/v1/rpc/registrar_evento", {
+        method: "POST", headers: h, keepalive: true,
+        body: JSON.stringify({ p_tipo: tipo, p_detalle: String(detalle || "").slice(0, 80), p_n: n == null ? null : n })
+      }).catch(function () {});
+    } catch (e) { /* sin efecto */ }
+  };
   var barra = document.querySelector(".topbar-acciones");
   if (!barra || document.getElementById("visitas")) return;
 

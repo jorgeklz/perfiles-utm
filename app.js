@@ -395,6 +395,7 @@
     if (areaDir) areaDir.addEventListener('change', () => { estado.area = areaDir.value; estado.pagina = 1; pintar(); verDirectorio(false) })
     const btnExpDir = document.getElementById('btnExpDir')
     if (btnExpDir) btnExpDir.addEventListener('click', () => {
+      if (window.registrarEvento) window.registrarEvento('csv', 'directorio')
       const cel = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`
       const nd = (v, d) => v == null || v === '' ? '' : cel(dec(v, d))
       const cab = ['ID Scopus', 'Investigador', 'Publicaciones', 'Citas', 'Índice h', 'Índice i10', 'Índice g', 'Citas por publicación', 'Índice m',
@@ -496,7 +497,7 @@
   function wireBuscadorHero() {
     const inp = document.getElementById('qHero'); if (!inp) return
     const caja = document.getElementById('qHeroSug')
-    let halla = [], sel = -1
+    let halla = [], sel = -1, timerBusq = 0
     const cerrar = () => { caja.hidden = true; inp.setAttribute('aria-expanded', 'false'); sel = -1 }
     const irA = (id) => { cerrar(); inp.blur(); location.hash = '#/autor/' + encodeURIComponent(id) }
     const irArea = (ar) => { cerrar(); inp.blur(); location.hash = '#/area/' + encodeURIComponent(ar) }
@@ -535,6 +536,11 @@
           if (!enAut.has(uid) && porId.has(uid)) porTema.set(uid, (porTema.get(uid) || 0) + 1)
         })
       }
+      // Se registra la búsqueda cuando la persona deja de escribir (sin guardar nada más que el texto)
+      clearTimeout(timerBusq)
+      timerBusq = setTimeout(() => {
+        if (txt.length >= 3 && window.registrarEvento) window.registrarEvento('busqueda', norm(txt), halla.length + porTema.size)
+      }, 1500)
       const visTema = [...porTema.entries()]
         .map(([uid, n]) => ({ a: porId.get(uid), n }))
         .sort((x, y) => y.n - x.n || (y.a.C || 0) - (x.a.C || 0))
@@ -3207,10 +3213,12 @@
     if (h.indexOf('#/autor/') === 0) {
       const id = decodeURIComponent(h.slice(8))
       renderPerfil(id)
+      if (window.registrarEvento) window.registrarEvento('perfil', id)
       const a = porId.get(id)
       document.title = a ? `${a.n} · ${TITULO}` : TITULO
     } else if (h === '#/metodologia') {
       renderMetodologia()
+      if (window.registrarEvento) window.registrarEvento('metodologia', '')
       document.title = `Metodología · ${TITULO}`
     } else if (h.indexOf('#/area/') === 0) {
       const ar = decodeURIComponent(h.slice(7))
@@ -3387,6 +3395,7 @@
     const a = ev.target.closest && ev.target.closest('a[data-nueva]')
     if (!a) return
     ev.preventDefault()
+    if (/novedades\.xml/.test(a.href)) if (window.registrarEvento) window.registrarEvento('rss', '')
     window.open(a.href, '_blank', 'noopener,noreferrer')
   })
   // Botón flotante "Ir a arriba": aparece al bajar y desaparece arriba.
