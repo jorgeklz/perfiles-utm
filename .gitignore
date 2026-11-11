@@ -7,3 +7,6 @@ supabase/
 *.bak
 *.map
 .env*
+.Rhistory
+.RData
+.Rproj.user/

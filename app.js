@@ -1530,6 +1530,49 @@
       return q.createSvgTag(4, 0)
     } catch (e) { return '' }
   }
+  // Ficha de una página (A4): se arma al momento, se muestra solo al imprimir y se retira después.
+  function fichaHTML(a) {
+    const pubsA = (D.porAutor[a.id] || []).map(i => D.pubs[i])
+    const top = [...pubsA].sort((x, y) => (y.c || 0) - (x.c || 0) || (y.y || 0) - (x.y || 0)).slice(0, 8)
+    const cuenta = {}
+    pubsA.forEach(p => (p.a || []).forEach(ar => { cuenta[ar] = (cuenta[ar] || 0) + 1 }))
+    const areas = Object.entries(cuenta).sort((x, y) => y[1] - x[1]).slice(0, 5).map(x => x[0])
+    const url = location.href.split('#')[0].replace(/[^/]*$/, '') + 'p/' + encodeURIComponent(a.id) + '.html'
+    const kpis = [['Publicaciones', num(a.P)], ['Citas', num(a.C)], ['Índice h', a.h], ['Índice i10', a.i10],
+      ['Índice g', a.g ?? 0], ['Citas / pub.', dec(a.CP, 2)]]
+    const fecha = D.fecha ? String(D.fecha).split(' ')[0] : ''
+    return `<div class="ficha-hoja">
+      <div class="ficha-cab"><img src="logo_utm_2022.png" alt="Universidad Técnica de Manabí"><span>Ficha de investigador · Scopus</span></div>
+      <h1 class="ficha-nombre">${esc(a.n)}</h1>
+      <div class="ficha-sub">Universidad Técnica de Manabí · ID Scopus ${esc(a.id)}${a.or ? ' · ORCID ' + esc(a.or) : ''}</div>
+      <div class="ficha-kpis">${kpis.map(([e, v]) => `<div><b>${v}</b><span>${e}</span></div>`).join('')}</div>
+      ${areas.length ? `<div class="ficha-sec">Áreas principales</div><div class="ficha-areas">${areas.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
+      <div class="ficha-sec">Publicaciones más citadas</div>
+      <table class="ficha-tabla"><tbody>${top.map(p => `<tr><td class="y">${p.y || ''}</td>
+        <td><div class="t">${esc(p.t || '')}</div><div class="j">${esc(p.j || '')}${p.q && p.q !== 'N/A' ? ' · ' + esc(p.q) : ''}</div></td>
+        <td class="c"><b>${num(p.c)}</b><span>citas</span></td></tr>`).join('')}</tbody></table>
+      <div class="ficha-pie"><div class="ficha-qr">${qrSvg(url)}</div>
+        <div><b>Perfil completo en línea</b><br>${esc(url)}<br><span>Datos de Scopus${fecha ? ' al ' + esc(fecha) : ''}.</span><br><span class="ficha-obs">Generado por el observatorio Investigadores UTM, parte del proyecto de investigación ObservaIA</span></div></div>
+    </div>`
+  }
+  function imprimirFicha(a) {
+    document.getElementById('fichaPrint')?.remove()
+    const div = document.createElement('div')
+    div.id = 'fichaPrint'
+    div.innerHTML = fichaHTML(a)
+    document.body.appendChild(div)
+    document.body.classList.add('imprime-ficha')
+    const limpiar = () => {
+      document.body.classList.remove('imprime-ficha')
+      div.remove()
+      window.removeEventListener('afterprint', limpiar)
+    }
+    window.addEventListener('afterprint', limpiar)
+    const img = div.querySelector('img')
+    const lanzar = () => window.print()
+    if (img && !img.complete) { img.addEventListener('load', lanzar, { once: true }); img.addEventListener('error', lanzar, { once: true }) }
+    else lanzar()
+  }
   function cvResumenHTML(a, r) {
     const url = location.href.split('#')[0] + '#/autor/' + encodeURIComponent(a.id)
     const celdas = [
@@ -1684,8 +1727,9 @@
         : `<a class="btn-ext" href="https://orcid.org/orcid-search/search?searchQuery=${orcid}" target="_blank" rel="noreferrer">${ico('orcid')}<span>Buscar en ORCID ↗</span></a>`}
             <a class="btn-ext" href="https://scholar.google.com/citations?view_op=search_authors&mauthors=${orcid}" target="_blank" rel="noreferrer">${ico('scholar')}<span>Buscar en Google Scholar ↗</span></a>
             <a class="btn-ext" href="https://www.researchgate.net/search/researcher?q=${orcid}" target="_blank" rel="noreferrer">${ico('rg')}<span>Buscar en ResearchGate ↗</span></a>
-            <button type="button" class="btn-ext btn-print" id="btnPrintPerfil" title="Imprimir o guardar ficha en PDF, con resumen de indicadores y código QR">${ico('print')}<span>Imprimir / PDF</span></button>
-            <button type="button" class="btn-ext" data-copiar-enlace="1" title="Copia el enlace de esta vista, con el periodo y los filtros activos">${ico('enlace')}<span>Copiar enlace</span></button>
+            <button type="button" class="btn-ext btn-print" id="btnFichaA4" title="Ficha de una página (A4) con indicadores, mejores publicaciones y código QR, lista para guardar en PDF">${ico('print')}<span>Ficha A4</span></button>
+            <button type="button" class="btn-ext btn-print" id="btnPrintPerfil" title="Imprimir o guardar el perfil completo en PDF, con resumen de indicadores y código QR">${ico('print')}<span>Perfil completo</span></button>
+            <button type="button" class="btn-ext" id="btnCompartir" title="Copia el enlace de la página del perfil, que al pegarlo en WhatsApp, LinkedIn o correo muestra una tarjeta con sus indicadores">${ico('enlace')}<span>Compartir</span></button>
           </div>
         </div>
       </div>
@@ -1738,6 +1782,17 @@
 
     if (mantenerScroll) window.scrollTo(0, scrollPrev)
 
+    const btnFicha = document.getElementById('btnFichaA4')
+    if (btnFicha) btnFicha.addEventListener('click', () => imprimirFicha(a))
+    const btnComp = document.getElementById('btnCompartir')
+    if (btnComp) btnComp.addEventListener('click', () => {
+      const lbl = btnComp.querySelector('span'), orig = lbl.textContent
+      const url = location.href.split('#')[0].replace(/[^/]*$/, '') + 'p/' + encodeURIComponent(a.id) + '.html'
+      copiarTexto(url)
+        .then(() => { lbl.textContent = 'Enlace copiado' })
+        .catch(() => { lbl.textContent = 'No se pudo copiar' })
+      setTimeout(() => { lbl.textContent = orig }, 2200)
+    })
     const btnPr = document.getElementById('btnPrintPerfil')
     if (btnPr) btnPr.addEventListener('click', () => {
       window.dispatchEvent(new Event('beforeprint'))
