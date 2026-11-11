@@ -1557,7 +1557,7 @@
       <div class="perfil-hero">
         ${avatar(a)}
         <div style="flex:1;min-width:240px">
-          <h2>${esc(a.n)}</h2>
+          <h1>${esc(a.n)}</h1>
           ${a.xu ? `<div class="ex-utm" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Sin afiliación vigente con la Universidad Técnica de Manabí.</div>` : ''}
           <div class="sub">Autor UTM en Scopus · Activo ${a.pa || 'N/D'} a ${a.ua || 'N/D'}${a.rP ? ` · Puesto ${a.rP} en publicaciones en la UTM` : ''}</div>
           ${idsScopusHTML(a)}
@@ -2571,7 +2571,7 @@
   const tipCuartil = (q) => TIP_Q[q] || TIP_Q['N/A']
   function badgeQ(q) {
     const c = COLQ[q] || '#999'
-    return `<span class="insig-q" style="background:${c}1e;color:${c};cursor:help" title="${esc(tipCuartil(q))}">${esc(q)}</span>`
+    return `<span class="insig-q" style="background:${c}1e;color:${q === 'Q2' ? '#3f7d12' : c};cursor:help" title="${esc(tipCuartil(q))}">${esc(q)}</span>`
   }
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
   function notaExUtm(a) {
@@ -2833,7 +2833,7 @@
       <span>Promedio <b>${prom}</b> pub./año${parcial && comp.length ? ' <em>(años cerrados)</em>' : ''}</span>
       <span>Año más productivo <b>${pico}</b> (${porAnio[pico]})</span>
       <span>Trayectoria <b>${span} año${span !== 1 ? 's' : ''}</b></span>
-      ${comp.length >= 2 ? `<span>Tendencia <b style="color:#c07a12">${flecha} ${tend}</b> <em>(línea naranja)</em></span>` : ''}
+      ${comp.length >= 2 ? `<span>Tendencia <b style="color:#9a5f0a">${flecha} ${tend}</b> <em>(línea naranja)</em></span>` : ''}
       ${parcial ? `<span><em>* ${years.filter(y => y >= ANIO_ACTUAL).join(' y ')}: ${years.some(y => y > ANIO_ACTUAL) ? 'cifras parciales (año en curso y adelantos de volumen)' : 'en curso, cifra parcial'}; no entran en el promedio ni en la tendencia.</em></span>` : ''}
     </div>`
   }
@@ -2909,7 +2909,7 @@
     app.innerHTML = `<div class="wrap">
       <a class="volver" href="#/">← Volver a la página principal</a>
       <div class="perfil-hero" style="border-left-color:var(--g3)">
-        <div style="flex:1"><h2>${esc(area)}</h2>
+        <div style="flex:1"><h1>${esc(area)}</h1>
           <div class="sub">Área temática de Scopus · ${num(lista.length)} publicaciones UTM · ${num(autArea.length)} investigadores UTM</div></div></div>
       ${autArea.length ? `<div class="panel" style="margin-bottom:18px">
         <h3>Investigadores UTM en esta área (${num(autArea.length)})</h3>

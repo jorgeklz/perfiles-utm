@@ -4,7 +4,7 @@
   --amarillo-pastel: #f7e9a3; --amarillo-texto: #6a5300;
   --y3: #e0b010; --rojo: #a3322a;
   --bg: #f4f6f1; --sup: #ffffff; --sup2: #eef1ea; --borde: #e3e7dd;
-  --texto: #16210e; --texto2: #4f5a44; --texto3: #8f9985;
+  --texto: #16210e; --texto2: #4f5a44; --texto3: #6c7762;
   --r: 16px; --rc: 14px;
   /* Escala tipográfica del portal: usar siempre estas variables, nunca px sueltos */
   --fs-2xs: 11px;   /* notas, insignias, etiquetas de ejes, pies de gráfico */
@@ -427,7 +427,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .pub .m { font-size: var(--fs-xs); color: var(--texto3); margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .pub .m.aut-pub { display: block; margin-top: 2px; font-size: var(--fs-xs); line-height: 1.45; }
 .insig-q { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: var(--fs-2xs); font-weight: 700; }
-.oa-tag { color: var(--g3); font-weight: 600; }
+.oa-tag { color: var(--g2); font-weight: 600; }
 
 /* pie */
 .pie { border-top: 1px solid var(--borde); background: var(--sup); margin-top: 30px; }
@@ -732,7 +732,8 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .tev-chip.sube, .tev-chip.nuevo { background: #e3f3da; color: #1e6b14; }
 .tev-chip.baja { background: #fbe5e1; color: #b23b30; }
 .tev-chip.abandona { background: #f1ece0; color: #8a6d1f; }
-.tev-chip.igual { background: #eef0ea; color: #6b7563; }
+.tev-chip.igual { background: #eef0ea; color: #566050; }
+@media (pointer: coarse) { .top-tab { padding: 9px 15px; } .ce-chip { padding: 7px 12px; } .btn-ext { padding: 10px 14px; } .volver { padding: 7px 0; } }
 @media (max-width: 680px) { .tev-fila { grid-template-columns: 1fr auto; } .tev-b { grid-column: 1 / -1; } .tev-p { grid-column: 1; } }
 
 
