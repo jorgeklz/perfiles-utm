@@ -1101,13 +1101,13 @@
       barras += `<rect x="${x.toFixed(1)}" y="${yC(r.c).toFixed(1)}" width="${bw}" height="${Math.max(r.c ? 1 : 0, base - yC(r.c)).toFixed(1)}" rx="3" fill="#4aab30" fill-opacity="${parcial ? .3 : .6}"><title>${r.y}: ${num(r.c)} citas a las publicaciones de ese año</title></rect>`
       pts.push(`${cx.toFixed(1)},${yH(r.h).toFixed(1)}`)
       const cambia = i === 0 || r.h !== serie[i - 1].h || i === n - 1
-      puntos += `<circle cx="${cx.toFixed(1)}" cy="${yH(r.h).toFixed(1)}" r="3" fill="#1e6b14" stroke="#fff" stroke-width="1.2"><title>${r.y}: índice h ${r.h}</title></circle>`
-      if (cambia) puntos += `<text x="${cx.toFixed(1)}" y="${(yH(r.h) - 7).toFixed(1)}" font-size="10" font-weight="700" text-anchor="middle" fill="#1e6b14" stroke="#fff" stroke-width="2.6" paint-order="stroke">${r.h}</text>`
+      puntos += `<circle cx="${cx.toFixed(1)}" cy="${yH(r.h).toFixed(1)}" r="3" fill="#e0902d" stroke="#fff" stroke-width="1.2"><title>${r.y}: índice h ${r.h}</title></circle>`
+      if (cambia) puntos += `<text x="${cx.toFixed(1)}" y="${(yH(r.h) - 7).toFixed(1)}" font-size="10" font-weight="700" text-anchor="middle" fill="#9a5f0a" stroke="#fff" stroke-width="2.6" paint-order="stroke">${r.h}</text>`
       zonas += `<rect x="${(i * paso).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${base}" fill="transparent" data-cat="anio" data-val="${r.y}" style="cursor:pointer"><title>Ver publicaciones de ${r.y}</title></rect>`
     })
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 14}px" role="img" aria-label="Índice h acumulado y citas por año de publicación">
       <line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>${barras}
-      <polyline points="${pts.join(' ')}" fill="none" stroke="#1e6b14" stroke-width="2.2"/>${puntos}${ejeAnios(serie, paso, base)}${zonas}</svg>`
+      <polyline points="${pts.join(' ')}" fill="none" stroke="#e0902d" stroke-width="2.2"/>${puntos}${ejeAnios(serie, paso, base)}${zonas}</svg>`
   }
   // Carriles por rol: una fila por posición en la firma y una burbuja por año, con el tamaño
   // según el número de publicaciones. Clic en una burbuja: publicaciones de ese rol y año.
@@ -1161,8 +1161,8 @@
       if (r.q12) s += `<rect x="${(i * paso).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${base}" fill="transparent" data-cat="cuartilAnio" data-val="${r.y}|Q12" style="cursor:pointer"><title>Ver las publicaciones en Q1 o Q2 de ${r.y}</title></rect>`
       pts.push(`${cx.toFixed(1)},${yP(pct).toFixed(1)}`)
     })
-    if (pts.length > 1) s += `<polyline points="${pts.join(' ')}" fill="none" stroke="#1e6b14" stroke-width="2.2"/>`
-    pts.forEach(pt => { const [px, py] = pt.split(','); s += `<circle cx="${px}" cy="${py}" r="3" fill="#1e6b14" stroke="#fff" stroke-width="1.2" style="pointer-events:none"/>` })
+    if (pts.length > 1) s += `<polyline points="${pts.join(' ')}" fill="none" stroke="#e0902d" stroke-width="2.2"/>`
+    pts.forEach(pt => { const [px, py] = pt.split(','); s += `<circle cx="${px}" cy="${py}" r="3" fill="#e0902d" stroke="#fff" stroke-width="1.2" style="pointer-events:none"/>` })
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 14}px" role="img" aria-label="Porcentaje de publicaciones en Q1 y Q2 por año">${s}${ejeAnios(serie, paso, base)}</svg>`
   }
 
@@ -1199,7 +1199,7 @@
         <button type="button" class="top-tab evo-tab" data-evo="q">${ico('calidad')}<span>Calidad de las revistas</span></button>
       </div>
       <div class="evo-pane" data-evo="h">
-        <div class="evo-tit">Índice h acumulado (línea verde) y citas de las publicaciones de cada año (barras)</div>
+        <div class="evo-tit">Índice h acumulado (línea naranja) y citas de las publicaciones de cada año (barras)</div>
         ${svgHCitas(serie)}
         <div class="info-anios"><span>Índice h al cierre <b>${hFinal}</b></span><span>Citas <b>${num(citas)}</b></span>${ast}</div>
         <div class="ctx-hint">El índice h de cada año usa las publicaciones hasta ese año con sus citas actuales en Scopus, y las barras suman las citas que hoy tienen las publicaciones de ese año. Scopus no entrega el historial de citas año a año.</div>
