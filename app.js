@@ -403,9 +403,10 @@
     document.querySelectorAll('.pan-tab[data-pan]').forEach(b => b.addEventListener('click', () => {
       estado.panTab = b.dataset.pan
       document.querySelectorAll('.pan-tab[data-pan]').forEach(x => x.classList.toggle('on', x.dataset.pan === estado.panTab))
-      const pr = document.getElementById('panRevPane'), pa = document.getElementById('panAreaPane')
+      const pr = document.getElementById('panRevPane'), pa = document.getElementById('panAreaPane'), pc = document.getElementById('panColPane')
       if (pr) pr.style.display = estado.panTab === 'rev' ? '' : 'none'
       if (pa) pa.style.display = estado.panTab === 'area' ? '' : 'none'
+      if (pc) pc.style.display = estado.panTab === 'col' ? '' : 'none'
     }))
 
     const alf = document.getElementById('alf')
@@ -592,7 +593,7 @@
         return `<span class="ce-chip" data-cat="pais" data-val="${esc(p)}" style="cursor:pointer" title="Ver publicaciones y autores con ${esc(p)}">${b ? b + ' ' : ''}${esc(p)}<b>${c}</b></span>`
       }).join('')
       : '<span style="color:var(--texto3);font-size:var(--fs-sm)">Sin colaboración internacional registrada.</span>'
-    const enRev = estado.panTab !== 'area'
+    const tabPan = estado.panTab === 'area' || estado.panTab === 'col' ? estado.panTab : 'rev'
     // Distribución institucional por cuartil SJR y tipo, con las mismas métricas del perfil
     const gq = {}, gt = {}
     let gAut = 0, gPrim = 0, gCit = 0
@@ -619,28 +620,28 @@
         <div class="ctx-hint">Clic en una barra para ver las publicaciones de ese año.</div></div>
       <div class="grid2">
         ${distHTML}
-        <div class="panel"><h3>Colaboración internacional</h3>
-          <div class="metricas-autoria intl" style="margin-top:0;border-top:none;padding-top:0">
-            <div class="ma"><b>${GI.pctIntl}%</b><span>Publicaciones con coautoría internacional</span></div>
-            <div class="ma"><b>${GI.nPaises}</b><span>Países colaboradores</span></div>
-          </div>
-          <div class="ce-sub">Principales países</div>
-          <div class="ce-chips">${paisesHTML}</div>
-          <div class="ctx-hint">Clic en un país para ver las publicaciones y los autores que colaboran.</div></div>
-      </div>
-      <div class="grid2" style="grid-template-columns:1fr">
-        <div class="panel">
+        <div class="panel"><h3>Fuentes, temas y colaboración</h3>
           <div class="top-tabs" style="margin-bottom:12px">
-            <button type="button" class="top-tab pan-tab${enRev ? ' on' : ''}" data-pan="rev">${ico('pubs')}<span>Fuentes más frecuentes</span></button>
-            <button type="button" class="top-tab pan-tab${!enRev ? ' on' : ''}" data-pan="area">${ico('cuartil')}<span>Áreas temáticas</span></button>
+            <button type="button" class="top-tab pan-tab${tabPan === 'rev' ? ' on' : ''}" data-pan="rev">${ico('pubs')}<span>Fuentes</span></button>
+            <button type="button" class="top-tab pan-tab${tabPan === 'area' ? ' on' : ''}" data-pan="area">${ico('cuartil')}<span>Áreas temáticas</span></button>
+            <button type="button" class="top-tab pan-tab${tabPan === 'col' ? ' on' : ''}" data-pan="col">${ico('globe')}<span>Colaboración internacional</span></button>
           </div>
-          <div id="panRevPane" style="${enRev ? '' : 'display:none'}">
+          <div id="panRevPane" style="${tabPan === 'rev' ? '' : 'display:none'}">
             <div class="tipos-barras">${revHTML}</div>
             <div class="ctx-hint">Clic en una fuente para ver sus publicaciones más recientes.</div>
           </div>
-          <div id="panAreaPane" style="${!enRev ? '' : 'display:none'}">
+          <div id="panAreaPane" style="${tabPan === 'area' ? '' : 'display:none'}">
             <div class="tipos-barras">${areaHTML}</div>
             <div class="ctx-hint">Clic en un área para ver sus publicaciones o en ↗ para abrir el área completa.</div>
+          </div>
+          <div id="panColPane" style="${tabPan === 'col' ? '' : 'display:none'}">
+            <div class="metricas-autoria intl" style="margin-top:0;border-top:none;padding-top:0">
+              <div class="ma"><b>${GI.pctIntl}%</b><span>Publicaciones con coautoría internacional</span></div>
+              <div class="ma"><b>${GI.nPaises}</b><span>Países colaboradores</span></div>
+            </div>
+            <div class="ce-sub">Principales países</div>
+            <div class="ce-chips">${paisesHTML}</div>
+            <div class="ctx-hint">Clic en un país para ver las publicaciones y los autores que colaboran.</div>
           </div>
         </div>
       </div>
