@@ -68,7 +68,7 @@ Es un sitio **estático**: HTML, CSS y JavaScript, más páginas ya generadas. N
 - `index.html`: página principal del portal.
 - `datos.js`: datos bibliométricos que consume el portal. Es el archivo más pesado.
 - `app.js`: lógica del portal interactivo.
-- `estilos.css` y `visitas.css`: estilos del sitio.
+- `estilos.css` y `visitas.css`: estilos del sitio. Los tamaños de letra salen de nueve niveles definidos como variables al inicio de `estilos.css` (`--fs-2xs` a `--fs-3xl`); no se escriben píxeles sueltos.
 - `mapa-mundo.js`: contornos de los países para el mapa de colaboración internacional.
 - `qrcode.js`: genera el código QR que lleva la ficha en PDF del investigador.
 - `logo_utm_2022.png`: logo institucional.

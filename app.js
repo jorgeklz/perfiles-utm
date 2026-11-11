@@ -164,6 +164,7 @@
     calidad: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>',
     reciente: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
     ritmo: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    descarga: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
     calendario: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
     recientes: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>',
     fuente: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
@@ -589,7 +590,7 @@
         const b = banderaPais(p)
         return `<span class="ce-chip" data-cat="pais" data-val="${esc(p)}" style="cursor:pointer" title="Ver publicaciones y autores con ${esc(p)}">${b ? b + ' ' : ''}${esc(p)}<b>${c}</b></span>`
       }).join('')
-      : '<span style="color:var(--texto3);font-size:12.5px">Sin colaboración internacional registrada.</span>'
+      : '<span style="color:var(--texto3);font-size:var(--fs-sm)">Sin colaboración internacional registrada.</span>'
     const enRev = estado.panTab !== 'area'
     return `<div class="wrap portada" style="padding-bottom:0">
       <h2 class="dir-tit">Panorama institucional</h2>
@@ -875,7 +876,7 @@
     cont.innerHTML = arr.length
       ? conPuestos(arr, ([, r]) => fmtInd(m, r[m]), ([, r]) => Number(r[m]) || 0)
         .map(({ item: [id, r], puesto, medalla }) => itemTopAnual(id, r, puesto, medalla, m)).join('')
-      : `<div style="color:var(--texto3);font-size:13px;padding:8px 2px">Sin publicaciones registradas en ${ANIO_ACTUAL} todavía.</div>`
+      : `<div style="color:var(--texto3);font-size:var(--fs-sm);padding:8px 2px">Sin publicaciones registradas en ${ANIO_ACTUAL} todavía.</div>`
   }
   function pintarRecientes() {
     const cont = document.getElementById('destPubs'); if (!cont) return
@@ -1084,7 +1085,7 @@
   function ejeAnios(serie, paso, base) {
     const k = pasoEtiqueta(serie.length)
     return serie.map((r, i) => (i % k && i !== serie.length - 1) ? '' :
-      `<text x="${(i * paso + paso / 2).toFixed(1)}" y="${base + 13}" font-size="9.5" text-anchor="middle" fill="${r.y >= ANIO_ACTUAL ? '#c07a12' : '#98a18d'}">${r.y}${r.y >= ANIO_ACTUAL ? '*' : ''}</text>`).join('')
+      `<text x="${(i * paso + paso / 2).toFixed(1)}" y="${base + 13}" font-size="10" text-anchor="middle" fill="${r.y >= ANIO_ACTUAL ? '#c07a12' : '#98a18d'}">${r.y}${r.y >= ANIO_ACTUAL ? '*' : ''}</text>`).join('')
   }
   function svgHCitas(serie) {
     const n = serie.length, W = Math.max(320, n * 38), H = 196, base = H - 26, top = 24
@@ -1107,25 +1108,41 @@
       <line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>${barras}
       <polyline points="${pts.join(' ')}" fill="none" stroke="#1e6b14" stroke-width="2.2"/>${puntos}${ejeAnios(serie, paso, base)}${zonas}</svg>`
   }
+  // Carriles por rol: una fila por posición en la firma y una burbuja por año, con el tamaño
+  // según el número de publicaciones. Clic en una burbuja: publicaciones de ese rol y año.
   function svgRoles(serie) {
-    const n = serie.length, W = Math.max(320, n * 38), H = 190, base = H - 26, top = 20
-    const paso = W / n, bw = Math.min(24, paso - 10)
-    const maxN = Math.max(1, ...serie.map(r => r.n))
-    let s = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>`, rot = ''
-    serie.forEach((r, i) => {
-      const x = i * paso + (paso - bw) / 2
-      const u = (base - top) / maxN
-      let y = base
-      ;['primero', 'medio', 'ultimo'].forEach(rol => {
-        const v = r[rol]
+    // Ancho de trabajo ajustado a la pantalla para que los textos se vean a su tamaño real.
+    // En pantallas angostas el nombre del rol va encima de su carril y no a la izquierda.
+    const n = serie.length
+    const W = Math.max(280, Math.min(1080, ((document.documentElement || {}).clientWidth || 640) - 90))
+    const compacto = W < 460
+    const L = compacto ? 10 : 74, carril = compacto ? 60 : 46, top = compacto ? 44 : 26
+    const H = top + 2 * carril + 44, paso = (W - L - 6) / n
+    const maxV = Math.max(1, ...serie.flatMap(r => [r.primero, r.medio, r.ultimo]))
+    const roles = ['primero', 'medio', 'ultimo'], et = { primero: 'Primer autor', medio: 'Intermedio', ultimo: 'Último autor' }
+    // una etiqueta de año cada k columnas, contando desde el último año, para que no se pisen
+    const k = Math.max(1, Math.ceil(36 / paso))
+    let s = ''
+    roles.forEach((rol, r) => {
+      const y = top + r * carril
+      s += `<line x1="${L}" y1="${y}" x2="${W - 4}" y2="${y}" stroke="#e6e9e1"/>`
+      s += compacto
+        ? `<text x="${L}" y="${y - 24}" font-size="11" font-weight="600" fill="#4f5a44">${et[rol]}</text>`
+        : `<text x="${L - 8}" y="${y + 4}" font-size="11" font-weight="600" text-anchor="end" fill="#4f5a44">${et[rol]}</text>`
+      serie.forEach((d, i) => {
+        const v = d[rol]
         if (!v) return
-        const hh = v * u
-        y -= hh
-        s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw}" height="${hh.toFixed(1)}" fill="${ROL_COL[rol]}" fill-opacity="${r.y >= ANIO_ACTUAL ? .55 : 1}" stroke="#fff" stroke-width="1" data-cat="rolAnio" data-val="${r.y}|${rol}" style="cursor:pointer"><title>${r.y} · ${ROL_ET[rol]}: ${v}</title></rect>`
+        const cx = L + i * paso + paso / 2, rad = Math.max(4, Math.min(7 + 11 * Math.sqrt(v / maxV), paso / 2 - 1))
+        s += `<circle cx="${cx.toFixed(1)}" cy="${y}" r="${rad.toFixed(1)}" fill="${ROL_COL[rol]}" fill-opacity="${d.y >= ANIO_ACTUAL ? .5 : .9}" data-cat="rolAnio" data-val="${d.y}|${rol}" style="cursor:pointer"><title>${d.y} · ${ROL_ET[rol]}: ${v}</title></circle>`
+        if (rad >= 7.5) s += `<text x="${cx.toFixed(1)}" y="${y + 4}" font-size="10" font-weight="700" text-anchor="middle" fill="#fff" style="pointer-events:none">${v}</text>`
       })
-      if (r.n) rot += `<text x="${(x + bw / 2).toFixed(1)}" y="${(y - 4).toFixed(1)}" font-size="9.5" text-anchor="middle" fill="#6b7563">${r.n}</text>`
     })
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 14}px" role="img" aria-label="Rol de autoría por año">${s}${rot}${ejeAnios(serie, paso, base)}</svg>`
+    const yEje = top + 2 * carril + 34
+    serie.forEach((d, i) => {
+      if ((n - 1 - i) % k) return
+      s += `<text x="${(L + i * paso + paso / 2).toFixed(1)}" y="${yEje}" font-size="10" text-anchor="middle" fill="${d.y >= ANIO_ACTUAL ? '#c07a12' : '#98a18d'}">${d.y}${d.y >= ANIO_ACTUAL ? '*' : ''}</text>`
+    })
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Rol de autoría por año">${s}</svg>`
   }
   function svgCalidad(serie) {
     const n = serie.length, W = Math.max(320, n * 38), H = 190, base = H - 26, top = 20
@@ -1133,13 +1150,13 @@
     const yP = v => base - (v / 100) * (base - top)
     let s = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>
       <line x1="0" y1="${yP(50).toFixed(1)}" x2="${W}" y2="${yP(50).toFixed(1)}" stroke="#d9dccf" stroke-dasharray="4 3"/>
-      <text x="2" y="${(yP(50) - 3).toFixed(1)}" font-size="9" fill="#98a18d">50%</text>`
+      <text x="2" y="${(yP(50) - 3).toFixed(1)}" font-size="10" fill="#98a18d">50%</text>`
     const pts = []
     serie.forEach((r, i) => {
       if (!r.nq) return
       const pct = 100 * r.q12 / r.nq, x = i * paso + (paso - bw) / 2, cx = i * paso + paso / 2
       s += `<rect x="${x.toFixed(1)}" y="${yP(pct).toFixed(1)}" width="${bw}" height="${Math.max(pct ? 1 : 0, base - yP(pct)).toFixed(1)}" rx="3" fill="#4aab30" fill-opacity="${r.y >= ANIO_ACTUAL ? .3 : .6}"><title>${r.y}: ${r.q12} de ${r.nq} publicaciones con cuartil están en Q1 o Q2</title></rect>`
-      s += `<text x="${cx.toFixed(1)}" y="${(yP(pct) - 4).toFixed(1)}" font-size="9.5" text-anchor="middle" fill="#6b7563" stroke="#fff" stroke-width="2.4" paint-order="stroke">${Math.round(pct)}%</text>`
+      s += `<text x="${cx.toFixed(1)}" y="${(yP(pct) - 4).toFixed(1)}" font-size="10" text-anchor="middle" fill="#6b7563" stroke="#fff" stroke-width="2.4" paint-order="stroke">${Math.round(pct)}%</text>`
       if (r.q12) s += `<rect x="${(i * paso).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${base}" fill="transparent" data-cat="cuartilAnio" data-val="${r.y}|Q12" style="cursor:pointer"><title>Ver las publicaciones en Q1 o Q2 de ${r.y}</title></rect>`
       pts.push(`${cx.toFixed(1)},${yP(pct).toFixed(1)}`)
     })
@@ -1192,7 +1209,7 @@
         <div class="evo-leyenda">${['primero', 'medio', 'ultimo'].map(r => `<span data-cat="rol" data-val="${r}" style="cursor:pointer" title="Ver estas publicaciones"><i style="background:${ROL_COL[r]}"></i>${ROL_ET[r]} <b>${nRol(r)}</b> (${pct(nRol(r), tot)}%)</span>`).join('')}</div>
         <div class="info-anios">${notaRol}${ast}</div>
         ${LA_DISP ? '' : '<div class="ctx-hint">El último autor se estima por el apellido en la lista de firmantes; se afina al regenerar los datos del sitio.</div>'}
-        <div class="ctx-hint">Clic en un tramo de barra para ver las publicaciones de ese año y rol.</div>
+        <div class="ctx-hint">Clic en una burbuja para ver las publicaciones de ese año y rol.</div>
       </div>
       <div class="evo-pane" data-evo="q" style="display:none">
         <div class="evo-tit">Porcentaje de publicaciones en revistas Q1 o Q2 de cada año</div>
@@ -1221,23 +1238,46 @@
     const filas = [...new Set([...Object.keys(cA), ...Object.keys(cB)])].map(ar => {
       const a = cA[ar] || 0, b = cB[ar] || 0
       return { ar, a, b, pa: 100 * a / A.length, pb: 100 * b / B.length }
-    }).sort((x, y) => (y.a + y.b) - (x.a + x.b)).slice(0, 12)
+    }).sort((x, y) => (y.a + y.b) - (x.a + x.b)).slice(0, 14)
     if (!filas.length) return ''
     filas.forEach(f => { f.d = f.pb - f.pa })
-    filas.sort((x, y) => y.d - x.d)
     const maxP = Math.max(1, ...filas.map(f => Math.max(f.pa, f.pb)))
     const chip = f => f.a === 0 ? '<span class="tev-chip nuevo">Nuevo</span>'
       : f.b === 0 ? '<span class="tev-chip abandona">Sin actividad reciente</span>'
         : f.d >= 5 ? `<span class="tev-chip sube">▲ +${Math.round(f.d)} pp</span>`
           : f.d <= -5 ? `<span class="tev-chip baja">▼ ${Math.round(f.d)} pp</span>`
             : '<span class="tev-chip igual">Estable</span>'
-    return `<div class="panel panel-tev"><h3>Evolución temática</h3>
-      <div class="evo-leyenda"><span><i style="background:#9ccf7e"></i>${per.etA} (${per.nA} pub.)</span><span><i style="background:#1e6b14"></i>${per.etB} (${per.nB} pub.)</span></div>
+    return `<div class="evo-leyenda"><span><i style="background:#9ccf7e"></i>${per.etA} (${per.nA} pub.)</span><span><i style="background:#1e6b14"></i>${per.etB} (${per.nB} pub.)</span></div>
       <div class="tev-lista">${filas.map(f => `<div class="tev-fila" data-cat="area" data-val="${esc(f.ar)}" style="cursor:pointer" title="Ver las publicaciones de esta área">
-        <span class="tev-n">${esc(f.ar)}</span>
+        <span class="tev-n">${esc(f.ar)}&nbsp;<small class="tev-tot" title="Publicaciones en esta área">${f.a + f.b}</small></span>
         <span class="tev-b"><i class="a" style="width:${(100 * f.pa / maxP).toFixed(1)}%"></i><i class="b" style="width:${(100 * f.pb / maxP).toFixed(1)}%"></i></span>
         <span class="tev-p">${Math.round(f.pa)}% → ${Math.round(f.pb)}%</span>${chip(f)}</div>`).join('')}</div>
-      <div class="ctx-hint">Cada barra es el porcentaje de las publicaciones del periodo que pertenecen al área (una publicación puede tener varias). pp: puntos porcentuales de cambio. Ordenado de mayor crecimiento a mayor descenso.</div></div>`
+      <div class="ctx-hint">Cada barra es el porcentaje de las publicaciones del periodo que pertenecen al área (una publicación puede tener varias). pp: puntos porcentuales de cambio. Ordenado por número de publicaciones del área.</div>`
+  }
+
+  // Un solo panel con tres vistas: áreas temáticas (con su cambio entre periodos, o barras
+  // simples si no hay años suficientes para partir el historial), frases frecuentes de los
+  // títulos y las fuentes (revistas y conferencias) donde ha publicado.
+  function temasFuentesHTML(pubs, areas, nFuentes) {
+    const tev = evolucionTemasHTML(pubs)
+    const fr = frasesTitulos(pubs)
+    const vacio = t => `<div style="color:var(--texto3);font-size:var(--fs-sm)">${t}</div>`
+    const tabs = [
+      ['areas', 'area', 'Áreas temáticas'],
+      ...(fr.length ? [['frases', 'tema', 'Frases frecuentes']] : []),
+      ['fuentes', 'fuente', 'Fuentes (' + nFuentes + ')'],
+    ]
+    const panes = {
+      areas: tev || areasBarras(areas),
+      frases: fr.length ? `<div class="ayuda-filtros" style="margin:0 0 10px">Expresiones que más se repiten en los títulos de sus publicaciones. Clic en una para ver cuáles son.</div>${frasesHTML(fr)}` : '',
+      fuentes: nFuentes
+        ? '<div class="revistas" id="revCont"></div><div class="paginacion" id="revPager"></div>'
+        : vacio('Sin datos de revistas o conferencias.'),
+    }
+    return `<div class="panel panel-tev panel-fuentes" style="margin-bottom:18px"><h3>Temas y fuentes de publicación</h3>
+      <div class="top-tabs" style="margin-bottom:12px">${tabs.map(([k, ic, et]) =>
+        `<button type="button" class="top-tab tf-tab" data-tf="${k}">${ico(ic)}<span>${et}</span></button>`).join('')}</div>
+      ${tabs.map(([k]) => `<div class="tf-pane" data-tf="${k}">${panes[k]}</div>`).join('')}</div>`
   }
 
   // ---------- publicaciones destacadas ----------
@@ -1283,7 +1323,7 @@
       <div class="ctx-hint">Selección automática dentro de la ventana de análisis elegida.</div></div>`
   }
 
-  // ---------- comparación con la mediana institucional ----------
+  // ---------- indicadores de calidad (los usa el resumen del CV) ----------
   function indicadoresCalidad(ps) {
     const c = ps.reduce((s, p) => s + (p.c || 0), 0)
     const nq = ps.filter(p => CUARTILES.includes(p.q)).length
@@ -1291,48 +1331,6 @@
       q12: nq ? 100 * ps.filter(p => p.q === 'Q1' || p.q === 'Q2').length / nq : null,
       oa: ps.length ? 100 * ps.filter(esAbierto).length / ps.length : 0, nq }
   }
-  const enVentana = (ps, per) => per === '5a' ? ps.filter(p => (p.y || 0) >= ANIO_ACTUAL - 4)
-    : per === 'actual' ? ps.filter(p => (p.y || 0) >= ANIO_ACTUAL) : ps
-  const MED_INST = {}
-  function medianasInst(per) {
-    if (MED_INST[per]) return MED_INST[per]
-    const cp = [], q1 = [], oa = []
-    Object.values(D.porAutor).forEach(idxs => {
-      const ps = enVentana(idxs.map(i => D.pubs[i]).filter(Boolean), per)
-      if (ps.length < 3) return
-      const ind = indicadoresCalidad(ps)
-      cp.push(ind.cp); oa.push(ind.oa)
-      if (ind.q1 != null) q1.push(ind.q1)
-    })
-    const mediana = arr => {
-      if (!arr.length) return null
-      const s = [...arr].sort((a, b) => a - b), m = s.length >> 1
-      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
-    }
-    return (MED_INST[per] = { cp: mediana(cp), q1: mediana(q1), oa: mediana(oa), n: cp.length })
-  }
-  function comparaInstHTML(ps, per) {
-    const med = medianasInst(per)
-    if (!med || med.n < 5 || !ps.length) return ''
-    const yo = indicadoresCalidad(ps)
-    const razon = (v, m) => {
-      if (!(m > 0)) return ''
-      const r = v / m, cls = r >= 1.1 ? 'sube' : r <= 0.9 ? 'baja' : 'igual'
-      return `<span class="ci-d ${cls}">${cls === 'sube' ? '▲' : cls === 'baja' ? '▼' : '≈'} ${dec(r, 1)} veces</span>`
-    }
-    const dif = (v, m) => {
-      const d = v - m, cls = d >= 5 ? 'sube' : d <= -5 ? 'baja' : 'igual'
-      return `<span class="ci-d ${cls}">${cls === 'sube' ? '▲' : cls === 'baja' ? '▼' : '≈'} ${d > 0 ? '+' : ''}${Math.round(d)} pp</span>`
-    }
-    const item = (et, v, m, fmt, delta) => `<div class="ci-item"><span class="ci-n">${et}</span>
-      <b>${fmt(v)}</b><span class="ci-m">mediana UTM ${fmt(m)}</span>${delta}</div>`
-    const items = [item('Citas por publicación', yo.cp, med.cp, x => dec(x, 1), razon(yo.cp, med.cp))]
-    if (yo.q1 != null && med.q1 != null) items.push(item('% en Q1', yo.q1, med.q1, x => Math.round(x) + '%', dif(yo.q1, med.q1)))
-    items.push(item('% en acceso abierto', yo.oa, med.oa, x => Math.round(x) + '%', dif(yo.oa, med.oa)))
-    return `<div class="comp-inst" title="Mediana de los ${med.n} investigadores UTM con 3 o más publicaciones en la misma ventana de análisis.">
-      <span class="ci-et">Frente a la mediana de la UTM</span>${items.join('')}</div>`
-  }
-
   // ---------- aviso de perfil incompleto ----------
   function avisoPerfilHTML(a, todasPubs) {
     const av = []
@@ -1377,7 +1375,7 @@
   }
   function mapaColab(px) {
     const M = mapaLimpio()
-    if (!M) return '<div style="color:var(--texto3);font-size:13px">El mapa no está disponible.</div>'
+    if (!M) return '<div style="color:var(--texto3);font-size:var(--fs-sm)">El mapa no está disponible.</div>'
     const hit = {}, fuera = []
     px.forEach(([pais, n]) => {
       const iso = PAIS_ISO[pais]
@@ -1604,45 +1602,9 @@
 
       ${evolucionHTML(pubs, a.id)}
 
-      <div class="panel panel-fuentes"><h3>Fuentes donde ha publicado (${revistas.length})</h3>
-        ${revistas.length
-        ? '<div class="revistas" id="revCont"></div><div class="paginacion" id="revPager"></div>'
-        : '<div style="color:var(--texto3);font-size:13px">Sin datos de revistas o conferencias.</div>'}</div>
+      ${temasFuentesHTML(pubs, areas, revistas.length)}
 
-      <div class="grid2">
-        <div class="panel"><h3>Líneas de investigación</h3>
-          <div class="subtitulo-panel" style="margin-top:0">Áreas temáticas de Scopus</div>${areasBarras(areas)}
-          ${(() => { const fr = frasesTitulos(pubs); return fr.length
-            ? `<div class="subtitulo-panel">Frases frecuentes en sus títulos</div>${frasesHTML(fr)}` : '' })()}</div>
-        <div class="panel"><h3>Coautores UTM (${coaut.length})</h3>
-          ${coaut.length
-        ? '<div class="coautores" id="coautCont"></div><div class="paginacion" id="coautPager"></div>'
-        : '<div style="color:var(--texto3);font-size:13px">Sin coautorías con otros autores UTM.</div>'}</div>
-      </div>
-
-      ${evolucionTemasHTML(pubs)}
-
-      <div class="panel" style="margin-bottom:18px"><h3>Colaboración externa</h3>${coautoriaExterna(extData)}</div>
-
-      <div class="panel" style="margin-bottom:18px"><h3>Comunidades de coautoría</h3>
-        <p class="ayuda-filtros" style="margin:0 0 12px">
-          Cada nodo es un coautor y su tamaño indica los trabajos en común; las líneas unen a quienes
-          han publicado juntos. Los colores agrupan a los coautores que publican entre sí. Elija un
-          grupo en la leyenda para ver sus nombres, o haga clic en un coautor para ver las
-          publicaciones que comparte con ${esc(a.n)}.
-        </p>
-        <div id="comWrap" class="com-wrap">
-          <canvas id="comCanvas"></canvas>
-          <div class="com-zoom">
-            <button type="button" id="comIn" title="Acercar">＋</button>
-            <button type="button" id="comOut" title="Alejar">－</button>
-            <button type="button" id="comReset" title="Restablecer vista">⟲</button>
-          </div>
-          <div id="comVacio" class="vacio" style="display:none">Aún no hay coautores suficientes para graficar comunidades.</div>
-          <div id="comLeyenda" class="com-leyenda"></div>
-        </div>
-        <div id="comSel" class="com-sel" style="display:none"></div>
-      </div>
+      <div class="panel" style="margin-bottom:18px"><h3>Coautorías</h3>${coautoriaExterna(extData, coaut.length, a.n)}</div>
 
       ${panelPubsHTML('Publicaciones', pubs.length, true, a.id)}
     </div>
@@ -1679,8 +1641,10 @@
     paginar('revCont', 'revPager', revistas, revistaRow, POR_PAG_PANEL)
     if (extData.cx.length) paginar('ceCoautCont', 'ceCoautPager', extData.cx, coautExtRow, POR_PAG_PANEL)
     if (extData.ix.length) paginar('ceInstCont', 'ceInstPager', extData.ix, instRow, POR_PAG_PANEL)
-    wireCoautExtTabs()
-    wireComunidades(a, pubs)
+    if (comStop) { comStop(); comStop = null }
+    let comListo = false
+    wireCoautExtTabs(key => { if (key === 'com' && !comListo) { comListo = true; wireComunidades(a, pubs) } })
+    wireTemasTabs()
   }
 
   function revistaRow([nombre, n, q, retirada]) {
@@ -2646,10 +2610,10 @@
     const bandera = pais ? `<span title="${esc(pais)}" style="margin-right:6px;flex-shrink:0">${banderaPais(pais)}</span>` : ''
     return `<div class="ce-inst" data-cat="coautorExt" data-val="${esc(id)}" style="cursor:pointer" title="Ver publicaciones en común con ${esc(nombre)}"><span>${bandera}${esc(nombre)}</span><b>${c}</b></div>`
   }
-  function coautoriaExterna(a) {
+  function coautoriaExterna(a, nUtm, nombre) {
     const cx = a.cx || [], px = a.px || [], ix = a.ix || []
-    if (!cx.length && !px.length && !ix.length)
-      return '<div style="color:var(--texto3);font-size:13px">Sin coautoría externa registrada.</div>'
+    if (!nUtm && !cx.length && !px.length && !ix.length)
+      return '<div style="color:var(--texto3);font-size:var(--fs-sm)">Sin coautorías registradas.</div>'
     // Coautores externos, instituciones y países como pestañas, con el mismo
     // diseño del Top 10 de la portada (top-tabs / top-tab). Solo se muestra la
     // pestaña de la categoría que tiene datos.
@@ -2659,25 +2623,63 @@
       tabs.push(`<button class="top-tab ce-tab" data-ce="pais">${ico('globe')}<span>Países (${px.length})</span></button>`)
       panes.push(`<div class="ce-pane" data-ce="pais">${window.MAPA_MUNDO ? mapaColab(px) : ''}<div class="ce-chips"${window.MAPA_MUNDO ? ' style="margin-top:12px"' : ''}>${px.map(paisChip).join('')}</div></div>`)
     }
-    if (cx.length) {
-      tabs.push(`<button class="top-tab ce-tab" data-ce="coaut">${ico('autores')}<span>Coautores externos (${cx.length})</span></button>`)
-      panes.push(`<div class="ce-pane" data-ce="coaut"><div id="ceCoautCont"></div><div class="paginacion" id="ceCoautPager"></div></div>`)
-    }
     if (ix.length) {
       tabs.push(`<button class="top-tab ce-tab" data-ce="inst">${ico('inst')}<span>Filiaciones (${ix.length})</span></button>`)
       panes.push(`<div class="ce-pane" data-ce="inst"><div id="ceInstCont"></div><div class="paginacion" id="ceInstPager"></div></div>`)
     }
+    // Comunidades: el grafo se dibuja la primera vez que se abre la pestaña (oculto no tiene tamaño).
+    if (nUtm || cx.length) {
+      tabs.push(`<button class="top-tab ce-tab" data-ce="com">${ico('rg')}<span>Comunidades</span></button>`)
+      panes.push(`<div class="ce-pane" data-ce="com"><p class="ayuda-filtros" style="margin:0 0 12px">
+          Cada nodo es un coautor y su tamaño indica los trabajos en común; las líneas unen a quienes
+          han publicado juntos. Los colores agrupan a los coautores que publican entre sí. Elija un
+          grupo en la leyenda para ver sus nombres, o haga clic en un coautor para ver las
+          publicaciones que comparte con ${esc(nombre)}.
+        </p>
+        <div id="comWrap" class="com-wrap">
+          <canvas id="comCanvas"></canvas>
+          <div class="com-zoom">
+            <button type="button" id="comIn" title="Acercar">＋</button>
+            <button type="button" id="comOut" title="Alejar">－</button>
+            <button type="button" id="comReset" title="Restablecer vista">⟲</button>
+          </div>
+          <div id="comVacio" class="vacio" style="display:none">Aún no hay coautores suficientes para graficar comunidades.</div>
+          <div id="comLeyenda" class="com-leyenda"></div>
+        </div>
+        <div id="comSel" class="com-sel" style="display:none"></div></div>`)
+    }
+    if (cx.length) {
+      tabs.push(`<button class="top-tab ce-tab" data-ce="coaut">${ico('autores')}<span>Coautores externos (${cx.length})</span></button>`)
+      panes.push(`<div class="ce-pane" data-ce="coaut"><div id="ceCoautCont"></div><div class="paginacion" id="ceCoautPager"></div></div>`)
+    }
+    if (nUtm) {
+      tabs.push(`<button class="top-tab ce-tab" data-ce="utm">${ico('primerAutor')}<span>Coautores UTM (${nUtm})</span></button>`)
+      panes.push(`<div class="ce-pane" data-ce="utm"><div class="coautores" id="coautCont"></div><div class="paginacion" id="coautPager"></div></div>`)
+    }
     return tabs.length
       ? `<div class="top-tabs" style="margin-bottom:12px">${tabs.join('')}</div>${panes.join('')}` : ''
   }
+  // Conmuta las pestañas del panel Temas y fuentes de publicación.
+  function wireTemasTabs() {
+    const tabs = [...document.querySelectorAll('.tf-tab')]
+    const panes = [...document.querySelectorAll('.tf-pane')]
+    if (!tabs.length) return
+    const activar = key => {
+      tabs.forEach(t => t.classList.toggle('on', t.dataset.tf === key))
+      panes.forEach(p => { p.style.display = p.dataset.tf === key ? '' : 'none' })
+    }
+    tabs.forEach(t => t.addEventListener('click', () => activar(t.dataset.tf)))
+    activar(tabs[0].dataset.tf)
+  }
   // Conmuta las pestañas de Colaboración externa: misma lógica visual del Top 10.
-  function wireCoautExtTabs() {
+  function wireCoautExtTabs(alActivar) {
     const tabs = [...document.querySelectorAll('.ce-tab')]
     const panes = [...document.querySelectorAll('.ce-pane')]
     if (!tabs.length) return
     const activar = key => {
       tabs.forEach(t => t.classList.toggle('on', t.dataset.ce === key))
       panes.forEach(p => { p.style.display = p.dataset.ce === key ? '' : 'none' })
+      if (alActivar) alActivar(key)
     }
     tabs.forEach(t => t.addEventListener('click', () => activar(t.dataset.ce)))
     activar(tabs[0].dataset.ce)
@@ -2730,7 +2732,7 @@
   }
   // Áreas Scopus como barras ordenadas con su conteo, clicables.
   function areasBarras(areas) {
-    if (!areas.length) return '<div style="color:var(--texto3);font-size:13px">Sin áreas registradas.</div>'
+    if (!areas.length) return '<div style="color:var(--texto3);font-size:var(--fs-sm)">Sin áreas registradas.</div>'
     const max = areas[0][1] || 1
     return '<div class="areas-barras">' + areas.map(([n, c]) =>
       `<div class="area-fila" data-cat="area" data-val="${esc(n)}" style="cursor:pointer" title="Ver las publicaciones de ${esc(n)}">
@@ -2781,9 +2783,9 @@
       s += `<rect x="${x}" y="${yb}" width="${bw}" height="${Math.max(1, base - yb)}" rx="4" ${relleno}>${enCurso ? `<title>${y}: ${y === ANIO_ACTUAL ? 'año en curso' : 'adelanto de volumen'}, cifra parcial</title>` : ''}</rect>`
       // Las cifras se dibujan al final, sobre la línea de tendencia, con un halo
       // blanco detrás para que no se confundan con ella.
-      rotulos += `<text x="${x + bw / 2}" y="${yb - 4}" font-size="9.5" text-anchor="middle" fill="#6b7563"
+      rotulos += `<text x="${x + bw / 2}" y="${yb - 4}" font-size="10" text-anchor="middle" fill="#6b7563"
           stroke="#fff" stroke-width="2.6" paint-order="stroke">${porAnio[y]}</text>
-        <text x="${x + bw / 2}" y="${base + 13}" font-size="9.5" text-anchor="middle" fill="${enCurso ? '#c07a12' : '#98a18d'}">${y}${enCurso ? '*' : ''}</text>`
+        <text x="${x + bw / 2}" y="${base + 13}" font-size="10" text-anchor="middle" fill="${enCurso ? '#c07a12' : '#98a18d'}">${y}${enCurso ? '*' : ''}</text>`
     })
     // línea de tendencia (regresión lineal), solo sobre los años completos
     if (nComp >= 2) {
