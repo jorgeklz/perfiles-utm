@@ -93,8 +93,8 @@
       porAnio,
       todasAreas,
       topAreas: todasAreas.slice(0, 16),
-      topRev: orden(rev).slice(0, 8),
-      topPaises: orden(paises).slice(0, 12),
+      topRev: orden(rev).slice(0, 15),
+      topPaises: orden(paises).slice(0, 32),
       pctIntl: D.n_pubs ? Math.round(100 * intl / D.n_pubs) : 0,
       nPaises: paises.size,
     }
@@ -581,7 +581,7 @@
       `<div class="tipo-fila" data-cat="revista" data-val="${esc(n)}" style="cursor:pointer" title="Ver publicaciones de ${esc(n)}"><span class="tn">${esc(n)}</span>
         <span class="tb"><div style="width:${Math.max(3, Math.round(100 * c / maxR))}%"></div></span>
         <span class="tv">${c}</span></div>`).join('')
-    const topAr8 = GI.topAreas.slice(0, 8)
+    const topAr8 = GI.topAreas.slice(0, 15)
     const maxA = topAr8.length ? topAr8[0][1] : 1
     const areaHTML = topAr8.map(([n, c]) =>
       `<div class="tipo-fila" data-cat="area" data-val="${esc(n)}" style="cursor:pointer" title="Ver publicaciones de ${esc(n)}"><span class="tn">${esc(n)}</span>
