@@ -451,6 +451,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .pie-inner img { height: 34px; opacity: .9; flex-shrink: 0; }
 .pie-inner strong { color: var(--texto2); font-weight: 700; }
 .pie-inner .pie-marca { color: var(--g2); font-weight: 700; }
+.pie-inner a.pie-marca:hover { text-decoration: underline; }
 
 @media (max-width: 560px) {
   /* En pantallas estrechas el logo se recorta al escudo para que el título
