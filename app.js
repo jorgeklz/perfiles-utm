@@ -2696,24 +2696,7 @@
     armarPop(previo)
   }
 
-  // Generación de citas (APA 7 y BibTeX) y exportación de publicaciones
-  function citaAPA(p) {
-    const prim = p.au || []
-    const total = p.nc || prim.length
-    let aut = ''
-    if (prim.length) {
-      if (p.uf && total > prim.length) aut = prim.join(', ') + ', ... ' + p.uf
-      else if (prim.length === 1) aut = prim[0]
-      else aut = prim.slice(0, -1).join(', ') + ' y ' + prim[prim.length - 1]
-      if (!aut.endsWith('.')) aut += '.'
-    }
-    const anio = p.y ? `(${p.y}).` : '(s. f.).'
-    const tit = (p.t || 'Sin título').replace(/\.\s*$/, '') + '.'
-    const rev = p.j ? `${p.j}.` : ''
-    const doi = p.doi ? `https://doi.org/${p.doi}` : ''
-    return [aut, anio, tit, rev, doi].filter(Boolean).join(' ')
-  }
-
+  // Generación de citas (BibTeX y RIS) y exportación de publicaciones
   function citaBibtex(p, idx) {
     const esConf = (p.st || '').toLowerCase().includes('conference')
     const tipo = esConf ? 'inproceedings' : 'article'
@@ -2845,83 +2828,6 @@
     })
   }
 
-  function mostrarCitaPopover(ev, p) {
-    const previo = focoOrigen || origenPop(ev)
-    cerrarPop()
-    if (!p) return
-    const apa = citaAPA(p)
-    const bib = citaBibtex(p)
-    const ris = citaRIS(p)
-    popEl = document.createElement('div')
-    popEl.className = 'popover-ctx'
-    let fmt = 'apa'
-    popEl.innerHTML = `<div class="pop-cab" style="${estiloPop('Referencia bibliográfica')}">
-      <span class="pop-ico">${ico('citas')}</span>
-      <div class="pop-tit-wrap">
-        <div class="pop-sub">Referencia bibliográfica</div>
-        <div class="pop-val">Citar publicación</div>
-      </div>
-      <div class="pop-cab-der">
-        <span class="pop-badge">APA / BibTeX / RIS</span>
-        <button type="button" class="pop-x" title="Cerrar" aria-label="Cerrar">✕</button>
-      </div>
-    </div>
-      <div class="pop-subtabs">
-        <button type="button" class="pop-stab pop-tab on" data-cf="apa">APA 7</button>
-        <button type="button" class="pop-stab pop-tab" data-cf="bib">BibTeX</button>
-        <button type="button" class="pop-stab pop-tab" data-cf="ris">RIS</button>
-      </div>
-      <div class="pop-body" style="padding:10px 14px 12px">
-        <div class="cita-box" id="citaTexto">${esc(apa)}</div>
-        <div class="cita-acciones">
-          <button type="button" class="cita-btn pri" id="btnCopiarCita">${ico('copiar')}<span>Copiar referencia</span></button>
-          <button type="button" class="cita-btn" id="btnDescBib">${ico('descarga')}<span>Descargar .bib</span></button>
-          <button type="button" class="cita-btn" id="btnDescRis">${ico('descarga')}<span>Descargar .ris</span></button>
-        </div>
-      </div>`
-    document.body.appendChild(popEl)
-    const caja = popEl.querySelector('#citaTexto')
-    const btnCop = popEl.querySelector('#btnCopiarCita')
-    const btnBib = popEl.querySelector('#btnDescBib')
-    const btnRis = popEl.querySelector('#btnDescRis')
-    popEl.querySelectorAll('.pop-tab').forEach(t => t.addEventListener('click', () => {
-      fmt = t.dataset.cf
-      popEl.querySelectorAll('.pop-tab').forEach(x => x.classList.toggle('on', x === t))
-      caja.classList.toggle('mono', fmt === 'bib' || fmt === 'ris')
-      caja.textContent = fmt === 'bib' ? bib : fmt === 'ris' ? ris : apa
-    }))
-    btnCop.addEventListener('click', () => {
-      const txt = fmt === 'bib' ? bib : fmt === 'ris' ? ris : apa
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(() => {
-          btnCop.innerHTML = `${ico('copiar')}<span>✓ Copiado</span>`
-          setTimeout(() => { btnCop.innerHTML = `${ico('copiar')}<span>Copiar referencia</span>` }, 1600)
-        })
-      }
-    })
-    btnBib.addEventListener('click', () => {
-      descargarArchivo(`cita-${p.y || 'utm'}.bib`, bib + '\n', 'application/x-bibtex;charset=utf-8')
-    })
-    btnRis.addEventListener('click', () => {
-      descargarArchivo(`cita-${p.y || 'utm'}.ris`, ris + '\n', 'application/x-research-info-systems;charset=utf-8')
-    })
-    const w = popEl.offsetWidth, h = popEl.offsetHeight
-    let cx = ev.clientX, cy = ev.clientY
-    if (!cx && !cy && ev.target && ev.target.getBoundingClientRect) {
-      const r = ev.target.getBoundingClientRect()
-      cx = r.right; cy = r.bottom
-    }
-    let x = cx - w + 24, y = cy + 10
-    if (x < 8) x = 8
-    if (x + w > window.innerWidth - 8) x = Math.max(8, window.innerWidth - w - 8)
-    if (y + h > window.innerHeight - 8) y = Math.max(8, cy - h - 10)
-    popEl.style.left = x + 'px'; popEl.style.top = y + 'px'
-    popEl.querySelector('.pop-x').addEventListener('click', cerrarPop)
-    setTimeout(() => document.addEventListener('mousedown', fueraPop, true), 0)
-    document.addEventListener('keydown', escPop)
-    armarPop(previo)
-  }
-
   // panel de publicaciones con filtros cruzados, buscador, exportación y paginación
   function panelPubsHTML(titulo, n, conOrden, autorId) {
     return `<div class="panel" id="panelPubs"><h2 class="h3-flex">
@@ -3029,7 +2935,20 @@
       if (pagina > paginas) pagina = paginas
       const ini = (pagina - 1) * pp
       const vis = porPag === 0 ? ordenada : ordenada.slice(ini, ini + pp)
-      cont.innerHTML = vis.length ? vis.map(rowFn).join('') : '<div class="vacio">Sin publicaciones que coincidan con los filtros activos.</div>'
+      if (vis.length) {
+        cont.innerHTML = vis.map(rowFn).join('')
+      } else {
+        const hayFiltros = qSel.size > 0 || chips.size > 0 || ctxFiltros.length > 0 || qTxt.trim().length > 0
+        cont.innerHTML = `<div class="vacio">Sin publicaciones que coincidan con los filtros activos.${hayFiltros ? ' <button type="button" class="btn-exp" id="btnLimpiarPubFiltros" style="margin-left:8px">Limpiar filtros</button>' : ''}</div>`
+        const btnLim = document.getElementById('btnLimpiarPubFiltros')
+        if (btnLim) btnLim.addEventListener('click', () => {
+          qSel.clear(); chips.clear(); ctxFiltros = []; qTxt = ''
+          if (inpQ) inpQ.value = ''
+          document.querySelectorAll('.pub-qchip[data-q]').forEach(x => x.classList.toggle('on', x.dataset.q === 'todos'))
+          document.querySelectorAll('.pub-fchip[data-pf]').forEach(x => x.classList.remove('on'))
+          pagina = 1; filtrarOrdenar(); pinta()
+        })
+      }
       pager.innerHTML = paginacionHTML(pagina, paginas)
       pager.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => {
         pagina = +b.dataset.p; pinta()
@@ -3096,12 +3015,6 @@
         descargarFormato(b.dataset.exp)
         cerrarExp()
       }))
-      document.addEventListener('click', ev => {
-        if (!expMenu.hidden && !expMenu.contains(ev.target) && !btnExpMenu.contains(ev.target)) cerrarExp()
-      })
-      document.addEventListener('keydown', ev => {
-        if (ev.key === 'Escape' && !expMenu.hidden) { cerrarExp(); btnExpMenu.focus() }
-      })
     }
     if (sel) sel.addEventListener('change', () => { porPag = +sel.value; pagina = 1; pinta() })
     if (selO) selO.addEventListener('change', () => { orden = selO.value; filtrarOrdenar(); pagina = 1; pinta() })
@@ -4128,9 +4041,22 @@
       btnArriba.tabIndex = ver ? 0 : -1
     })
   }
-  document.addEventListener('click', ev => { if (!ev.target.closest('.cite-drop')) cerrarMenuCita() })
-  document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarMenuCita() })
+  function cerrarMenusExport() {
+    cerrarMenuCita()
+    const m = document.getElementById('expMenu')
+    const b = document.getElementById('btnExpMenu')
+    if (m && !m.hidden) { m.hidden = true; if (b) b.setAttribute('aria-expanded', 'false') }
+  }
+  document.addEventListener('click', ev => { if (!ev.target.closest('.exp-drop')) cerrarMenusExport() })
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape') return
+    const m = document.getElementById('expMenu')
+    const b = document.getElementById('btnExpMenu')
+    const estabaExp = m && !m.hidden
+    cerrarMenusExport()
+    if (estabaExp && b) b.focus()
+  })
   window.addEventListener('scroll', vigilaArriba, { passive: true })
-  window.addEventListener('hashchange', () => { cerrarPop(); cerrarGlobo(); cerrarMenuCita(); router() })
+  window.addEventListener('hashchange', () => { cerrarPop(); cerrarGlobo(); cerrarMenusExport(); router() })
   router()
 })()

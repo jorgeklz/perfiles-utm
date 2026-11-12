@@ -547,7 +547,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   html, body { background: #fff !important; }
   .topbar { position: static !important; background: #fff !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   .topbar-acciones, .hero, .volver, .acciones, .enlaces, .ayuda-filtros, .paginacion, .pp-ctrl, .ctx-hint,
-  .busq-global, .controles, .alfabeto, .periodo-bar, .pub-filtros, .btn-citar, .top-page, .com-zoom { display: none !important; }
+  .busq-global, .controles, .alfabeto, .periodo-bar, .pub-filtros, .btn-citar, .pub-exp-wrap, .graf-pie-ctrl, .ir-arriba, .top-page, .com-zoom { display: none !important; }
   .wrap { max-width: none; padding: 0; }
   .grid2 { display: block; }
   .grid2 > .panel { margin-bottom: 14px; }
@@ -611,18 +611,6 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   background: var(--sup); border: 1px solid var(--borde); border-radius: 7px;
   padding: 2px 8px; cursor: pointer; transition: all .14s; white-space: nowrap; }
 .btn-citar:hover { border-color: var(--g3); background: var(--g6); }
-.cita-box { font-size: var(--fs-xs); line-height: 1.5; color: var(--texto); background: var(--sup2);
-  border: 1px solid var(--borde); border-radius: 9px; padding: 9px 11px; margin: 2px 0 10px;
-  user-select: all; word-break: break-word; }
-.cita-box.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--fs-2xs); white-space: pre-wrap; }
-.cita-acciones { display: flex; gap: 6px; flex-wrap: wrap; padding-bottom: 2px; }
-.cita-btn { display: inline-flex; align-items: center; gap: 5px; font-family: inherit; font-size: var(--fs-xs); font-weight: 700;
-  padding: 6px 11px; border-radius: 8px; border: 1px solid var(--borde); background: var(--sup); color: var(--texto2);
-  cursor: pointer; transition: all .14s; }
-.cita-btn .ic-svg { width: 13px; height: 13px; flex-shrink: 0; }
-.cita-btn.pri { background: var(--g2); color: #fff; border-color: var(--g2); }
-.cita-btn:hover { border-color: var(--g3); color: var(--g1); }
-.cita-btn.pri:hover { background: var(--g1); color: #fff; }
 
 .pop-pie { border-top: 1px solid var(--borde); padding: 9px 12px; background: var(--sup); text-align: center; }
 .pop-ir-lista { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
