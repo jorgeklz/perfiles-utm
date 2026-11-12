@@ -299,7 +299,7 @@
     document.querySelectorAll('[data-copiar-enlace]').forEach(b => b.addEventListener('click', () => {
       const lbl = b.querySelector('span'), orig = lbl ? lbl.textContent : ''
       copiarTexto(location.href)
-        .then(() => { if (lbl) lbl.textContent = 'Enlace copiado' })
+        .then(() => { if (lbl) lbl.textContent = 'Enlace copiado, pégalo en WhatsApp' })
         .catch(() => { if (lbl) lbl.textContent = 'Copie la dirección del navegador' })
       setTimeout(() => { if (lbl) lbl.textContent = orig }, 2200)
     }))
@@ -1787,7 +1787,7 @@
             <a class="btn-ext" href="https://scholar.google.com/citations?view_op=search_authors&mauthors=${orcid}" target="_blank" rel="noreferrer">${ico('scholar')}<span>Buscar en Google Scholar ↗</span></a>
             <a class="btn-ext" href="https://www.researchgate.net/search/researcher?q=${orcid}" target="_blank" rel="noreferrer">${ico('rg')}<span>Buscar en ResearchGate ↗</span></a>
             <button type="button" class="btn-ext btn-print" id="btnFichaA4" title="Ficha de una página (A4) con indicadores, mejores publicaciones y código QR, lista para guardar en PDF">${ico('print')}<span>Ficha A4</span></button>
-            <button type="button" class="btn-ext" id="btnCompartir" title="Copia el enlace de la página del perfil, que al pegarlo en WhatsApp, LinkedIn o correo muestra una tarjeta con sus indicadores">${ico('enlace')}<span>Compartir</span></button>
+            <button type="button" class="btn-ext" id="btnCompartir" title="Copia el enlace del perfil. Al pegarlo en WhatsApp, LinkedIn o correo se muestra una tarjeta con sus indicadores">${ico('enlace')}<span>Copiar enlace para WhatsApp</span></button>
           </div>
         </div>
       </div>
@@ -1849,7 +1849,7 @@
         // El parámetro cambia con cada actualización de datos: así WhatsApp y LinkedIn vuelven a leer la tarjeta
         + '?v=' + String(D.fecha || '').replace(/\D/g, '')
       copiarTexto(url)
-        .then(() => { lbl.textContent = 'Enlace copiado' })
+        .then(() => { lbl.textContent = 'Enlace copiado, pégalo en WhatsApp' })
         .catch(() => { lbl.textContent = 'No se pudo copiar' })
       setTimeout(() => { lbl.textContent = orig }, 2200)
     })
