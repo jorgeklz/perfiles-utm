@@ -415,7 +415,7 @@
       const nd = (v, d) => v == null || v === '' ? '' : cel(dec(v, d))
       const cab = ['ID Scopus', 'Investigador', 'Publicaciones', 'Citas', 'Índice h', 'Índice i10', 'Índice g', 'Citas por publicación', 'Índice m',
         'Primer año', 'Último año', 'Afiliación UTM vigente'].map(cel).join(',')
-      const filas = filtrar().map(a => [cel(a.id), cel(a.n), a.P || 0, a.C || 0, a.h || 0, a.i10 || 0, a.g || 0, nd(a.CP, 2), nd(a.m, 2),
+      const filas = filtrar().map(a => [cel(scopusIdsAutor(a).join('; ')), cel(a.n), a.P || 0, a.C || 0, a.h || 0, a.i10 || 0, a.g || 0, nd(a.CP, 2), nd(a.m, 2),
         a.pa || '', a.ua || '', cel(a.xu ? 'No' : 'Sí')].join(','))
       const hoy = new Date().toISOString().slice(0, 10)
       descargarArchivo(`directorio-utm-${hoy}.csv`, '\uFEFF' + [cab, ...filas].join('\n'), 'text/csv;charset=utf-8')
@@ -1068,11 +1068,14 @@
       </div>`
   }
 
+  function scopusIdsAutor(a) {
+    return [...new Set([a.id, ...(a.fx || [])].filter(Boolean).map(String))]
+  }
+
   // Identificadores de Scopus del autor: uno si el perfil es único, o todos los
   // que se unificaron. Cada uno enlaza a su ficha en Scopus.
   function idsScopusHTML(a) {
-    const fus = a.fx || []
-    const ids = [String(a.id), ...fus.map(String)]
+    const ids = scopusIdsAutor(a)
     const chip = (x, principal) =>
       `<a class="id-chip${principal ? ' principal' : ''}" target="_blank" rel="noreferrer"
           href="https://www.scopus.com/authid/detail.uri?authorId=${encodeURIComponent(x)}"
