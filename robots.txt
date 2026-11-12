@@ -1,2 +1,3 @@
 User-agent: *
 Allow: /
+Sitemap: https://jorgeklz.github.io/perfiles-utm/sitemap.xml
