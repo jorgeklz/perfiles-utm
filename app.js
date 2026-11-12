@@ -2883,30 +2883,69 @@
     const prim = p.au || []
     if (!prim.length) return ''
     const total = p.nc || prim.length
+    // Se asigna cada autor UTM de la publicación a una sola firma. Primero la regla exacta
+    // (apellido e inicial del primer nombre); luego, para los que quedaron sin enlace, se acepta
+    // cualquier inicial de sus nombres ("Zambrano M." para "Zambrano, Dannyll Michellc") o un
+    // apellido compuesto incompleto, solo si hay un único candidato sin ambigüedad.
+    const nombres = [...prim, ...(p.uf ? [p.uf] : [])]
+    const asig = new Map()
+    const usados = new Set()
+    const ids = (p.u || []).map(String).filter(id => porId.has(id))
     const utm = new Map()
-    ;(p.u || []).forEach(id => { const k = claveUtm(id); if (k && !utm.has(k)) utm.set(k, id) })
-    // Respaldo: la firma lleva solo una parte del apellido compuesto ("Pinargote L." para "Cedeño-Pinargote, Lady").
+    ids.forEach(id => { const k = claveUtm(id); if (k && !utm.has(k)) utm.set(k, id) })
     const parcial = new Map()
-    ;(p.u || []).forEach(id => {
-      const a = porId.get(String(id))
-      if (!a || !a.n) return
-      const [ap, nom] = a.n.split(',')
+    ids.forEach(id => {
+      const [ap, nom] = porId.get(id).n.split(',')
       const ini = limpiaClave((nom || '').trim()[0])
       String(ap).split(/[\s\-‑]+/).map(limpiaClave).filter(t => t.length > 2).forEach(t => {
         const k = t + '|' + ini
         parcial.set(k, parcial.has(k) && parcial.get(k) !== id ? null : id)
       })
     })
-    const firma = nombre => {
-      const kf = claveFirma(nombre)
+    nombres.forEach((n, i) => {
+      const kf = claveFirma(n)
       const id = utm.get(kf) || parcial.get(kf)
+      if (id && !usados.has(id) && !asig.has(i)) { asig.set(i, id); usados.add(id) }
+    })
+    const partes = n => {
+      const t = String(n || '').trim().split(/\s+/)
+      const ult = t[t.length - 1]
+      const ini = t.length > 1 && /^([A-ZÁÉÍÓÚÑ]\.?-?)+$/.test(ult)
+      const ap = (ini ? t.slice(0, -1) : t).join(' ').split(/[\s\-‑]+/).map(limpiaClave).filter(x => x.length > 2)
+      return { ap, ini: ini ? [...new Set(limpiaClave(ult).split(''))] : [] }
+    }
+    const mismoAp = (x, y) => x.some(a => y.some(b => a === b || (a.length >= 4 && b.length >= 4 && (a.startsWith(b) || b.startsWith(a)))))
+    const pend = ids.filter(id => !usados.has(id))
+    if (pend.length) {
+      const libres = nombres.map((n, i) => i).filter(i => !asig.has(i))
+      const info = pend.map(id => {
+        const [ap, nom] = porId.get(id).n.split(',')
+        return { id, ap: String(ap).split(/[\s\-‑]+/).map(limpiaClave).filter(x => x.length > 2),
+          ini: String(nom || '').trim().split(/\s+/).map(w => limpiaClave(w[0])).filter(Boolean) }
+      })
+      for (const nivel of [1, 2]) {
+        info.forEach(u => {
+          if (usados.has(u.id)) return
+          const cand = libres.filter(i => !asig.has(i)).filter(i => {
+            const f = partes(nombres[i])
+            return mismoAp(f.ap, u.ap) && (nivel === 2 || f.ini.some(x => u.ini.includes(x)))
+          })
+          const otros = info.filter(o => o !== u && !usados.has(o.id))
+          if (cand.length === 1 && !otros.some(o => mismoAp(partes(nombres[cand[0]]).ap, o.ap))) {
+            asig.set(cand[0], u.id); usados.add(u.id)
+          }
+        })
+      }
+    }
+    const firma = (nombre, i) => {
+      const id = asig.get(i)
       return id ? `<a href="#/autor/${encodeURIComponent(id)}" title="Ver el perfil de este investigador UTM">${esc(nombre)}</a>` : esc(nombre)
     }
-    const lista = prim.map(firma).join('; ')
+    const lista = prim.map((n, i) => firma(n, i)).join('; ')
     let txt
     if (p.uf && total > prim.length) {
       const ocultos = total - prim.length - 1
-      txt = lista + (ocultos > 0 ? ` … +${ocultos} … ` : '; ') + firma(p.uf) + ` · ${total} autores`
+      txt = lista + (ocultos > 0 ? ` … +${ocultos} … ` : '; ') + firma(p.uf, prim.length) + ` · ${total} autores`
     } else {
       txt = lista + (total > prim.length ? ` … (+${total - prim.length} más)` : '')
     }
