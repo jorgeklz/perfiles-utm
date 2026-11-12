@@ -607,10 +607,10 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .btn-ext .ic-svg, .top-tab .ic-svg { width: 14px; height: 14px; flex-shrink: 0; }
 .pub-fchip .ic-svg, .btn-exp .ic-svg { width: 13px; height: 13px; flex-shrink: 0; }
 
-.btn-citar { font-family: inherit; font-size: var(--fs-2xs); font-weight: 600; color: var(--g1);
-  background: var(--g6); border: 1px solid transparent; border-radius: 6px;
-  padding: 1px 7px; cursor: pointer; transition: all .13s; }
-.btn-citar:hover { border-color: var(--g4); background: #d9ecca; }
+.btn-citar { display: inline-flex; align-items: center; gap: 4px; font-family: inherit; font-size: var(--fs-xs); font-weight: 600; color: var(--g1);
+  background: var(--sup); border: 1px solid var(--borde); border-radius: 7px;
+  padding: 2px 8px; cursor: pointer; transition: all .14s; white-space: nowrap; }
+.btn-citar:hover { border-color: var(--g3); background: var(--g6); }
 .cita-box { font-size: var(--fs-xs); line-height: 1.5; color: var(--texto); background: var(--sup2);
   border: 1px solid var(--borde); border-radius: 9px; padding: 9px 11px; margin: 2px 0 10px;
   user-select: all; word-break: break-word; }
@@ -954,3 +954,65 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* Directorio y Publicaciones: el botón CSV tiene el mismo alto que los demás controles */
 .controles .btn-exp { height: 40px; padding: 0 13px; border-radius: 10px; font-size: var(--fs-sm); }
 .controles .btn-exp .ic-svg { width: 15px; height: 15px; }
+
+/* Citas por año y badge "En ascenso" */
+.cpa-tag { color: var(--texto3); font-size: var(--fs-xs); margin-left: 3px; }
+.en-ascenso { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700;
+  color: var(--amarillo-texto); background: linear-gradient(135deg, #fef6d6 0%, #fae8a8 100%);
+  border: 1px solid #e2c15a; border-radius: 6px; padding: 1px 7px; margin-left: 5px;
+  vertical-align: baseline; white-space: nowrap; box-shadow: 0 1px 2px rgba(106, 83, 0, .08); }
+
+/* Menú desplegable de descarga de citas */
+.exp-drop { position: relative; display: inline-flex; }
+.cite-drop { vertical-align: middle; }
+.cite-menu { left: 0; right: auto; min-width: 210px; }
+.exp-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 230px;
+  background: var(--sup); border: 1px solid var(--borde); border-radius: 10px; padding: 5px;
+  box-shadow: 0 10px 28px rgba(24, 90, 16, .16); display: flex; flex-direction: column; gap: 2px; }
+.exp-menu[hidden] { display: none; }
+.exp-menu button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  padding: 7px 10px; border: none; border-radius: 7px; background: transparent; color: var(--texto);
+  font-family: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; }
+.exp-menu button:hover, .exp-menu button:focus-visible { background: var(--g6); color: var(--g1); }
+.exp-menu .ic-svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--g2); }
+
+/* Gráficos con alternancia a tabla accesible y carga diferida */
+.graf-pie-ctrl { display: flex; justify-content: flex-end; margin-top: 6px; }
+.btn-graf-tbl { display: inline-flex; align-items: center; gap: 5px; background: var(--sup2); color: var(--texto2);
+  border: 1px solid var(--borde); border-radius: 7px; padding: 3px 9px; font-family: inherit;
+  font-size: var(--fs-xs); font-weight: 600; cursor: pointer; transition: all .14s; }
+.btn-graf-tbl:hover { border-color: var(--g3); color: var(--g1); background: var(--g6); }
+.btn-graf-tbl .ic-svg { width: 13px; height: 13px; flex-shrink: 0; }
+.graf-tbl-scroll { overflow-x: auto; border: 1px solid var(--borde); border-radius: 9px; background: var(--sup); max-height: 280px; }
+.graf-tabla { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); }
+.graf-tabla th { position: sticky; top: 0; background: var(--g1); color: #ffffff; font-weight: 700;
+  text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--g2); white-space: nowrap; }
+.graf-tabla td { padding: 6px 10px; border-bottom: 1px solid var(--borde); color: var(--texto); }
+.graf-tabla tr:last-child td { border-bottom: none; }
+.graf-tabla th.num, .graf-tabla td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.graf-skeleton { min-height: 150px; border-radius: 10px; background: linear-gradient(90deg, var(--sup2) 25%, #eef1ea 50%, var(--sup2) 75%);
+  background-size: 200% 100%; display: flex; align-items: center; justify-content: center; color: var(--texto3); font-size: var(--fs-xs); }
+@media print { .graf-pie-ctrl { display: none !important; } }
+
+/* Popover: foco activo por teclado en filas */
+.ctx-row.kbd-on, .ctx-row:focus-within { background: rgba(30, 107, 20, .06); border-radius: 6px; }
+.ctx-row a:focus-visible { outline: 2px solid #c08f0a; outline-offset: 2px; border-radius: 3px; }
+
+/* Calidad de datos e histórico institucional en Metodología */
+.cal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 8px; }
+.cal-card { background: var(--sup2); border: 1px solid var(--borde); border-radius: 10px; padding: 11px 13px; }
+.cal-card b { display: block; font-size: 20px; color: var(--g1); line-height: 1.15; }
+.cal-card .cal-tit { font-size: var(--fs-sm); font-weight: 600; color: var(--texto); margin-top: 4px; }
+.cal-card .cal-det { font-size: var(--fs-xs); color: var(--texto3); margin-top: 3px; }
+.cal-bar { height: 5px; border-radius: 99px; background: #dfe4d8; margin-top: 8px; overflow: hidden; }
+.cal-bar i { display: block; height: 100%; background: var(--g3); border-radius: 99px; }
+.cal-bar.warn i { background: #d48817; }
+.hist-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+
+/* Página de perfil no encontrado útil */
+.nf-panel { padding: 20px 22px; }
+.nf-panel h1 { font-size: 20px; color: var(--g1); margin: 0 0 6px; }
+.nf-panel p { color: var(--texto2); margin: 0 0 14px; font-size: var(--fs-base); line-height: 1.5; }
+.nf-busq { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.nf-busq input { flex: 1 1 240px; height: 40px; padding: 0 12px; border: 1px solid var(--borde); border-radius: 10px; font-family: inherit; font-size: var(--fs-base); }
+.nf-sug { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 10px; }

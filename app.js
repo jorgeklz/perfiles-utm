@@ -124,7 +124,14 @@
     })
     return rank
   })()
-  const puestoTxt = r => r ? `Puesto ${r} en UTM` : ''
+  const TOTAL_AUT = D.autores.length || 1
+  const TOTAL_CP = D.autores.filter(a => (a.P || 0) >= MIN_PUBS_CP).length || 1
+  const puestoTxt = (r, total = TOTAL_AUT) => {
+    if (!r) return ''
+    if (r === 1) return 'Puesto 1 en UTM'
+    const pct = Math.max(1, Math.ceil(100 * r / total))
+    return pct <= 50 ? `Puesto ${r} en UTM · ${pct}% superior` : `Puesto ${r} de ${num(total)} en UTM`
+  }
 
   // iconos minimalistas (Feather) para las estadísticas y botones
   const ICON = {
@@ -170,6 +177,7 @@
     fuente: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
     area: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
     trofeo: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-1.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98 1.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>',
+    tabla: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>',
   }
   const ico = n => `<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`
   const icoQ = c => `<svg class="ic-svg ic-q" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="${c}" fill-opacity="0.22" stroke="${c}"/><circle cx="12" cy="12" r="3.2" fill="${c}" stroke="none"/></svg>`
@@ -1242,9 +1250,12 @@
       if (cambia) puntos += `<text x="${cx.toFixed(1)}" y="${(yH(r.h) - 7).toFixed(1)}" font-size="10" font-weight="700" text-anchor="middle" fill="#9a5f0a" stroke="#fff" stroke-width="2.6" paint-order="stroke">${r.h}</text>`
       zonas += `<rect x="${(i * paso).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${base}" fill="transparent" data-cat="anio" data-val="${r.y}" style="cursor:pointer"><title>Ver publicaciones de ${r.y}</title></rect>`
     })
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 14}px" role="img" aria-label="Índice h acumulado y citas por año de publicación">
+    const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 14}px" role="img" aria-label="Índice h acumulado y citas por año de publicación">
       <line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#e6e9e1"/>${barras}
       <polyline points="${pts.join(' ')}" fill="none" stroke="#e0902d" stroke-width="2.2"/>${puntos}${ejeAnios(serie, paso, base)}${zonas}</svg>`
+    return conTabla(svg, 'Índice h acumulado y citas por año',
+      [{ t: 'Año' }, { t: 'Índice h acumulado', num: true }, { t: 'Citas recibidas', num: true }],
+      serie.map(r => [r.y + (r.y >= ANIO_ACTUAL ? '*' : ''), r.h, num(r.c)]))
   }
   // Carriles por rol: una fila por posición en la firma y una burbuja por año, con el tamaño
   // según el número de publicaciones. Clic en una burbuja: publicaciones de ese rol y año.
@@ -1280,7 +1291,10 @@
       if ((n - 1 - i) % k) return
       s += `<text x="${(L + i * paso + paso / 2).toFixed(1)}" y="${yEje}" font-size="10" text-anchor="middle" fill="${d.y >= ANIO_ACTUAL ? '#c07a12' : '#98a18d'}">${d.y}${d.y >= ANIO_ACTUAL ? '*' : ''}</text>`
     })
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Rol de autoría por año">${s}</svg>`
+    const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Rol de autoría por año">${s}</svg>`
+    return conTabla(svg, 'Rol de autoría por año',
+      [{ t: 'Año' }, { t: 'Primer autor', num: true }, { t: 'Autor intermedio', num: true }, { t: 'Último autor', num: true }],
+      serie.map(d => [d.y + (d.y >= ANIO_ACTUAL ? '*' : ''), d.primero, d.medio, d.ultimo]))
   }
   function svgCalidad(serie) {
     const n = serie.length, W = Math.max(320, n * 38), H = 190, base = H - 26, top = 20
@@ -1300,7 +1314,10 @@
     })
     if (pts.length > 1) s += `<polyline points="${pts.join(' ')}" fill="none" stroke="#e0902d" stroke-width="2.2"/>`
     pts.forEach(pt => { const [px, py] = pt.split(','); s += `<circle cx="${px}" cy="${py}" r="3" fill="#e0902d" stroke="#fff" stroke-width="1.2" style="pointer-events:none"/>` })
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 14}px" role="img" aria-label="Porcentaje de publicaciones en Q1 y Q2 por año">${s}${ejeAnios(serie, paso, base)}</svg>`
+    const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 14}px" role="img" aria-label="Porcentaje de publicaciones en Q1 y Q2 por año">${s}${ejeAnios(serie, paso, base)}</svg>`
+    return conTabla(svg, 'Porcentaje de publicaciones en Q1 y Q2 por año',
+      [{ t: 'Año' }, { t: 'Q1 y Q2', num: true }, { t: 'Con cuartil', num: true }, { t: '% Q1 y Q2', num: true }],
+      serie.filter(r => r.nq > 0).map(r => [r.y + (r.y >= ANIO_ACTUAL ? '*' : ''), r.q12, r.nq, Math.round(100 * r.q12 / r.nq) + '%']))
   }
 
   // Hitos del investigador: primeras veces y cifras redondas, a partir de sus publicaciones y de su serie anual.
@@ -1367,13 +1384,13 @@
       </div>
       <div class="evo-pane" data-evo="h">
         <div class="evo-tit">Índice h acumulado (línea naranja) y citas de las publicaciones de cada año (barras)</div>
-        ${svgHCitas(serie)}
+        <div data-lazy-graf="evo-h"><div class="graf-skeleton">Cargando gráfico…</div></div>
         <div class="info-anios"><span>Índice h al cierre <b>${hFinal}</b></span><span>Citas <b>${num(citas)}</b></span>${ast}</div>
         <div class="ctx-hint">El índice h de cada año usa las publicaciones hasta ese año con sus citas actuales en Scopus, y las barras suman las citas que hoy tienen las publicaciones de ese año. Scopus no entrega el historial de citas año a año.</div>
       </div>
       <div class="evo-pane" data-evo="rol" style="display:none">
         <div class="evo-tit">Publicaciones por año según el lugar del investigador en la firma</div>
-        ${svgRoles(serie)}
+        <div data-lazy-graf="evo-rol"><div class="graf-skeleton">Cargando gráfico…</div></div>
         <div class="evo-leyenda">${['primero', 'medio', 'ultimo'].map(r => `<span data-cat="rol" data-val="${r}" style="cursor:pointer" title="Ver estas publicaciones"><i style="background:${ROL_COL[r]}"></i>${ROL_ET[r]} <b>${nRol(r)}</b> (${pct(nRol(r), tot)}%)</span>`).join('')}</div>
         <div class="info-anios">${notaRol}${ast}</div>
         ${LA_DISP ? '' : '<div class="ctx-hint">El último autor se estima por el apellido en la lista de firmantes; se afina al regenerar los datos del sitio.</div>'}
@@ -1381,7 +1398,7 @@
       </div>
       <div class="evo-pane" data-evo="q" style="display:none">
         <div class="evo-tit">Porcentaje de publicaciones en revistas Q1 o Q2 de cada año</div>
-        ${svgCalidad(serie)}
+        <div data-lazy-graf="evo-q"><div class="graf-skeleton">Cargando gráfico…</div></div>
         <div class="info-anios"><span>Q1 y Q2 en total: <b>${nq ? pct(q12, nq) + '%' : 'N/D'}</b> (${q12} de ${nq})</span>${notaQ}${ast}</div>
         <div class="ctx-hint">Solo cuentan las publicaciones con cuartil SJR (Q1 a Q4); ponencias, capítulos y libros quedan fuera. Clic en una barra para ver sus publicaciones Q1 y Q2.</div>
       </div>
@@ -1391,12 +1408,13 @@
       </div>` : ''}
     </div>`
   }
-  function wireEvolucion() {
+  function wireEvolucion(alCambiar) {
     const tabs = [...document.querySelectorAll('.evo-tab')]
     const panes = [...document.querySelectorAll('.evo-pane')]
     tabs.forEach(t => t.addEventListener('click', () => {
       tabs.forEach(x => x.classList.toggle('on', x === t))
       panes.forEach(p => { p.style.display = p.dataset.evo === t.dataset.evo ? '' : 'none' })
+      if (alCambiar) alCambiar(t.dataset.evo)
     }))
   }
 
@@ -1461,6 +1479,59 @@
     return m
   })()
   const claveFecha = p => p.d || ((p.y || 0) + '-00-00')
+  const citasPorAnio = p => {
+    if (!p || !(p.c > 0) || !p.y || p.y > ANIO_ACTUAL) return 0
+    return p.c / Math.max(1, ANIO_ACTUAL - p.y + 1)
+  }
+  const esEnAscenso = (p, cpaRef) => {
+    if (!p || !p.y || p.y > ANIO_ACTUAL || p.y < ANIO_ACTUAL - 3 || (p.c || 0) < 3) return false
+    const tasa = citasPorAnio(p)
+    const mediaAnio = MEDIA_ANIO[p.y] ? MEDIA_ANIO[p.y] / Math.max(1, ANIO_ACTUAL - p.y + 1) : 0
+    return tasa >= Math.max(2, (cpaRef || 0) * 1.5, mediaAnio * 1.4)
+  }
+
+  // Envuelve cualquier gráfico con un botón "Ver como tabla" para lectores de pantalla y copia a Excel.
+  function conTabla(grafHtml, caption, cols, rows) {
+    if (!rows || !rows.length) return grafHtml
+    const ths = cols.map(c => `<th scope="col"${c.num ? ' class="num"' : ''}>${esc(c.t)}</th>`).join('')
+    const trs = rows.map(r => `<tr>${r.map((v, i) => `<td${cols[i] && cols[i].num ? ' class="num"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('')
+    return `<div class="graf-wrap">
+      <div class="graf-vis">${grafHtml}</div>
+      <div class="graf-tbl" hidden><div class="graf-tbl-scroll">
+        <table class="graf-tabla" aria-label="${esc(caption)}"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>
+      </div></div>
+      <div class="graf-pie-ctrl"><button type="button" class="btn-graf-tbl" aria-expanded="false">${ico('tabla')}<span>Ver como tabla</span></button></div>
+    </div>`
+  }
+
+  // Dibujo diferido de gráficos: se montan al entrar en pantalla (o antes de imprimir).
+  let grafObs = null
+  let grafMaterializarTodo = null
+  function limpiarGrafObs() {
+    if (grafObs) { grafObs.disconnect(); grafObs = null }
+    grafMaterializarTodo = null
+  }
+  function observarGraficosLazy(mapaRender) {
+    limpiarGrafObs()
+    const cargar = el => {
+      const k = el && el.getAttribute('data-lazy-graf')
+      if (!k || !mapaRender[k]) return
+      el.removeAttribute('data-lazy-graf')
+      el.innerHTML = mapaRender[k]()
+      if (grafObs) grafObs.unobserve(el)
+    }
+    grafMaterializarTodo = () => {
+      document.querySelectorAll('[data-lazy-graf]').forEach(cargar)
+    }
+    const nodos = [...document.querySelectorAll('[data-lazy-graf]')]
+    if (!nodos.length) return
+    if (typeof IntersectionObserver === 'undefined') { nodos.forEach(cargar); return }
+    grafObs = new IntersectionObserver(ents => {
+      ents.forEach(e => { if (e.isIntersecting) cargar(e.target) })
+    }, { rootMargin: '220px 0px' })
+    nodos.forEach(el => grafObs.observe(el))
+  }
+  window.addEventListener('beforeprint', () => { if (grafMaterializarTodo) grafMaterializarTodo() })
   function destacadasPubs(ps, id) {
     if (ps.length < 2) return []
     // Cada categoría toma a su ganadora real, sin saltarse publicaciones ya usadas. Si una misma
@@ -1574,10 +1645,13 @@
       if (h) sobre += `<path d="${d}" fill="${col(h.n)}" stroke="#fff" stroke-width=".6" data-cat="pais" data-val="${esc(h.pais)}" style="cursor:pointer"><title>${esc(h.pais)}: ${h.n} pub. conjunta${h.n === 1 ? '' : 's'}</title></path>`
       else base += `<path d="${d}" fill="#eceee7" stroke="#fff" stroke-width=".6"/>`
     })
-    return `<div class="mapa-colab"><div class="mapa-scroll"><svg viewBox="0 12 ${M.w} ${M.h - 56}" width="100%" role="img" aria-label="Mapa de países de los coautores">${base}${sobre}</svg></div>
+    const html = `<div class="mapa-colab"><div class="mapa-scroll"><svg viewBox="0 12 ${M.w} ${M.h - 56}" width="100%" role="img" aria-label="Mapa de países de los coautores">${base}${sobre}</svg></div>
       <div class="mapa-leyenda"><span>1 pub.</span><span class="mapa-barra">${ESC.map(c => `<i style="background:${c}"></i>`).join('')}</span><span>${max} pub.</span>
       <em>Clic en un país para ver las publicaciones conjuntas.</em></div>
       </div>`
+    return conTabla(html, 'Colaboración por país',
+      [{ t: 'País' }, { t: 'Publicaciones conjuntas', num: true }],
+      px.map(([pais, n]) => [pais, num(n)]))
   }
 
   // ---------- resumen para el PDF del perfil (solo al imprimir) ----------
@@ -1658,8 +1732,45 @@
     if (!a) {
       perfilPubs = null
       aplicarFiltroCtxPubs = null
+      limpiarGrafObs()
+      const unif = D.autores.find(x => (x.fx || []).map(String).includes(String(id)))
+      const sug = unif
+        ? [unif]
+        : D.autores.filter(x => norm(x.n).includes(norm(id))).slice(0, 6)
+      const dest = sug.length ? sug : [...D.autores].sort((x, y) => (y.P || 0) - (x.P || 0)).slice(0, 6)
       app.innerHTML = `<div class="wrap">${migas('Investigador no encontrado')}
-        <div class="panel"><div class="vacio">Investigador no encontrado.</div></div></div>`
+        <div class="panel nf-panel">
+          <h1>${unif ? 'Este perfil fue unificado en Scopus' : 'Investigador no encontrado'}</h1>
+          <p>${unif
+            ? `El identificador <b>${esc(id)}</b> ahora forma parte del perfil principal de <b>${esc(unif.n)}</b>.`
+            : `No existe un investigador con el identificador «${esc(id)}». Puede deberse a una fusión de perfiles o a un enlace antiguo. Busca por nombre o apellido:`}</p>
+          ${unif ? `<p><a class="btn-ext" style="display:inline-flex;background:var(--g2);color:#fff;border-color:var(--g2)" href="#/autor/${encodeURIComponent(unif.id)}">Abrir perfil de ${esc(unif.n)} →</a></p>` : ''}
+          <div class="nf-busq">
+            <input id="nfQ" type="search" placeholder="Escribe un nombre, apellido o ID de Scopus…" aria-label="Buscar investigador">
+            <a class="btn-ext" href="#/">Ir al directorio completo</a>
+          </div>
+          <div class="subtitulo-panel" id="nfSub">${unif ? 'Perfil unificado' : (sug.length ? 'Coincidencias cercanas' : 'Investigadores destacados en la UTM')}</div>
+          <div class="nf-sug" id="nfSug">${dest.map(cardInv).join('')}</div>
+        </div></div>`
+      const inp = document.getElementById('nfQ')
+      const caja = document.getElementById('nfSug')
+      const sub = document.getElementById('nfSub')
+      if (inp && caja) {
+        inp.addEventListener('input', () => {
+          const tks = norm(inp.value).trim().split(/\s+/).filter(Boolean)
+          if (!tks.length) {
+            sub.textContent = unif ? 'Perfil unificado' : 'Investigadores destacados en la UTM'
+            caja.innerHTML = dest.map(cardInv).join('')
+            return
+          }
+          const halla = D.autores.filter(x => {
+            const tx = norm(x.n) + ' ' + String(x.id || '') + ' ' + (x.fx || []).join(' ')
+            return tks.every(k => tx.includes(k))
+          }).slice(0, 9)
+          sub.textContent = halla.length ? `Resultados (${halla.length})` : 'Sin coincidencias'
+          caja.innerHTML = halla.length ? halla.map(cardInv).join('') : '<div class="vacio">Ningún investigador coincide con esa búsqueda.</div>'
+        })
+      }
       return
     }
     // Al entrar (o pegar un enlace) el periodo viene de la URL; al cambiar de pestaña ya está en estado.
@@ -1776,7 +1887,10 @@
         <div style="flex:1;min-width:240px">
           <h1>${esc(a.n)}</h1>
           ${a.xu ? `<div class="ex-utm" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la UTM.">⚑ Sin afiliación vigente con la Universidad Técnica de Manabí.</div>` : ''}
-          <div class="sub">Autor UTM en Scopus · Activo ${a.pa || 'N/D'} a ${a.ua || 'N/D'}${a.rP ? ` · Puesto ${a.rP} en publicaciones en la UTM` : ''}</div>
+          <div class="sub">Autor UTM en Scopus · Activo ${a.pa || 'N/D'} a ${a.ua || 'N/D'}${a.rP ? ` · ${(() => {
+            const pct = Math.max(1, Math.ceil(100 * a.rP / TOTAL_AUT))
+            return pct <= 50 ? `Puesto ${a.rP} en publicaciones en la UTM · ${pct}% superior` : `Puesto ${a.rP} de ${num(TOTAL_AUT)} en publicaciones en la UTM`
+          })()}` : ''}</div>
           ${idsScopusHTML(a)}
           <div class="pie-print-ficha">Dirección de Investigación · Observatorio de Investigadores de la Universidad Técnica de Manabí, parte del proyecto de investigación <b>ObservaIA</b></div>
           <div class="enlaces">
@@ -1807,7 +1921,7 @@
         ${kpi(kP, 'Publicaciones', subRank(a.rP), AY.P)}
         ${kpi(num(kC), 'Citas', subRank(a.rC), AY.C)}
         ${kpi(kH, 'Índice h', subRank(a.rH), AY.h)}
-        ${kpi(dec(kCP, 2), 'Citas / pub.', subRank(R.CP, R.CP ? puestoTxt(R.CP) : `Mín. ${MIN_PUBS_CP} pub. para puesto`), AY.CP)}
+        ${kpi(dec(kCP, 2), 'Citas / pub.', subRank(R.CP, R.CP ? puestoTxt(R.CP, TOTAL_CP) : `Mín. ${MIN_PUBS_CP} pub. para puesto`), AY.CP)}
         ${kpi(kI10, 'Índice i10', subRank(R.i10), AY.i10)}
         ${kpi(kG, 'Índice g', subRank(R.g), AY.g)}
         ${kpi(dec(kM, 2), 'Índice m', subRank(R.m), AY.m)}
@@ -1816,9 +1930,9 @@
       ${destacadasHTML(pubs, a.id)}
 
       <div class="grid2">
-        <div class="panel"><h2>Publicaciones por año</h2>${barsAnio(porAnio)}${infoAnios(porAnio)}
+        <div class="panel"><h2>Publicaciones por año</h2><div data-lazy-graf="anios"><div class="graf-skeleton">Cargando gráfico…</div></div>${infoAnios(porAnio)}
           <div class="ctx-hint">Clic en una barra para ver las publicaciones de ese año.</div></div>
-        <div class="panel"><h2>Distribución por cuartil SJR y tipo</h2>${donut(cq)}
+        <div class="panel"><h2>Distribución por cuartil SJR y tipo</h2><div data-lazy-graf="donut"><div class="graf-skeleton">Cargando gráfico…</div></div>
           <div class="subtitulo-panel">Por tipo de documento</div>${tiposBarras(ct)}
           <div class="metricas-autoria">
             <div class="ma"><b>${mApu == null ? 'N/D' : dec(mApu, 1)}</b><span>Autores por publicación (promedio)</span></div>
@@ -1868,9 +1982,29 @@
     const topCit = new Set(pubs.length > 1
       ? [...pubs].filter(p => (p.c || 0) > 0).sort((x, y) => (y.c || 0) - (x.c || 0)).slice(0, 1)
       : [])
+    const cpas = pubs.map(citasPorAnio).filter(v => v > 0)
+    const cpaAutor = cpas.length ? cpas.reduce((s, v) => s + v, 0) / cpas.length : 0
     perfilPubs = pubs   // usado por el manejador delegado del popover
-    wirePubs(pubsOrd, p => pubRow(p, topCit.has(p)), a.id, 'publicaciones-' + a.id, leerFiltrosURL())
-    wireEvolucion()
+    wirePubs(pubsOrd, p => pubRow(p, topCit.has(p), cpaAutor), a.id, 'publicaciones-' + a.id, leerFiltrosURL())
+    const serieEvo = serieAnual(pubs, a.id)
+    const grafRenders = {
+      anios: () => barsAnio(porAnio),
+      donut: () => donut(cq),
+      'evo-h': () => svgHCitas(serieEvo),
+      'evo-rol': () => svgRoles(serieEvo),
+      'evo-q': () => svgCalidad(serieEvo),
+      'mapa-pais': () => mapaColab(extData.px || []),
+    }
+    const cargarGraf = k => {
+      const el = document.querySelector(`[data-lazy-graf="${k}"]`)
+      if (el && grafRenders[k]) {
+        el.removeAttribute('data-lazy-graf')
+        el.innerHTML = grafRenders[k]()
+        if (grafObs) grafObs.unobserve(el)
+      }
+    }
+    observarGraficosLazy(grafRenders)
+    wireEvolucion(clave => cargarGraf('evo-' + clave))
     wireCopiarEnlace()
     const POR_PAG_PANEL = 10
     paginar('coautCont', 'coautPager', coaut, coautRow, POR_PAG_PANEL)
@@ -1879,7 +2013,10 @@
     if (extData.ix.length) paginar('ceInstCont', 'ceInstPager', extData.ix, instRow, POR_PAG_PANEL)
     if (comStop) { comStop(); comStop = null }
     let comListo = false
-    wireCoautExtTabs(key => { if (key === 'com' && !comListo) { comListo = true; wireComunidades(a, pubs) } })
+    wireCoautExtTabs(key => {
+      if (key === 'pais') cargarGraf('mapa-pais')
+      if (key === 'com' && !comListo) { comListo = true; wireComunidades(a, pubs) }
+    })
     wireTemasTabs()
   }
 
@@ -2341,8 +2478,37 @@
   let focoOrigen = null
   const escPop = e => {
     if (e.key === 'Escape') { cerrarPop(); return }
+    if (!popEl) return
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && popEl.querySelector('.pop-body')) {
+      const pane = [...popEl.querySelectorAll('.pop-body')].find(x => x.style.display !== 'none')
+      if (pane) {
+        const filas = [...pane.querySelectorAll('.ctx-row')]
+        if (filas.length) {
+          e.preventDefault()
+          const cur = filas.findIndex(r => r.classList.contains('kbd-on') || r.contains(document.activeElement))
+          const dir = e.key === 'ArrowDown' ? 1 : -1
+          const sig = cur < 0 ? (dir > 0 ? 0 : filas.length - 1) : (cur + dir + filas.length) % filas.length
+          filas.forEach(r => r.classList.remove('kbd-on'))
+          filas[sig].classList.add('kbd-on')
+          const foco = filas[sig].querySelector('a, button')
+          if (foco) foco.focus({ preventScroll: true })
+          filas[sig].scrollIntoView({ block: 'nearest' })
+          return
+        }
+      }
+    }
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('pop-tab')) {
+      const tabs = [...popEl.querySelectorAll('.pop-tab')]
+      const idx = tabs.indexOf(document.activeElement)
+      if (idx >= 0 && tabs.length > 1) {
+        e.preventDefault()
+        const next = tabs[(idx + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]
+        next.click(); next.focus({ preventScroll: true })
+        return
+      }
+    }
     // Tab queda dentro de la ventana mientras está abierta.
-    if (e.key !== 'Tab' || !popEl) return
+    if (e.key !== 'Tab') return
     const f = [...popEl.querySelectorAll('a[href], button, input, select, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.offsetParent !== null)
     if (!f.length) { e.preventDefault(); return }
     const i = f.indexOf(document.activeElement)
@@ -2512,9 +2678,14 @@
       if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
     const w = popEl.offsetWidth, h = popEl.offsetHeight
-    let x = ev.clientX + 12, y = ev.clientY + 12
+    let cx = ev.clientX, cy = ev.clientY
+    if (!cx && !cy && ev.target && ev.target.getBoundingClientRect) {
+      const r = ev.target.getBoundingClientRect()
+      cx = r.left + r.width / 2; cy = r.bottom
+    }
+    let x = cx + 12, y = cy + 12
     if (x + w > window.innerWidth - 8) x = Math.max(8, window.innerWidth - w - 8)
-    if (y + h > window.innerHeight - 8) y = Math.max(8, ev.clientY - h - 12)
+    if (y + h > window.innerHeight - 8) y = Math.max(8, cy - h - 12)
     popEl.style.left = x + 'px'; popEl.style.top = y + 'px'
     popEl.querySelector('.pop-x').addEventListener('click', cerrarPop)
     setTimeout(() => document.addEventListener('mousedown', fueraPop, true), 0)
@@ -2560,6 +2731,29 @@
     return lineas.join('\n')
   }
 
+  function tipoRIS(st) {
+    const s = String(st || '').toLowerCase()
+    if (s.includes('conference')) return 'CONF'
+    if (s.includes('chapter')) return 'CHAP'
+    if (s === 'book') return 'BOOK'
+    return 'JOUR'
+  }
+  function citaRIS(p) {
+    const ty = tipoRIS(p.st)
+    const lineas = [`TY  - ${ty}`, `TI  - ${p.t || ''}`]
+    const auts = [...(p.au || [])]
+    if (p.uf && (p.nc || 0) > auts.length) auts.push(p.uf)
+    auts.forEach(a => lineas.push(`AU  - ${a}`))
+    if (p.y) lineas.push(`PY  - ${p.y}`)
+    if (p.j) lineas.push(`${ty === 'JOUR' ? 'JO' : 'T2'}  - ${p.j}`)
+    if (p.doi) {
+      lineas.push(`DO  - ${p.doi}`)
+      lineas.push(`UR  - https://doi.org/${p.doi}`)
+    }
+    lineas.push('ER  - ')
+    return lineas.join('\n')
+  }
+
   function descargarArchivo(nombre, contenido, mime) {
     const blob = new Blob([contenido], { type: mime })
     const url = URL.createObjectURL(blob)
@@ -2571,12 +2765,72 @@
     setTimeout(() => { a.remove(); URL.revokeObjectURL(url) }, 150)
   }
 
+  function exportarListaCitas(pubs, fmt, baseNombre) {
+    const base = baseNombre || 'publicaciones-utm'
+    if (fmt === 'csv') {
+      const escCsv = s => `"${String(s == null ? '' : s).replace(/"/g, '""')}"`
+      const cab = ['Anio', 'Titulo', 'Fuente', 'Cuartil_SJR', 'Tipo', 'Citas', 'Acceso_abierto', 'DOI', 'Autores'].join(',')
+      const filas = pubs.map(p => [
+        p.y || '',
+        escCsv(p.t || ''),
+        escCsv(p.j || ''),
+        escCsv(p.q || 'N/A'),
+        escCsv(p.st || ''),
+        p.c || 0,
+        (p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown') ? 'Si' : 'No',
+        escCsv(p.doi || ''),
+        escCsv((p.au || []).join('; '))
+      ].join(','))
+      descargarArchivo(`${base}.csv`, '\uFEFF' + [cab, ...filas].join('\n'), 'text/csv;charset=utf-8')
+    } else if (fmt === 'bib') {
+      const contenido = pubs.map((p, i) => citaBibtex(p, i + 1)).join('\n\n') + '\n'
+      descargarArchivo(`${base}.bib`, contenido, 'application/x-bibtex;charset=utf-8')
+    } else if (fmt === 'ris') {
+      const contenido = pubs.map(p => citaRIS(p)).join('\n\n') + '\n'
+      descargarArchivo(`${base}.ris`, contenido, 'application/x-research-info-systems;charset=utf-8')
+    }
+  }
+
+  function cerrarMenuCita() {
+    document.querySelectorAll('.cite-menu').forEach(m => m.remove())
+    document.querySelectorAll('.btn-citar[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'))
+  }
+  function toggleMenuCita(btn, p) {
+    const wrap = btn.closest('.cite-drop')
+    if (!wrap) return
+    const abierto = wrap.querySelector('.cite-menu')
+    cerrarMenuCita()
+    if (abierto) return
+    const menu = document.createElement('div')
+    menu.className = 'exp-menu cite-menu'
+    menu.setAttribute('role', 'menu')
+    menu.innerHTML = `
+      <button type="button" role="menuitem" data-ca="csv">${ico('csv')}<span>CSV (.csv)</span></button>
+      <button type="button" role="menuitem" data-ca="bib">${ico('bibtex')}<span>BibTeX (.bib)</span></button>
+      <button type="button" role="menuitem" data-ca="ris">${ico('bibtex')}<span>RIS (.ris)</span></button>`
+    wrap.appendChild(menu)
+    btn.setAttribute('aria-expanded', 'true')
+    const r = menu.getBoundingClientRect()
+    if (r.right > window.innerWidth - 12) {
+      menu.style.left = 'auto'
+      menu.style.right = '0'
+    }
+    menu.addEventListener('click', ev => {
+      const b = ev.target.closest('button[data-ca]')
+      if (!b) return
+      ev.stopPropagation()
+      exportarListaCitas([p], b.dataset.ca, `cita-${p.y || 'utm'}`)
+      cerrarMenuCita()
+    })
+  }
+
   function mostrarCitaPopover(ev, p) {
     const previo = focoOrigen || origenPop(ev)
     cerrarPop()
     if (!p) return
     const apa = citaAPA(p)
     const bib = citaBibtex(p)
+    const ris = citaRIS(p)
     popEl = document.createElement('div')
     popEl.className = 'popover-ctx'
     let fmt = 'apa'
@@ -2587,33 +2841,36 @@
         <div class="pop-val">Citar publicación</div>
       </div>
       <div class="pop-cab-der">
-        <span class="pop-badge">APA / BibTeX</span>
+        <span class="pop-badge">APA / BibTeX / RIS</span>
         <button type="button" class="pop-x" title="Cerrar" aria-label="Cerrar">✕</button>
       </div>
     </div>
       <div class="pop-subtabs">
         <button type="button" class="pop-stab pop-tab on" data-cf="apa">APA 7</button>
         <button type="button" class="pop-stab pop-tab" data-cf="bib">BibTeX</button>
+        <button type="button" class="pop-stab pop-tab" data-cf="ris">RIS</button>
       </div>
       <div class="pop-body" style="padding:10px 14px 12px">
         <div class="cita-box" id="citaTexto">${esc(apa)}</div>
         <div class="cita-acciones">
           <button type="button" class="cita-btn pri" id="btnCopiarCita">${ico('copiar')}<span>Copiar referencia</span></button>
           <button type="button" class="cita-btn" id="btnDescBib">${ico('descarga')}<span>Descargar .bib</span></button>
+          <button type="button" class="cita-btn" id="btnDescRis">${ico('descarga')}<span>Descargar .ris</span></button>
         </div>
       </div>`
     document.body.appendChild(popEl)
     const caja = popEl.querySelector('#citaTexto')
     const btnCop = popEl.querySelector('#btnCopiarCita')
     const btnBib = popEl.querySelector('#btnDescBib')
+    const btnRis = popEl.querySelector('#btnDescRis')
     popEl.querySelectorAll('.pop-tab').forEach(t => t.addEventListener('click', () => {
       fmt = t.dataset.cf
       popEl.querySelectorAll('.pop-tab').forEach(x => x.classList.toggle('on', x === t))
-      caja.classList.toggle('mono', fmt === 'bib')
-      caja.textContent = fmt === 'bib' ? bib : apa
+      caja.classList.toggle('mono', fmt === 'bib' || fmt === 'ris')
+      caja.textContent = fmt === 'bib' ? bib : fmt === 'ris' ? ris : apa
     }))
     btnCop.addEventListener('click', () => {
-      const txt = fmt === 'bib' ? bib : apa
+      const txt = fmt === 'bib' ? bib : fmt === 'ris' ? ris : apa
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(txt).then(() => {
           btnCop.innerHTML = `${ico('copiar')}<span>✓ Copiado</span>`
@@ -2624,11 +2881,19 @@
     btnBib.addEventListener('click', () => {
       descargarArchivo(`cita-${p.y || 'utm'}.bib`, bib + '\n', 'application/x-bibtex;charset=utf-8')
     })
+    btnRis.addEventListener('click', () => {
+      descargarArchivo(`cita-${p.y || 'utm'}.ris`, ris + '\n', 'application/x-research-info-systems;charset=utf-8')
+    })
     const w = popEl.offsetWidth, h = popEl.offsetHeight
-    let x = ev.clientX - w + 24, y = ev.clientY + 10
+    let cx = ev.clientX, cy = ev.clientY
+    if (!cx && !cy && ev.target && ev.target.getBoundingClientRect) {
+      const r = ev.target.getBoundingClientRect()
+      cx = r.right; cy = r.bottom
+    }
+    let x = cx - w + 24, y = cy + 10
     if (x < 8) x = 8
     if (x + w > window.innerWidth - 8) x = Math.max(8, window.innerWidth - w - 8)
-    if (y + h > window.innerHeight - 8) y = Math.max(8, ev.clientY - h - 10)
+    if (y + h > window.innerHeight - 8) y = Math.max(8, cy - h - 10)
     popEl.style.left = x + 'px'; popEl.style.top = y + 'px'
     popEl.querySelector('.pop-x').addEventListener('click', cerrarPop)
     setTimeout(() => document.addEventListener('mousedown', fueraPop, true), 0)
@@ -2644,6 +2909,7 @@
         ${conOrden ? `<select class="selector" id="pubOrden" aria-label="Ordenar publicaciones">
           <option value="recientes">Ordenar: Más recientes</option>
           <option value="citadas">Ordenar: Más citadas</option>
+          <option value="ritmo">Ordenar: Citas por año</option>
         </select>` : ''}
         <select class="selector" id="pp" aria-label="Publicaciones por página">
           <option value="10">Ítems por página: 10</option>
@@ -2654,7 +2920,7 @@
       <div class="pub-filtros">
         <input id="pubQ" class="entrada pub-busq" placeholder="Filtrar por título, revista, coautor o DOI…" aria-label="Filtrar publicaciones por texto">
         <div class="pub-fchips">
-          <button type="button" class="pub-fchip pub-qchip on" data-q="todos" title="Mostrar todos los cuartiles">${ico('cuartil')}<span>Todos los Q</span></button>
+          <button type="button" class="pub-fchip pub-qchip on" data-q="todos" title="Mostrar todos los cuartiles">${ico('cuartil')}<span>Todas</span></button>
           <button type="button" class="pub-fchip pub-qchip" data-q="Q1" title="Cuartil 1 (SJR)">${icoQ(COLQ.Q1)}<span>Q1</span></button>
           <button type="button" class="pub-fchip pub-qchip" data-q="Q2" title="Cuartil 2 (SJR)">${icoQ(COLQ.Q2)}<span>Q2</span></button>
           <button type="button" class="pub-fchip pub-qchip" data-q="Q3" title="Cuartil 3 (SJR)">${icoQ(COLQ.Q3)}<span>Q3</span></button>
@@ -2667,9 +2933,14 @@
           <span id="pubCtxWrap" class="pub-ctx-wrap"></span>
         </div>
         <div class="pub-exp-wrap">
-          ${autorId ? `<button type="button" class="btn-exp" data-copiar-enlace="1" title="Copia el enlace con el periodo y los filtros activos">${ico('enlace')}<span>Copiar enlace</span></button>` : ''}
-          <button type="button" class="btn-exp" id="btnExpCsv" title="Descargar las publicaciones listadas en CSV">${ico('csv')}<span>CSV</span></button>
-          <button type="button" class="btn-exp" id="btnExpBib" title="Descargar las publicaciones listadas en BibTeX">${ico('bibtex')}<span>BibTeX</span></button>
+          <div class="exp-drop">
+            <button type="button" class="btn-exp" id="btnExpMenu" aria-haspopup="menu" aria-expanded="false" title="Seleccionar formato para descargar las publicaciones listadas">${ico('descarga')}<span>Descargar citas ▾</span></button>
+            <div class="exp-menu" id="expMenu" role="menu" hidden>
+              <button type="button" role="menuitem" data-exp="csv">${ico('csv')}<span>CSV (.csv)</span></button>
+              <button type="button" role="menuitem" data-exp="bib">${ico('bibtex')}<span>BibTeX (.bib)</span></button>
+              <button type="button" role="menuitem" data-exp="ris">${ico('bibtex')}<span>RIS (.ris)</span></button>
+            </div>
+          </div>
         </div>
       </div>
       ${autorId ? `<div class="ctx-hint pub-hint">Haga clic en un año, revista, coautor, país, área o tema del perfil y elija «Filtrar»; con Ctrl o ⌘ + clic se filtra al instante. Los filtros se combinan y quedan guardados en el enlace.</div>` : ''}
@@ -2689,8 +2960,8 @@
     const inpQ = document.getElementById('pubQ')
     const titEl = document.getElementById('pubTitCont')
     const ctxChipEl = document.getElementById('pubCtxWrap')
-    const btnCsv = document.getElementById('btnExpCsv')
-    const btnBib = document.getElementById('btnExpBib')
+    const btnExpMenu = document.getElementById('btnExpMenu')
+    const expMenu = document.getElementById('expMenu')
     let ordenada = lista
 
     function filtrarOrdenar() {
@@ -2713,7 +2984,9 @@
       })
       ordenada = filtrada.sort((a, b) => orden === 'citadas'
         ? (b.c || 0) - (a.c || 0) || (b.y || 0) - (a.y || 0)
-        : (b.y || 0) - (a.y || 0) || (b.c || 0) - (a.c || 0))
+        : orden === 'ritmo'
+          ? citasPorAnio(b) - citasPorAnio(a) || (b.c || 0) - (a.c || 0)
+          : (b.y || 0) - (a.y || 0) || (b.c || 0) - (a.c || 0))
     }
 
     function pinta() {
@@ -2788,26 +3061,26 @@
       document.querySelectorAll('.pub-fchip[data-pf]').forEach(x => x.classList.toggle('on', chips.has(x.dataset.pf)))
       pagina = 1; filtrarOrdenar(); pinta()
     }))
-    if (btnCsv) btnCsv.addEventListener('click', () => {
-      const escCsv = s => `"${String(s == null ? '' : s).replace(/"/g, '""')}"`
-      const cab = ['Anio', 'Titulo', 'Fuente', 'Cuartil_SJR', 'Tipo', 'Citas', 'Acceso_abierto', 'DOI', 'Autores'].join(',')
-      const filas = ordenada.map(p => [
-        p.y || '',
-        escCsv(p.t || ''),
-        escCsv(p.j || ''),
-        escCsv(p.q || 'N/A'),
-        escCsv(p.st || ''),
-        p.c || 0,
-        (p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown') ? 'Si' : 'No',
-        escCsv(p.doi || ''),
-        escCsv((p.au || []).join('; '))
-      ].join(','))
-      descargarArchivo(`${nombreBase || 'publicaciones-utm'}.csv`, '\uFEFF' + [cab, ...filas].join('\n'), 'text/csv;charset=utf-8')
-    })
-    if (btnBib) btnBib.addEventListener('click', () => {
-      const contenido = ordenada.map((p, i) => citaBibtex(p, i + 1)).join('\n\n') + '\n'
-      descargarArchivo(`${nombreBase || 'publicaciones-utm'}.bib`, contenido, 'application/x-bibtex;charset=utf-8')
-    })
+    const descargarFormato = fmt => exportarListaCitas(ordenada, fmt, nombreBase)
+    if (btnExpMenu && expMenu) {
+      const cerrarExp = () => { expMenu.hidden = true; btnExpMenu.setAttribute('aria-expanded', 'false') }
+      btnExpMenu.addEventListener('click', ev => {
+        ev.stopPropagation()
+        const abrir = expMenu.hidden
+        expMenu.hidden = !abrir
+        btnExpMenu.setAttribute('aria-expanded', abrir ? 'true' : 'false')
+      })
+      expMenu.querySelectorAll('button[data-exp]').forEach(b => b.addEventListener('click', () => {
+        descargarFormato(b.dataset.exp)
+        cerrarExp()
+      }))
+      document.addEventListener('click', ev => {
+        if (!expMenu.hidden && !expMenu.contains(ev.target) && !btnExpMenu.contains(ev.target)) cerrarExp()
+      })
+      document.addEventListener('keydown', ev => {
+        if (ev.key === 'Escape' && !expMenu.hidden) { cerrarExp(); btnExpMenu.focus() }
+      })
+    }
     if (sel) sel.addEventListener('change', () => { porPag = +sel.value; pagina = 1; pinta() })
     if (selO) selO.addEventListener('change', () => { orden = selO.value; filtrarOrdenar(); pagina = 1; pinta() })
     if (ini) {
@@ -2815,7 +3088,7 @@
       ;['oa', 'fa', 'cit'].forEach(k => { if (ini[k]) chips.add(k) })
       qTxt = ini.txt || ''
       if (inpQ) inpQ.value = qTxt
-      if (ini.ord === 'citadas') { orden = 'citadas'; if (selO) selO.value = 'citadas' }
+      if (ini.ord === 'citadas' || ini.ord === 'ritmo') { orden = ini.ord; if (selO) selO.value = ini.ord }
       ini.c.forEach(({ cat, val }) => {
         ctxFiltros = ctxFiltros.filter(f => f.cat !== cat)
         ctxFiltros.push({ cat, val, titulo: tituloCat(cat, val), set: new Set(listaCat(lista, cat, val)) })
@@ -2850,10 +3123,17 @@
   }
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
   // Mapa de coautores en móvil: más alto y desplazable; se centra en América al aparecer.
-  if (typeof MutationObserver !== 'undefined') new MutationObserver(() => document.querySelectorAll('.mapa-scroll:not([data-c])').forEach(m => {
-    m.dataset.c = '1'
-    if (m.scrollWidth > m.clientWidth) m.scrollLeft = (m.scrollWidth - m.clientWidth) * 0.2
-  })).observe(document.body, { childList: true, subtree: true })
+  if (typeof MutationObserver !== 'undefined') new MutationObserver(() => {
+    document.querySelectorAll('.mapa-scroll:not([data-c])').forEach(m => {
+      m.dataset.c = '1'
+      if (m.scrollWidth > m.clientWidth) m.scrollLeft = (m.scrollWidth - m.clientWidth) * 0.2
+    })
+    document.querySelectorAll('#app [data-cat]:not([tabindex])').forEach(el => {
+      if (/^(a|button|input|select)$/i.test(el.tagName)) return
+      el.setAttribute('tabindex', '0')
+      if (!el.hasAttribute('role')) el.setAttribute('role', 'button')
+    })
+  }).observe(document.body, { childList: true, subtree: true })
   function notaExUtm(a) {
     return a && a.xu
       ? `<div class="ex-utm-mini" title="Conserva su producción con filiación UTM, pero su afiliación actual en Scopus ya no es la Universidad Técnica de Manabí.">⚑ Sin afiliación vigente</div>`
@@ -2951,16 +3231,31 @@
     }
     return `<div class="m aut-pub">${txt}</div>`
   }
-  function pubRow(p, dest) {
+  function citasMetaHTML(p, cpaRef) {
+    const tasa = citasPorAnio(p)
+    const anios = p.y && p.y <= ANIO_ACTUAL ? (ANIO_ACTUAL - p.y + 1) : 0
+    const rit = (p.c > 0 && (anios >= 2 || p.c >= 3) && tasa > 0)
+      ? ` <span class="cpa-tag" title="Promedio de citas por año desde su publicación (${anios} año${anios === 1 ? '' : 's'})">(${dec(tasa, 1)}/año)</span>`
+      : ''
+    const asc = esEnAscenso(p, cpaRef)
+      ? ` <span class="en-ascenso" title="Acumula citas más rápido que el promedio (${dec(tasa, 1)} citas/año)">↗ En ascenso</span>`
+      : ''
+    return `${num(p.c)} citas${rit}${asc}`
+  }
+  function btnCitarHTML(idx) {
+    if (idx == null) return ''
+    return ` · <span class="exp-drop cite-drop"><button type="button" class="btn-citar" data-cite="${idx}" aria-haspopup="menu" aria-expanded="false" title="Seleccionar formato para citar o descargar">❞ Citar ▾</button></span>`
+  }
+
+  function pubRow(p, dest, cpaRef) {
     const abierto = p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown'
     const t = p.doi
       ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>`
       : esc(p.t)
-    const idx = PUB_IDX.get(p)
-    const btnCit = idx != null ? ` · <button type="button" class="btn-citar" data-cite="${idx}" title="Citar en formato APA 7 o BibTeX">❞ Citar</button>` : ''
+    const btnCit = btnCitarHTML(PUB_IDX.get(p))
     return `<div class="pub"><div class="anio"><b>${p.y || 'N/D'}</b></div>
       <div class="cuerpo"><div class="t">${t}${dest ? ' <span class="mas-citada">★ Más citada</span>' : ''}</div>
-      <div class="m">${adelM(p)}${esc(p.j || 'N/D')} · ${badgeQ(p.q)} · ${num(p.c)} citas${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${btnCit}</div>${autoresLinea(p)}</div></div>`
+      <div class="m">${adelM(p)}${esc(p.j || 'N/D')} · ${badgeQ(p.q)} · ${citasMetaHTML(p, cpaRef)}${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${btnCit}</div>${autoresLinea(p)}</div></div>`
   }
 
   // ---------- coautoría externa, temas y exportaciones del perfil ----------
@@ -2989,7 +3284,7 @@
     // Países y mapa van juntos: el mapa arriba y, debajo, la lista de países con su número de publicaciones.
     if (px.length) {
       tabs.push(`<button class="top-tab ce-tab" data-ce="pais">${ico('globe')}<span>Países (${px.length})</span></button>`)
-      panes.push(`<div class="ce-pane" data-ce="pais">${window.MAPA_MUNDO ? mapaColab(px) : ''}<div class="ce-chips"${window.MAPA_MUNDO ? ' style="margin-top:12px"' : ''}>${px.map(paisChip).join('')}</div></div>`)
+      panes.push(`<div class="ce-pane" data-ce="pais">${window.MAPA_MUNDO ? '<div data-lazy-graf="mapa-pais"><div class="graf-skeleton">Cargando mapa…</div></div>' : ''}<div class="ce-chips"${window.MAPA_MUNDO ? ' style="margin-top:12px"' : ''}>${px.map(paisChip).join('')}</div></div>`)
     }
     if (ix.length) {
       tabs.push(`<button class="top-tab ce-tab" data-ce="inst">${ico('inst')}<span>Filiaciones (${ix.length})</span></button>`)
@@ -3185,7 +3480,10 @@
     years.forEach((y, i) => {
       s += `<rect x="${(i * paso).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${base}" fill="transparent" data-cat="anio" data-val="${y}" style="cursor:pointer"><title>Ver publicaciones de ${y}</title></rect>`
     })
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>`
+    const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Publicaciones por año">${s}</svg>`
+    return conTabla(svg, 'Publicaciones por año',
+      [{ t: 'Año' }, { t: 'Publicaciones', num: true }, { t: 'Estado' }],
+      years.map(y => [y, num(porAnio[y]), y >= ANIO_ACTUAL ? 'En curso / parcial' : 'Cerrado']))
   }
 
   function infoAnios(porAnio) {
@@ -3229,10 +3527,13 @@
       off += len
     })
     const leg = pres.map(q => `<span data-cat="cuartil" data-val="${q}" style="cursor:pointer" title="${esc(rotulo(q))} · ${esc(tipCuartil(q))} · clic para ver las publicaciones"><i style="background:${COLQ[q]}"></i>${q}<b>${cq[q]}</b><em>(${pctDe(cq[q])}%)</em></span>`).join('')
-    return `<div class="donut-fila"><svg width="128" height="128" viewBox="0 0 128 128">${segs}
+    const html = `<div class="donut-fila"><svg width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Distribución por cuartil SJR">${segs}
       <text x="64" y="61" text-anchor="middle" font-size="21" font-weight="700" fill="#185a10" font-family="Montserrat,sans-serif">${total}</text>
       <text x="64" y="78" text-anchor="middle" font-size="10" fill="#8f9985">${total === 1 ? 'Doc.' : 'Docs.'}</text></svg>
       <div class="leyenda">${leg}</div></div>`
+    return conTabla(html, 'Distribución por cuartil SJR',
+      [{ t: 'Cuartil' }, { t: 'Publicaciones', num: true }, { t: '%', num: true }],
+      pres.map(q => [q, num(cq[q]), pctDe(cq[q]) + '%']))
   }
 
   function tiposBarras(ct) {
@@ -3258,10 +3559,9 @@
       : ''
     const abierto = p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown'
     const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
-    const idx = PUB_IDX.get(p)
-    const btnCit = idx != null ? ` · <button type="button" class="btn-citar" data-cite="${idx}" title="Citar en formato APA 7 o BibTeX">❞ Citar</button>` : ''
+    const btnCit = btnCitarHTML(PUB_IDX.get(p))
     return `<div class="pub"><div class="anio"><b>${p.y || 'N/D'}</b></div><div class="cuerpo"><div class="t">${t}</div>
-      <div class="m">${adelM(p)}${esc(p.j || 'N/D')} · ${badgeQ(p.q)} · ${num(p.c)} citas${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${aut}${btnCit}</div></div></div>`
+      <div class="m">${adelM(p)}${esc(p.j || 'N/D')} · ${badgeQ(p.q)} · ${citasMetaHTML(p, 0)}${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${aut}${btnCit}</div></div></div>`
   }
 
   function renderArea(area) {
@@ -3418,9 +3718,43 @@
     })
   }
 
+  function svgHistorico(hist, campo, color, tit) {
+    if (!hist || hist.length < 2) return ''
+    const W = 540, H = 165, padL = 44, padR = 14, padT = 18, padB = 26
+    const vals = hist.map(x => Number(x[campo]) || 0)
+    const minV = Math.min(...vals), maxV = Math.max(...vals)
+    const span = Math.max(1, maxV - minV)
+    const lo = Math.max(0, minV - span * 0.15), hi = maxV + span * 0.15
+    const xFor = i => padL + (i / (hist.length - 1)) * (W - padL - padR)
+    const yFor = v => H - padB - ((v - lo) / Math.max(1e-9, hi - lo)) * (H - padT - padB)
+    const pts = hist.map((x, i) => `${xFor(i).toFixed(1)},${yFor(vals[i]).toFixed(1)}`).join(' ')
+    const area = `${xFor(0).toFixed(1)},${H - padB} ${pts} ${xFor(hist.length - 1).toFixed(1)},${H - padB}`
+    let dots = '', lbls = ''
+    const step = Math.max(1, Math.ceil(hist.length / 6))
+    hist.forEach((x, i) => {
+      const px = xFor(i), py = yFor(vals[i])
+      dots += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3" fill="${color}" stroke="#fff" stroke-width="1.2"><title>${esc(x.f)}: ${num(vals[i])}</title></circle>`
+      if (i % step === 0 || i === hist.length - 1) {
+        lbls += `<text x="${px.toFixed(1)}" y="${H - 8}" font-size="9.5" text-anchor="middle" fill="#8b9482">${esc(x.f.slice(2, 7))}</text>`
+      }
+      if (i === 0 || i === hist.length - 1) {
+        lbls += `<text x="${px.toFixed(1)}" y="${(py - 7).toFixed(1)}" font-size="10" font-weight="700" text-anchor="${i === 0 ? 'start' : 'end'}" fill="${color}" stroke="#fff" stroke-width="2.4" paint-order="stroke">${num(vals[i])}</text>`
+      }
+    })
+    const svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:${H + 10}px" role="img" aria-label="${esc(tit)}">
+      <line x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}" stroke="#e6e9e1"/>
+      <polygon points="${area}" fill="${color}" fill-opacity="0.12"/>
+      <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2"/>
+      ${dots}${lbls}</svg>`
+    return conTabla(svg, tit,
+      [{ t: 'Fecha' }, { t: tit, num: true }],
+      hist.map(x => [x.f, num(x[campo] || 0)]))
+  }
+
   function renderMetodologia() {
     perfilPubs = null
     aplicarFiltroCtxPubs = null
+    limpiarGrafObs()
     const fecha = (() => {
       if (!D.fecha) return 'la fecha de la última actualización'
       const [dia, hora] = String(D.fecha).trim().split(/\s+/)
@@ -3429,6 +3763,32 @@
       return hora ? `${f}, ${hora} (GMT-5)` : f
     })()
     const sinAfil = D.autores.filter(a => a.xu).length
+    const nPub = D.pubs.length || 1, nAut = D.autores.length || 1
+    const sinDoi = D.pubs.filter(p => !p.doi).length
+    const sinCuartil = D.pubs.filter(p => p.q === 'NC').length
+    const retiradas = D.pubs.filter(p => p.r).length
+    const sinOrcid = D.autores.filter(a => !a.or).length
+    const fusionados = D.autores.filter(a => (a.fx || []).length > 0).length
+    const calCard = (pct, val, tit, det, warn) => `<div class="cal-card">
+      <b>${dec(pct, 1)}%</b>
+      <div class="cal-tit">${esc(tit)}</div>
+      <div class="cal-det">${esc(val)} · ${esc(det)}</div>
+      <div class="cal-bar${warn ? ' warn' : ''}"><i style="width:${Math.min(100, Math.max(2, Math.round(pct)))}%"></i></div>
+    </div>`
+    const hist = Array.isArray(D.hist) ? D.hist : []
+    const histHtml = hist.length >= 2
+      ? `<div class="panel" style="margin-top:16px"><h2>Histórico de crecimiento institucional</h2>
+          <p class="ayuda-filtros" style="margin:0 0 12px">Registro acumulado en cada actualización del portal (${hist.length} cortes desde ${esc(hist[0].f)} hasta ${esc(hist[hist.length - 1].f)}).</p>
+          <div class="top-tabs hist-tabs">
+            <button type="button" class="top-tab hist-tab on" data-hm="p">${ico('pubs')}<span>Publicaciones</span></button>
+            <button type="button" class="top-tab hist-tab" data-hm="c">${ico('citas')}<span>Citas</span></button>
+            <button type="button" class="top-tab hist-tab" data-hm="h">${ico('h')}<span>Índice h</span></button>
+          </div>
+          <div id="histCont">${svgHistorico(hist, 'p', '#1e6b14', 'Publicaciones UTM acumuladas')}</div>
+        </div>`
+      : `<div class="panel" style="margin-top:16px"><h2>Histórico de crecimiento institucional</h2>
+          <p class="ayuda-filtros" style="margin:0">El histórico comenzará a graficarse a partir de la segunda actualización registrada.</p>
+        </div>`
     const mayus = x => x.charAt(0).toUpperCase() + x.slice(1)
     const item = (t, cuerpo) => `<div class="met-item"><h3>${t}</h3><p>${mayus(cuerpo)}</p></div>`
     app.innerHTML = `<div class="wrap">
@@ -3466,8 +3826,28 @@
           ${item('Colores', 'Q1 verde oscuro, Q2 verde claro, Q3 naranja, Q4 rojo, N/A gris y NC gris claro, igual en todas las gráficas y ventanas del portal.')}
         </div>
       </div>
+      <div class="panel" style="margin-top:16px"><h2>Calidad y cobertura de los datos</h2>
+        <p class="ayuda-filtros" style="margin:0 0 10px">Porcentajes de registros incompletos o depurados sobre ${num(D.pubs.length)} publicaciones y ${num(D.autores.length)} investigadores.</p>
+        <div class="cal-grid">
+          ${calCard(100 * sinDoi / nPub, `${num(sinDoi)} de ${num(D.pubs.length)}`, 'Publicaciones sin DOI', 'Sin enlace directo al documento', sinDoi > 0)}
+          ${calCard(100 * sinCuartil / nPub, `${num(sinCuartil)} de ${num(D.pubs.length)}`, 'Revistas sin cuartil (NC)', 'Sin registro SJR ni CiteScore', sinCuartil > 0)}
+          ${calCard(100 * retiradas / nPub, `${num(retiradas)} de ${num(D.pubs.length)}`, 'En revistas retiradas de Scopus', 'Fuentes descontinuadas', retiradas > 0)}
+          ${calCard(100 * sinOrcid / nAut, `${num(sinOrcid)} de ${num(D.autores.length)}`, 'Autores sin ORCID vinculado', 'Pendiente de enlace en Scopus', sinOrcid > 0)}
+          ${calCard(100 * fusionados / nAut, `${num(fusionados)} de ${num(D.autores.length)}`, 'Perfiles unificados', 'Autores con IDs de Scopus fusionados', false)}
+        </div>
+      </div>
+      ${histHtml}
     </div>
     ${TOP_PAGE_HTML}`
+    if (hist.length >= 2) {
+      const cfg = { p: ['#1e6b14', 'Publicaciones UTM acumuladas'], c: ['#2e8a1f', 'Citas UTM acumuladas'], h: ['#e0902d', 'Índice h institucional'] }
+      const cont = document.getElementById('histCont')
+      document.querySelectorAll('.hist-tab').forEach(b => b.addEventListener('click', () => {
+        const k = b.dataset.hm
+        document.querySelectorAll('.hist-tab').forEach(x => x.classList.toggle('on', x === b))
+        if (cont && cfg[k]) cont.innerHTML = svgHistorico(hist, k, cfg[k][0], cfg[k][1])
+      }))
+    }
   }
 
   // ---------- router ----------
@@ -3513,14 +3893,39 @@
     } else window.scrollTo(0, 0)
   }
   // popover contextual delegado: funciona para elementos dinámicos (paginados)
+  app.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return
+    const el = ev.target && ev.target.closest ? ev.target.closest('[data-cat]') : null
+    if (!el || /^(a|button|input|select)$/i.test(el.tagName)) return
+    ev.preventDefault()
+    const r = el.getBoundingClientRect()
+    el.dispatchEvent(new MouseEvent('click', {
+      bubbles: true, clientX: Math.round(r.left + r.width / 2), clientY: Math.round(r.bottom),
+    }))
+  })
   app.addEventListener('click', ev => {
+    const btnTbl = ev.target.closest('.btn-graf-tbl')
+    if (btnTbl) {
+      const wrap = btnTbl.closest('.graf-wrap')
+      if (wrap) {
+        const vis = wrap.querySelector('.graf-vis'), tbl = wrap.querySelector('.graf-tbl')
+        const verTabla = tbl.hidden
+        tbl.hidden = !verTabla
+        vis.hidden = verTabla
+        btnTbl.setAttribute('aria-expanded', verTabla ? 'true' : 'false')
+        const sp = btnTbl.querySelector('span')
+        if (sp) sp.textContent = verTabla ? 'Ver gráfico' : 'Ver como tabla'
+      }
+      return
+    }
     if (ev.target.closest('.top-page')) {
       window.scrollTo({ top: 0, behavior: 'smooth' }); return
     }
     const btnCit = ev.target.closest('.btn-citar[data-cite]')
     if (btnCit) {
+      ev.stopPropagation()
       const p = D.pubs[+btnCit.dataset.cite]
-      if (p) mostrarCitaPopover(ev, p)
+      if (p) toggleMenuCita(btnCit, p)
       return
     }
     const btnAreaAut = ev.target.closest('[data-area-aut]')
@@ -3701,7 +4106,9 @@
       btnArriba.tabIndex = ver ? 0 : -1
     })
   }
+  document.addEventListener('click', ev => { if (!ev.target.closest('.cite-drop')) cerrarMenuCita() })
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarMenuCita() })
   window.addEventListener('scroll', vigilaArriba, { passive: true })
-  window.addEventListener('hashchange', () => { cerrarPop(); cerrarGlobo(); router() })
+  window.addEventListener('hashchange', () => { cerrarPop(); cerrarGlobo(); cerrarMenuCita(); router() })
   router()
 })()
