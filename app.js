@@ -2791,6 +2791,28 @@
     }
   }
 
+  function ajustarMenuPos(menu) {
+    menu.style.left = ''
+    menu.style.right = ''
+    menu.style.transform = ''
+    const vw = document.documentElement.clientWidth || window.innerWidth
+    let r = menu.getBoundingClientRect()
+    if (r.right > vw - 12) {
+      menu.style.left = 'auto'
+      menu.style.right = '0'
+      r = menu.getBoundingClientRect()
+    } else if (r.left < 12) {
+      menu.style.left = '0'
+      menu.style.right = 'auto'
+      r = menu.getBoundingClientRect()
+    }
+    if (r.left < 12) {
+      menu.style.transform = `translateX(${Math.round(12 - r.left)}px)`
+    } else if (r.right > vw - 12) {
+      menu.style.transform = `translateX(${Math.round((vw - 12) - r.right)}px)`
+    }
+  }
+
   function cerrarMenuCita() {
     document.querySelectorAll('.cite-menu').forEach(m => m.remove())
     document.querySelectorAll('.btn-citar[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'))
@@ -2810,11 +2832,7 @@
       <button type="button" role="menuitem" data-ca="ris">${ico('bibtex')}<span>RIS (.ris)</span></button>`
     wrap.appendChild(menu)
     btn.setAttribute('aria-expanded', 'true')
-    const r = menu.getBoundingClientRect()
-    if (r.right > window.innerWidth - 12) {
-      menu.style.left = 'auto'
-      menu.style.right = '0'
-    }
+    ajustarMenuPos(menu)
     menu.addEventListener('click', ev => {
       const b = ev.target.closest('button[data-ca]')
       if (!b) return
@@ -2934,7 +2952,7 @@
         </div>
         <div class="pub-exp-wrap">
           <div class="exp-drop">
-            <button type="button" class="btn-exp" id="btnExpMenu" aria-haspopup="menu" aria-expanded="false" title="Seleccionar formato para descargar las publicaciones listadas">${ico('descarga')}<span>Descargar citas ▾</span></button>
+            <button type="button" class="btn-exp" id="btnExpMenu" aria-haspopup="menu" aria-expanded="false" title="Seleccionar formato para descargar las publicaciones listadas"><span>❞ Citar ▾</span></button>
             <div class="exp-menu" id="expMenu" role="menu" hidden>
               <button type="button" role="menuitem" data-exp="csv">${ico('csv')}<span>CSV (.csv)</span></button>
               <button type="button" role="menuitem" data-exp="bib">${ico('bibtex')}<span>BibTeX (.bib)</span></button>
@@ -3069,6 +3087,7 @@
         const abrir = expMenu.hidden
         expMenu.hidden = !abrir
         btnExpMenu.setAttribute('aria-expanded', abrir ? 'true' : 'false')
+        if (abrir) ajustarMenuPos(expMenu)
       })
       expMenu.querySelectorAll('button[data-exp]').forEach(b => b.addEventListener('click', () => {
         descargarFormato(b.dataset.exp)
