@@ -950,3 +950,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 /* Publicaciones: aire entre la paginación y los paneles */
 #pagPubTop { margin-bottom: 16px; }
+
+/* Directorio y Publicaciones: el botón CSV tiene el mismo alto que los demás controles */
+.controles .btn-exp { height: 40px; padding: 0 13px; border-radius: 10px; font-size: var(--fs-sm); }
+.controles .btn-exp .ic-svg { width: 15px; height: 15px; }
