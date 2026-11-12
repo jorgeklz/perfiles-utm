@@ -313,6 +313,7 @@
         <p>Refleja exclusivamente las investigaciones en las que los autores figuran con
            afiliación a la Universidad Técnica de Manabí (UTM).</p>
         ${buscadorHeroHTML()}
+        <a class="hero-pubs" href="#/publicaciones">Explorar todas las publicaciones →</a>
         <div class="hero-panel">
         ${fechaHero}
         <div class="hero-stats">
@@ -355,17 +356,23 @@
             <button type="button" data-m="nombre" title="Buscar por nombre, apellido o Scopus ID">Nombre</button>
             <button type="button" data-m="tema" title="Buscar quién publica sobre un tema: palabras del título, la revista o el área">Tema</button>
           </div>
-          <select class="selector" id="areaDir" aria-label="Filtrar directorio por área temática">
-            <option value="">Área temática: Todas (${GI.todasAreas.length})</option>
-            ${GI.todasAreas.map(([ar, c]) => `<option value="${esc(ar)}">${esc(ar)} (${c})</option>`).join('')}
-          </select>
-          <select class="selector" id="orden" aria-label="Ordenar directorio de investigadores">
-            ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Ordenar: ${et}</option>`).join('')}
-            <option value="ap">Ordenar: Apellido (A-Z)</option>
-          </select>
-          <button type="button" class="btn-filtro-vig${estado.soloVig ? ' on' : ''}" id="btnVigente"
-            aria-pressed="${estado.soloVig ? 'true' : 'false'}"
-            title="Mostrar únicamente investigadores con afiliación UTM vigente en Scopus">${ico('primerAutor')}<span>Solo filiación vigente</span></button>
+          <button type="button" class="btn-filtros" id="btnFiltros" aria-expanded="false" aria-controls="hojaFiltros">${ico('filtro')}<span>Filtros</span><b class="btn-filtros-n" hidden></b></button>
+          <div class="hoja-vel" id="hojaVel"></div>
+          <div class="hoja-filtros" id="hojaFiltros" role="dialog" aria-label="Filtros del directorio">
+            <div class="hoja-cab"><span>Filtros del directorio</span><button type="button" class="hoja-x" data-cerrar-hoja aria-label="Cerrar filtros">×</button></div>
+            <select class="selector" id="areaDir" aria-label="Filtrar directorio por área temática">
+              <option value="">Área temática: Todas (${GI.todasAreas.length})</option>
+              ${GI.todasAreas.map(([ar, c]) => `<option value="${esc(ar)}">${esc(ar)} (${c})</option>`).join('')}
+            </select>
+            <select class="selector" id="orden" aria-label="Ordenar directorio de investigadores">
+              ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Ordenar: ${et}</option>`).join('')}
+              <option value="ap">Ordenar: Apellido (A-Z)</option>
+            </select>
+            <button type="button" class="btn-filtro-vig${estado.soloVig ? ' on' : ''}" id="btnVigente"
+              aria-pressed="${estado.soloVig ? 'true' : 'false'}"
+              title="Mostrar únicamente investigadores con afiliación UTM vigente en Scopus">${ico('primerAutor')}<span>Solo filiación vigente</span></button>
+            <div class="hoja-pie"><button type="button" class="hoja-aplicar" data-cerrar-hoja></button></div>
+          </div>
           <button type="button" class="btn-exp" id="btnExpDir" title="Descargar en CSV los investigadores de la lista, con los filtros aplicados">${ico('csv')}<span>CSV</span></button>
           <div class="conteo" id="conteo"></div>
         </div>
@@ -461,6 +468,58 @@
 
     marcarLetra()
     pintar()
+    hojaFiltros({ btn: 'btnFiltros', hoja: 'hojaFiltros', vel: 'hojaVel' }, {
+      contar: () => filtrar().length, unidad: ['investigador', 'investigadores'],
+      activos: () => (estado.area ? 1 : 0) + (estado.soloVig ? 1 : 0) + (estado.orden !== 'P' ? 1 : 0),
+    })
+  }
+
+  // ---------- panel de filtros en celular (hoja inferior) ----------
+  // En pantallas anchas la hoja no se ve y los controles quedan en la barra. En celular, el botón
+  // "Filtros" abre la hoja desde abajo; los cambios se aplican al momento y "Ver N" solo la cierra.
+  let hojaResize = null
+  function hojaFiltros(ids, { contar, activos, unidad }) {
+    const btn = document.getElementById(ids.btn), hoja = document.getElementById(ids.hoja), vel = document.getElementById(ids.vel)
+    if (!btn || !hoja || !vel) return
+    const cerrar = () => {
+      hoja.classList.remove('abierta'); vel.classList.remove('on')
+      document.body.classList.remove('hoja-abierta')
+      btn.setAttribute('aria-expanded', 'false')
+    }
+    const abrir = () => {
+      actualizar()
+      hoja.classList.add('abierta'); vel.classList.add('on')
+      document.body.classList.add('hoja-abierta')
+      btn.setAttribute('aria-expanded', 'true')
+      const primero = hoja.querySelector('select, input, button.btn-filtro-vig')
+      if (primero) primero.focus({ preventScroll: true })
+    }
+    function actualizar() {
+      const n = activos()
+      const bn = btn.querySelector('.btn-filtros-n')
+      if (bn) { bn.textContent = n ? String(n) : ''; bn.hidden = !n }
+      const pie = hoja.querySelector('.hoja-aplicar')
+      if (pie) { const t = contar(); pie.textContent = `Ver ${num(t)} ${t === 1 ? unidad[0] : unidad[1]}` }
+    }
+    btn.addEventListener('click', () => (hoja.classList.contains('abierta') ? cerrar() : abrir()))
+    vel.addEventListener('click', cerrar)
+    hoja.querySelectorAll('[data-cerrar-hoja]').forEach(b => b.addEventListener('click', () => { cerrar(); btn.focus({ preventScroll: true }) }))
+    hoja.addEventListener('change', () => setTimeout(actualizar, 0))
+    hoja.addEventListener('click', ev => { if (ev.target.closest('.btn-filtro-vig, .btn-filtro')) setTimeout(actualizar, 0) })
+    hoja.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape') { ev.stopPropagation(); cerrar(); btn.focus({ preventScroll: true }); return }
+      if (ev.key !== 'Tab') return
+      const foco = [...hoja.querySelectorAll('select, input, button')].filter(e => e.offsetParent !== null)
+      if (!foco.length) return
+      const a = foco[0], z = foco[foco.length - 1]
+      if (ev.shiftKey && document.activeElement === a) { ev.preventDefault(); z.focus() }
+      else if (!ev.shiftKey && document.activeElement === z) { ev.preventDefault(); a.focus() }
+    })
+    if (hojaResize) window.removeEventListener('resize', hojaResize)
+    hojaResize = () => { if (window.innerWidth > 640) cerrar() }
+    window.addEventListener('resize', hojaResize)
+    actualizar()
+    return actualizar
   }
 
   // ---------- portada: buscador con sugerencias (autores, especialistas por tema y áreas) ----------
@@ -3205,6 +3264,121 @@
   }
 
   // ---------- metodología ----------
+  // ---------- sección Publicaciones: listado global con búsqueda y filtros ----------
+  const estadoPub = { q: '', anio: '', cuartil: '', oa: false, orden: 'recientes', pagina: 1 }
+  const PUB_POR_PAGINA = 20
+  const esAbierta = p => !!(p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown')
+  function filtrarPubs() {
+    // Se acepta un DOI pegado como enlace (https://doi.org/10...).
+    const txt = estadoPub.q.replace(/https?:\/\/(dx\.)?doi\.org\//ig, '')
+    const tokens = norm(txt).split(/\s+/).filter(Boolean)
+    const out = []
+    D.pubs.forEach((p, i) => {
+      if (estadoPub.anio && String(p.y) !== estadoPub.anio) return
+      if (estadoPub.cuartil && (p.q || 'N/A') !== estadoPub.cuartil) return
+      if (estadoPub.oa && !esAbierta(p)) return
+      if (tokens.length && !tokens.every(t => PUB_BUSQ[i].includes(t))) return
+      out.push(p)
+    })
+    out.sort(estadoPub.orden === 'citadas'
+      ? (a, b) => (b.c || 0) - (a.c || 0) || (b.y || 0) - (a.y || 0)
+      : (a, b) => (b.y || 0) - (a.y || 0) || String(b.d || '').localeCompare(String(a.d || '')) || (b.c || 0) - (a.c || 0))
+    return out
+  }
+  function renderPublicaciones() {
+    perfilPubs = null
+    aplicarFiltroCtxPubs = null
+    // Si el enlace trae filtros, mandan sobre lo último que se vio.
+    const pr = paramsHash()
+    if (['q', 'y', 'cu', 'oa', 'ord', 'pag'].some(k => pr.has(k))) {
+      estadoPub.q = pr.get('q') || ''
+      estadoPub.anio = /^\d{4}$/.test(pr.get('y') || '') ? pr.get('y') : ''
+      estadoPub.cuartil = ['Q1', 'Q2', 'Q3', 'Q4', 'N/A'].includes(pr.get('cu')) ? pr.get('cu') : ''
+      estadoPub.oa = pr.get('oa') === '1'
+      estadoPub.orden = pr.get('ord') === 'citadas' ? 'citadas' : 'recientes'
+      estadoPub.pagina = Math.max(1, parseInt(pr.get('pag'), 10) || 1)
+    }
+    const anios = [...new Set(D.pubs.map(p => p.y).filter(Boolean))].sort((a, b) => b - a)
+    app.innerHTML = `<div class="wrap">
+      ${migas('Publicaciones')}
+      <div class="perfil-hero" style="border-left-color:var(--g3)">
+        <div style="flex:1"><h1>Publicaciones</h1>
+          <div class="sub">Todas las publicaciones UTM indexadas en Scopus. Busque por título, DOI, revista o autor.</div></div></div>
+      <div class="controles">
+        <div class="buscador">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="qPub" type="search" aria-label="Buscar publicaciones" placeholder="Título, DOI, revista o autor…" autocomplete="off" />
+        </div>
+        <button type="button" class="btn-filtros" id="btnFiltrosPub" aria-expanded="false" aria-controls="hojaFiltrosPub">${ico('filtro')}<span>Filtros</span><b class="btn-filtros-n" hidden></b></button>
+        <div class="hoja-vel" id="hojaVelPub"></div>
+        <div class="hoja-filtros" id="hojaFiltrosPub" role="dialog" aria-label="Filtros de publicaciones">
+          <div class="hoja-cab"><span>Filtros de publicaciones</span><button type="button" class="hoja-x" data-cerrar-hoja aria-label="Cerrar filtros">×</button></div>
+          <select class="selector" id="anioPub" aria-label="Filtrar por año">
+            <option value="">Año: Todos</option>${anios.map(y => `<option value="${y}">${y}</option>`).join('')}
+          </select>
+          <select class="selector" id="cuartilPub" aria-label="Filtrar por cuartil de la revista">
+            <option value="">Cuartil: Todos</option>
+            ${['Q1', 'Q2', 'Q3', 'Q4', 'N/A'].map(q => `<option value="${q}">${q === 'N/A' ? 'Sin cuartil' : q}</option>`).join('')}
+          </select>
+          <select class="selector" id="ordenPub" aria-label="Ordenar publicaciones">
+            <option value="recientes">Ordenar: Más recientes</option>
+            <option value="citadas">Ordenar: Más citadas</option>
+          </select>
+          <button type="button" class="btn-filtro-vig" id="btnOaPub" aria-pressed="false" title="Mostrar solo publicaciones de acceso abierto"><span>Solo acceso abierto</span></button>
+          <div class="hoja-pie"><button type="button" class="hoja-aplicar" data-cerrar-hoja></button></div>
+        </div>
+        <div class="conteo" id="conteoPub"></div>
+      </div>
+      <div class="paginacion" id="pagPubTop"></div>
+      <div class="panel" id="listaPubBox"><div id="listaPub"></div></div>
+      <div class="paginacion" id="pagPub"></div>
+    </div>
+    ${TOP_PAGE_HTML}`
+    const qI = document.getElementById('qPub'), anioS = document.getElementById('anioPub'), cuS = document.getElementById('cuartilPub')
+    const ordS = document.getElementById('ordenPub'), oaB = document.getElementById('btnOaPub')
+    qI.value = estadoPub.q; anioS.value = estadoPub.anio; cuS.value = estadoPub.cuartil; ordS.value = estadoPub.orden
+    const marcaOa = () => { oaB.classList.toggle('on', estadoPub.oa); oaB.setAttribute('aria-pressed', estadoPub.oa ? 'true' : 'false') }
+    marcaOa()
+    const pintarPubs = (bajar) => {
+      const arr = filtrarPubs()
+      const paginas = Math.max(1, Math.ceil(arr.length / PUB_POR_PAGINA))
+      if (estadoPub.pagina > paginas) estadoPub.pagina = paginas
+      const ini = (estadoPub.pagina - 1) * PUB_POR_PAGINA
+      document.getElementById('conteoPub').textContent = num(arr.length) + (arr.length === 1 ? ' publicación' : ' publicaciones')
+      document.getElementById('listaPub').innerHTML = arr.length
+        ? arr.slice(ini, ini + PUB_POR_PAGINA).map(p => pubRow(p)).join('')
+        : '<div class="vacio">Sin coincidencias. Pruebe con menos palabras o quite algún filtro.</div>'
+      const htmlPag = (paginas > 1 ? `<div class="pag-actual">Página ${estadoPub.pagina} de ${paginas}</div>` : '') + paginacionHTML(estadoPub.pagina, paginas)
+      for (const id of ['pagPubTop', 'pagPub']) {
+        const ref = document.getElementById(id)
+        ref.innerHTML = htmlPag
+        ref.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => {
+          estadoPub.pagina = +b.dataset.p; pintarPubs(true)
+        }))
+      }
+      const np = new URLSearchParams()
+      if (estadoPub.q) np.set('q', estadoPub.q)
+      if (estadoPub.anio) np.set('y', estadoPub.anio)
+      if (estadoPub.cuartil) np.set('cu', estadoPub.cuartil)
+      if (estadoPub.oa) np.set('oa', '1')
+      if (estadoPub.orden !== 'recientes') np.set('ord', estadoPub.orden)
+      if (estadoPub.pagina > 1) np.set('pag', String(estadoPub.pagina))
+      fijarParams(np)
+      if (bajar) document.getElementById('listaPubBox').scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    const cambio = fn => () => { fn(); estadoPub.pagina = 1; pintarPubs(false) }
+    qI.addEventListener('input', cambio(() => { estadoPub.q = qI.value }))
+    anioS.addEventListener('change', cambio(() => { estadoPub.anio = anioS.value }))
+    cuS.addEventListener('change', cambio(() => { estadoPub.cuartil = cuS.value }))
+    ordS.addEventListener('change', cambio(() => { estadoPub.orden = ordS.value }))
+    oaB.addEventListener('click', cambio(() => { estadoPub.oa = !estadoPub.oa; marcaOa() }))
+    pintarPubs(false)
+    hojaFiltros({ btn: 'btnFiltrosPub', hoja: 'hojaFiltrosPub', vel: 'hojaVelPub' }, {
+      contar: () => filtrarPubs().length, unidad: ['publicación', 'publicaciones'],
+      activos: () => (estadoPub.anio ? 1 : 0) + (estadoPub.cuartil ? 1 : 0) + (estadoPub.oa ? 1 : 0) + (estadoPub.orden !== 'recientes' ? 1 : 0),
+    })
+  }
+
   function renderMetodologia() {
     perfilPubs = null
     aplicarFiltroCtxPubs = null
@@ -3259,14 +3433,27 @@
 
   // ---------- router ----------
   const TITULO = 'Investigadores UTM · Producción científica Scopus'
+  // Al volver al directorio desde un perfil, un área, Metodología o Publicaciones se recupera la posición
+  // donde estaba la persona (los filtros y la página ya se conservan en "estado").
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual' } catch (e) { /* sin historial */ }
+  let enLista = true, scrollLista = 0
+  const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h.indexOf('#/area/') === 0 || h === '#/metodologia' || h === '#/publicaciones')
   function router() {
     const h = hashPartes()[0]
+    document.body.classList.remove('hoja-abierta')   // por si se navegó con la hoja de filtros abierta
+    const lista = esRutaLista(h)
+    if (enLista && !lista) scrollLista = window.scrollY
+    const volver = lista && !enLista && scrollLista > 0
+    enLista = lista
     if (h.indexOf('#/autor/') === 0) {
       const id = decodeURIComponent(h.slice(8))
       renderPerfil(id)
       if (window.registrarEvento) window.registrarEvento('perfil', id)
       const a = porId.get(id)
       document.title = a ? `${a.n} · ${TITULO}` : TITULO
+    } else if (h === '#/publicaciones') {
+      renderPublicaciones()
+      document.title = `Publicaciones · ${TITULO}`
     } else if (h === '#/metodologia') {
       renderMetodologia()
       if (window.registrarEvento) window.registrarEvento('metodologia', '')
@@ -3279,7 +3466,12 @@
       renderLista()
       document.title = TITULO
     }
-    window.scrollTo(0, 0)
+    if (volver) {
+      const y = scrollLista
+      window.scrollTo(0, y)
+      requestAnimationFrame(() => window.scrollTo(0, y))
+      setTimeout(() => { if (window.scrollY < 5) window.scrollTo(0, y) }, 250)
+    } else window.scrollTo(0, 0)
   }
   // popover contextual delegado: funciona para elementos dinámicos (paginados)
   app.addEventListener('click', ev => {
