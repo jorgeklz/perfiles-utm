@@ -2896,9 +2896,14 @@
 
   // panel de publicaciones con filtros cruzados, buscador, exportación y paginación
   function panelPubsHTML(titulo, n, conOrden, autorId, desc) {
-    return `<div class="panel" id="panelPubs"><h2 class="h3-flex">
-      <span id="pubTitCont" data-base="${esc(titulo)}">${esc(titulo)} (${num(n)})</span>
-      <span class="pp-ctrl">
+    return `<div class="panel" id="panelPubs"><h2>
+      <span id="pubTitCont" data-base="${esc(titulo)}">${esc(titulo)} (${num(n)})</span></h2>
+      ${desc ? `<div class="ayuda-filtros">${esc(desc)}</div>` : ''}
+      <div class="pub-controles">
+        <div class="buscador">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="pubQ" type="search" placeholder="Filtrar por título, revista, coautor o DOI…" aria-label="Filtrar publicaciones por texto">
+        </div>
         ${conOrden ? `<span class="sel-ico">${ico('orden')}<select class="selector" id="pubOrden" aria-label="Ordenar publicaciones">
           <option value="recientes">Ordenar: Más recientes</option>
           <option value="citadas">Ordenar: Más citadas</option>
@@ -2919,10 +2924,9 @@
               <button type="button" role="menuitem" data-exp="ris">${ico('bibtex')}<span>RIS (.ris)</span></button>
             </div>
           </div>
-        </div></span></h2>
-      ${desc ? `<div class="ayuda-filtros">${esc(desc)}</div>` : ''}
-      <div class="pub-filtros">
-        <input id="pubQ" class="entrada pub-busq" placeholder="Filtrar por título, revista, coautor o DOI…" aria-label="Filtrar publicaciones por texto">
+        </div>
+      </div>
+      <div class="pub-filtros filtro-zona">
         <div class="pub-fchips">
           <span class="filtro-lbl">Filtrar:</span>
           <button type="button" class="pub-fchip pub-qchip on" data-q="todos" title="Mostrar todos los cuartiles">${ico('filtro')}<span>Todas</span></button>

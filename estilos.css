@@ -563,7 +563,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   html, body { background: #fff !important; }
   .topbar { position: static !important; background: #fff !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   .topbar-acciones, .hero, .volver, .acciones, .enlaces, .ayuda-filtros, .paginacion, .pp-ctrl, .ctx-hint,
-  .busq-global, .controles, .alfabeto, .periodo-bar, .pub-filtros, .btn-citar, .pub-exp-wrap, .graf-pie-ctrl, .ir-arriba, .top-page, .com-zoom { display: none !important; }
+  .busq-global, .controles, .alfabeto, .periodo-bar, .pub-controles, .pub-filtros, .btn-citar, .pub-exp-wrap, .graf-pie-ctrl, .ir-arriba, .top-page, .com-zoom { display: none !important; }
   .wrap { max-width: none; padding: 0; }
   .grid2 { display: block; }
   .grid2 > .panel { margin-bottom: 14px; }
@@ -618,8 +618,12 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .top-tab.per-tab.on { border-style: solid; }
 .top-tab.per-tab.on .ic-svg { color: #fff; }
 
+.pub-controles { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.pub-controles .buscador { flex: 1 1 240px; min-width: 190px; }
+.pub-controles .pub-exp-wrap { margin-left: 0; }
+.pub-controles .btn-exp { height: 40px; padding: 0 13px; border-radius: 10px; font-size: var(--fs-sm); }
 .pub-filtros { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  padding: 10px 12px; margin-bottom: 8px; background: var(--sup2); border: 1px solid var(--borde); border-radius: 10px; }
+  padding: 8px 11px; margin-bottom: 10px; background: var(--sup2); border: 1px solid var(--borde); border-radius: 10px; }
 .pub-busq { flex: 1 1 210px; min-width: 170px; height: 34px; padding: 0 11px;
   border: 1px solid var(--borde); border-radius: 8px; font-family: inherit; font-size: var(--fs-sm);
   background: var(--sup); color: var(--texto); outline: none; }
@@ -725,7 +729,7 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   .top-page { height: 31px; padding: 0 11px; border-radius: 7px; font-size: var(--fs-xs); }
   .h3-flex { gap: 6px; }
   .pp-ctrl { font-size: var(--fs-xs); margin-left: 0; flex-wrap: wrap; gap: 6px; }
-  .pp-ctrl .btn-exp { height: 36px; padding: 0 11px; border-radius: 8px; font-size: var(--fs-xs); }
+  .pp-ctrl .btn-exp, .pub-controles .btn-exp { height: 36px; padding: 0 11px; border-radius: 8px; font-size: var(--fs-xs); }
   .selector { height: 36px; padding: 0 30px 0 11px; font-size: var(--fs-xs); border-radius: 8px; }
   .pub { gap: 9px; padding: 10px 0; }
   .pub .anio { width: 36px; }
