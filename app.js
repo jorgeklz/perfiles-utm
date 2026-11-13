@@ -344,14 +344,12 @@
         </div></div></div></section>
       ${panoramaHTML()}
       <div class="wrap" style="padding-bottom:0">
-        <h2 class="dir-tit">Top 10 investigadores</h2>
-        <div class="ayuda-filtros">Elija entre el ranking del año en curso y el histórico, y ordene por el
-          indicador que prefiera.</div>
         ${destacadosHTML()}
       </div>
       ${novedadesHTML()}
       ${actividadHTML()}
       <div class="wrap" id="dirsec">
+        <div class="panel" style="margin-bottom:14px">
         <h2 class="dir-tit">Directorio de investigadores</h2>
         <div class="ayuda-filtros">Busque por nombre o apellido, o cambie a «Tema» para ver quiénes publican más sobre un asunto.
           Filtre por área temática o inicial del apellido y ordene por el indicador que prefiera.</div>
@@ -388,6 +386,7 @@
         <div class="paginacion" id="pagTop"></div>
         <div class="grid-inv" id="grid"></div>
         <div class="paginacion" id="pag"></div>
+        </div>
       </div>
       ${TOP_PAGE_HTML}`
 
@@ -724,7 +723,10 @@
       if ((p.c || 0) > 0) gCit++
     })
     const nP = D.pubs.length || 1
-    const distHTML = `<div class="panel"><h3>Distribución por cuartil SJR y tipo</h3>${donut(gq)}
+    const distHTML = `<div class="panel">
+        <h2 class="dir-tit">Distribución por cuartil SJR y tipo</h2>
+        <div class="ayuda-filtros">Proporción de documentos según cuartil de revista y tipología documental.</div>
+        ${donut(gq)}
         <div class="subtitulo-panel">Por tipo de documento</div>${tiposBarras(gt)}
         <div class="metricas-autoria">
           <div class="ma"><b>${dec(gAut / nP, 1)}</b><span>Autores por publicación (promedio)</span></div>
@@ -733,13 +735,16 @@
         </div>
         <div class="ctx-hint">Clic en un cuartil o tipo para ver sus publicaciones.</div></div>`
     return `<div class="wrap portada" style="padding-bottom:0">
-      <h2 class="dir-tit">Panorama institucional</h2>
-      <div class="ayuda-filtros">Producción científica de la Universidad Técnica de Manabí indexada en Scopus, en conjunto.</div>
-      <div class="panel" style="margin-bottom:16px"><h3>Publicaciones por año</h3>${barsAnio(GI.porAnio, 200)}${infoAnios(GI.porAnio)}
+      <div class="panel" style="margin-bottom:16px">
+        <h2 class="dir-tit">Panorama institucional</h2>
+        <div class="ayuda-filtros">Producción científica de la Universidad Técnica de Manabí indexada en Scopus, en conjunto.</div>
+        <h3>Publicaciones por año</h3>${barsAnio(GI.porAnio, 200)}${infoAnios(GI.porAnio)}
         <div class="ctx-hint">Clic en una barra para ver las publicaciones de ese año.</div></div>
       <div class="grid2">
         ${distHTML}
-        <div class="panel"><h3>Fuentes, temas y colaboración</h3>
+        <div class="panel">
+          <h2 class="dir-tit">Fuentes, temas y colaboración</h2>
+          <div class="ayuda-filtros">Revistas y conferencias principales, áreas temáticas y países con coautoría.</div>
           <div class="top-tabs" style="margin-bottom:12px">
             <button type="button" class="top-tab pan-tab${tabPan === 'rev' ? ' on' : ''}" data-pan="rev">${ico('pubs')}<span>Fuentes</span></button>
             <button type="button" class="top-tab pan-tab${tabPan === 'area' ? ' on' : ''}" data-pan="area">${ico('cuartil')}<span>Áreas temáticas</span></button>
@@ -769,9 +774,9 @@
 
   function novedadesHTML() {
     return `<div class="wrap portada" style="padding-bottom:0">
-      <h2 class="dir-tit">Últimas publicaciones</h2>
-      <div class="ayuda-filtros">Documentos indexados más recientes; cambie a las más citadas si lo prefiere.</div>
       <div class="panel">
+        <h2 class="dir-tit">Últimas publicaciones</h2>
+        <div class="ayuda-filtros">Documentos indexados más recientes; cambie a las más citadas si lo prefiere.</div>
         <div class="top-tabs" style="margin-bottom:12px">
           <button class="top-tab pub-tab" data-pm="recientes">${ico('g')}<span>Más recientes</span></button>
           <button class="top-tab pub-tab" data-pm="citadas"
@@ -821,18 +826,20 @@
     const nuevos = (N.nu || []).map(id => porId.get(id)).filter(Boolean)
       .map(a => filaNov(a, `<b class="nov-b nue">${plural(a.P, 'publicación', 'publicaciones')}</b>`))
     return `<div class="wrap portada" style="padding-bottom:0">
-      <h2 class="dir-tit">Novedades de la última actualización</h2>
-      <div class="ayuda-filtros">Cambios entre la actualización anterior (${fechaCorta(N.fb)}) y la última (${fechaCorta(N.fa)}). <a href="novedades.xml" target="_blank" rel="noopener noreferrer" data-nueva="1" title="Feed RSS para recibir estas novedades en un lector de noticias">Suscribirse por RSS</a></div>
-      <div class="grid2${nuevos.length ? '' : ' grid1'}">
-        <div class="panel"><h3>Autores con nuevas publicaciones o citas <span class="nov-cuenta">${num(conNov.length)}</span></h3>
-          ${listaNov('novAutores', conNov)}</div>
-        ${nuevos.length
-          ? `<div class="panel"><h3>Autores nuevos <span class="nov-cuenta">${num(nuevos.length)}</span></h3>
-          <div class="ayuda-filtros" style="margin:-4px 0 8px">Aparecen por primera vez en el portal.</div>
-          ${listaNov('novNuevos', nuevos)}</div>`
-          : ''}
+      <div class="panel">
+        <h2 class="dir-tit">Novedades de la última actualización</h2>
+        <div class="ayuda-filtros">Cambios entre la actualización anterior (${fechaCorta(N.fb)}) y la última (${fechaCorta(N.fa)}). <a href="novedades.xml" target="_blank" rel="noopener noreferrer" data-nueva="1" title="Feed RSS para recibir estas novedades en un lector de noticias">Suscribirse por RSS</a></div>
+        <div class="grid2${nuevos.length ? '' : ' grid1'}">
+          <div><h3>Autores con nuevas publicaciones o citas <span class="nov-cuenta">${num(conNov.length)}</span></h3>
+            ${listaNov('novAutores', conNov)}</div>
+          ${nuevos.length
+            ? `<div><h3>Autores nuevos <span class="nov-cuenta">${num(nuevos.length)}</span></h3>
+            <div class="ayuda-filtros" style="margin:-4px 0 8px">Aparecen por primera vez en el portal.</div>
+            ${listaNov('novNuevos', nuevos)}</div>`
+            : ''}
+        </div>
+        ${nuevos.length ? '' : '<div class="ayuda-filtros" style="margin-top:10px;margin-bottom:0">No hay autores nuevos en esta actualización.</div>'}
       </div>
-      ${nuevos.length ? '' : '<div class="ayuda-filtros">No hay autores nuevos en esta actualización.</div>'}
     </div>`
   }
   // "Ver todos" de las listas de novedades (delegado: la portada se repinta)
@@ -932,7 +939,10 @@
   function destacadosHTML() {
     const optTop = (k, et, minP) => `<option value="${k}">Ordenar: ${et}${k === 'CP' ? ` (mín. ${minP} pub.)` : ''}</option>`
     return `<div class="destacados">
-      <div class="panel"><div class="top-cab">
+      <div class="panel">
+        <h2 class="dir-tit">Top 10 investigadores</h2>
+        <div class="ayuda-filtros">Elija entre el ranking del año en curso y el histórico, y ordene por el indicador que prefiera.</div>
+        <div class="top-cab">
         <div class="top-tabs">
           <button class="top-tab on" data-tab="anual">${ico('fecha')}<span>Top 10 del año ${ANIO_ACTUAL}</span></button>
           <button class="top-tab" data-tab="hist">${ico('h')}<span>Top 10 histórico</span></button>
@@ -1378,7 +1388,9 @@
     const hitos = hitosAutor(pubs, id, serie)
     const parcial = serie.some(r => r.y >= ANIO_ACTUAL)
     const ast = parcial ? `<span><em>* Año en curso: cifra parcial.</em></span>` : ''
-    return `<div class="panel panel-evo"><h2>Evolución en el tiempo</h2>
+    return `<div class="panel panel-evo">
+      <h2 class="dir-tit">Evolución en el tiempo</h2>
+      <div class="ayuda-filtros">Trayectoria anual del índice h, citas, rol de autoría y calidad de las revistas.</div>
       <div class="top-tabs" style="margin-bottom:12px">
         <button type="button" class="top-tab evo-tab on" data-evo="h">${ico('trayectoria')}<span>Índice h y citas</span></button>
         <button type="button" class="top-tab evo-tab" data-evo="rol">${ico('rol')}<span>Rol de autoría</span></button>
@@ -1467,7 +1479,9 @@
         ? '<div class="revistas" id="revCont"></div><div class="paginacion" id="revPager"></div>'
         : vacio('Sin datos de revistas o conferencias.'),
     }
-    return `<div class="panel panel-tev panel-fuentes" style="margin-bottom:18px"><h2>Temas y fuentes de publicación</h2>
+    return `<div class="panel panel-tev panel-fuentes" style="margin-bottom:18px">
+      <h2 class="dir-tit">Temas y fuentes de publicación</h2>
+      <div class="ayuda-filtros">Áreas temáticas Scopus, expresiones frecuentes en títulos y principales revistas.</div>
       <div class="top-tabs" style="margin-bottom:12px">${tabs.map(([k, ic, et]) =>
         `<button type="button" class="top-tab tf-tab" data-tf="${k}">${ico(ic)}<span>${et}</span></button>`).join('')}</div>
       ${tabs.map(([k]) => `<div class="tf-pane" data-tf="${k}">${panes[k]}</div>`).join('')}</div>`
@@ -1569,7 +1583,10 @@
   function destacadasHTML(ps, id) {
     const d = destacadasPubs(ps, id)
     if (d.length < 2) return ''
-    return `<div class="panel panel-dest"><h2>Publicaciones destacadas</h2><div class="dest-grid">${d.map(x => {
+    return `<div class="panel panel-dest">
+      <h2 class="dir-tit">Publicaciones destacadas</h2>
+      <div class="ayuda-filtros">Selección de los trabajos con mayor impacto, ritmo de citas o publicación reciente.</div>
+      <div class="dest-grid">${d.map(x => {
       const p = x.p
       const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
       return `<div class="dest-card"><div class="dest-et">${ico(x.ic)}<span>${esc(x.et)}</span></div>
@@ -1640,7 +1657,7 @@
       else fuera.push([pais, n])
     })
     const max = Math.max(1, ...px.map(x => x[1]))
-    const ESC = ['#d7ecc9', '#b4dc97', '#86c466', '#4fa23a', '#1e6b14']
+    const ESC = ['#fcf3cf', '#f6e08b', '#ecc43e', '#d69e0e', '#9a6b00']
     const col = n => ESC[Math.min(4, Math.floor(Math.sqrt(n / max) * 5 - 1e-9))]
     let base = '', sobre = ''
     Object.entries(M.paises).forEach(([iso, d]) => {
@@ -1648,7 +1665,8 @@
       if (h) sobre += `<path d="${d}" fill="${col(h.n)}" stroke="#fff" stroke-width=".6" data-cat="pais" data-val="${esc(h.pais)}" style="cursor:pointer"><title>${esc(h.pais)}: ${h.n} pub. conjunta${h.n === 1 ? '' : 's'}</title></path>`
       else base += `<path d="${d}" fill="#eceee7" stroke="#fff" stroke-width=".6"/>`
     })
-    const html = `<div class="mapa-colab"><div class="mapa-scroll"><svg viewBox="0 12 ${M.w} ${M.h - 56}" width="100%" role="img" aria-label="Mapa de países de los coautores">${base}${sobre}</svg></div>
+    const pat = '<defs><pattern id="patPaisSel" width="8" height="6" patternUnits="userSpaceOnUse"><rect width="8" height="6" fill="#fcf3cf"/><line x1="0" y1="3" x2="8" y2="3" stroke="#d69e0e" stroke-width="1.6"/></pattern></defs>'
+    const html = `<div class="mapa-colab"><div class="mapa-scroll"><svg viewBox="0 12 ${M.w} ${M.h - 56}" width="100%" role="img" aria-label="Mapa de países de los coautores">${pat}${base}${sobre}</svg></div>
       <div class="mapa-leyenda"><span>1 pub.</span><span class="mapa-barra">${ESC.map(c => `<i style="background:${c}"></i>`).join('')}</span><span>${max} pub.</span>
       <em>Clic en un país para ver las publicaciones conjuntas.</em></div>
       </div>`
@@ -1911,31 +1929,40 @@
 
       ${avisoPerfilHTML(a, todasPubs)}
       ${cvResumenHTML(a, resumenCv)}
-      <div class="periodo-bar" role="tablist" aria-label="Ventana temporal del perfil">
-        <span class="periodo-et">Ventana de análisis:</span>
-        <div class="top-tabs">
-          <button type="button" class="top-tab per-tab${per === 'todo' ? ' on' : ''}" data-per="todo">${ico('historial')}<span>Todo el historial (${todasPubs.length})</span></button>
-          <button type="button" class="top-tab per-tab${per === '5a' ? ' on' : ''}" data-per="5a">${ico('g')}<span>Últimos 5 años · ${ANIO_ACTUAL - 4} a ${ANIO_ACTUAL} (${n5a})</span></button>
-          <button type="button" class="top-tab per-tab${per === 'actual' ? ' on' : ''}" data-per="actual">${ico('fecha')}<span>Año ${ANIO_ACTUAL} (${nAct})</span></button>
+      <div class="panel" style="margin-bottom:18px">
+        <h2 class="dir-tit">Ventana de análisis e indicadores</h2>
+        <div class="ayuda-filtros">Seleccione el periodo temporal para recalcular las métricas de producción, citas e impacto.</div>
+        <div class="periodo-bar" role="tablist" aria-label="Ventana temporal del perfil">
+          <div class="top-tabs">
+            <button type="button" class="top-tab per-tab${per === 'todo' ? ' on' : ''}" data-per="todo">${ico('historial')}<span>Todo el historial (${todasPubs.length})</span></button>
+            <button type="button" class="top-tab per-tab${per === '5a' ? ' on' : ''}" data-per="5a">${ico('g')}<span>Últimos 5 años · ${ANIO_ACTUAL - 4} a ${ANIO_ACTUAL} (${n5a})</span></button>
+            <button type="button" class="top-tab per-tab${per === 'actual' ? ' on' : ''}" data-per="actual">${ico('fecha')}<span>Año ${ANIO_ACTUAL} (${nAct})</span></button>
+          </div>
         </div>
-      </div>
 
-      <div class="kpis">
-        ${kpi(kP, 'Publicaciones', subRank(a.rP), AY.P)}
-        ${kpi(num(kC), 'Citas', subRank(a.rC), AY.C)}
-        ${kpi(kH, 'Índice h', subRank(a.rH), AY.h)}
-        ${kpi(dec(kCP, 2), 'Citas / pub.', subRank(R.CP, R.CP ? puestoTxt(R.CP, TOTAL_CP) : `Mín. ${MIN_PUBS_CP} pub. para puesto`), AY.CP)}
-        ${kpi(kI10, 'Índice i10', subRank(R.i10), AY.i10)}
-        ${kpi(kG, 'Índice g', subRank(R.g), AY.g)}
-        ${kpi(dec(kM, 2), 'Índice m', subRank(R.m), AY.m)}
-        ${kpi(pctOA + '%', 'Acceso abierto', per === 'todo' ? (R.oa && R.oa <= 100 ? puestoTxt(R.oa) : '') : etPer, AY.oa)}
+        <div class="kpis" style="margin-bottom:0">
+          ${kpi(kP, 'Publicaciones', subRank(a.rP), AY.P)}
+          ${kpi(num(kC), 'Citas', subRank(a.rC), AY.C)}
+          ${kpi(kH, 'Índice h', subRank(a.rH), AY.h)}
+          ${kpi(dec(kCP, 2), 'Citas / pub.', subRank(R.CP, R.CP ? puestoTxt(R.CP, TOTAL_CP) : `Mín. ${MIN_PUBS_CP} pub. para puesto`), AY.CP)}
+          ${kpi(kI10, 'Índice i10', subRank(R.i10), AY.i10)}
+          ${kpi(kG, 'Índice g', subRank(R.g), AY.g)}
+          ${kpi(dec(kM, 2), 'Índice m', subRank(R.m), AY.m)}
+          ${kpi(pctOA + '%', 'Acceso abierto', per === 'todo' ? (R.oa && R.oa <= 100 ? puestoTxt(R.oa) : '') : etPer, AY.oa)}
+        </div>
       </div>
       ${destacadasHTML(pubs, a.id)}
 
       <div class="grid2">
-        <div class="panel"><h2>Publicaciones por año</h2><div data-lazy-graf="anios"><div class="graf-skeleton">Cargando gráfico…</div></div>${infoAnios(porAnio)}
+        <div class="panel">
+          <h2 class="dir-tit">Publicaciones por año</h2>
+          <div class="ayuda-filtros">Cantidad de documentos indexados por año en el periodo seleccionado.</div>
+          <div data-lazy-graf="anios"><div class="graf-skeleton">Cargando gráfico…</div></div>${infoAnios(porAnio)}
           <div class="ctx-hint">Clic en una barra para ver las publicaciones de ese año.</div></div>
-        <div class="panel"><h2>Distribución por cuartil SJR y tipo</h2><div data-lazy-graf="donut"><div class="graf-skeleton">Cargando gráfico…</div></div>
+        <div class="panel">
+          <h2 class="dir-tit">Distribución por cuartil SJR y tipo</h2>
+          <div class="ayuda-filtros">Proporción de publicaciones por cuartil de revista y tipología documental.</div>
+          <div data-lazy-graf="donut"><div class="graf-skeleton">Cargando gráfico…</div></div>
           <div class="subtitulo-panel">Por tipo de documento</div>${tiposBarras(ct)}
           <div class="metricas-autoria">
             <div class="ma"><b>${mApu == null ? 'N/D' : dec(mApu, 1)}</b><span>Autores por publicación (promedio)</span></div>
@@ -1949,7 +1976,10 @@
 
       ${temasFuentesHTML(pubs, areas, revistas.length)}
 
-      <div class="panel" style="margin-bottom:18px"><h2>Coautorías</h2>${coautoriaExterna(extData, coaut.length, a.n)}</div>
+      <div class="panel" style="margin-bottom:18px">
+        <h2 class="dir-tit">Coautorías</h2>
+        <div class="ayuda-filtros">Redes de colaboración internacional, filiaciones externas y coautores frecuentes.</div>
+        ${coautoriaExterna(extData, coaut.length, a.n)}</div>
 
       ${panelPubsHTML('Publicaciones', pubs.length, true, a.id)}
     </div>
@@ -2472,8 +2502,8 @@
     const retirada = p.r
       ? ` · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>`
       : ''
-    return `<div class="ctx-row"><div class="ctx-t">${t}</div>
-      <div class="ctx-m">${p.y || ''} · ${adelM(p)}${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${retirada}</div></div>`
+    return `<div class="ctx-row"><div class="ctx-row-main"><div class="ctx-t">${t}</div>
+      <div class="ctx-m">${p.y || ''} · ${adelM(p)}${esc(p.j || 'N/D')} · ${badgeQ(p.q)}${retirada}</div></div><span class="ctx-cit-pill">${num(p.c)} citas</span></div>`
   }
   // popover flotante contextual (junto al cursor)
   let popEl = null
@@ -2619,7 +2649,6 @@
     opts = opts || {}
     const sub = opts.sub || 'Detalle de publicaciones'
     const valorHtml = opts.valorHtml || esc(titulo)
-    const iconoHtml = opts.iconoHtml || ico('recientes')
     const orden = [...lista].sort((a, b) => {
       const ka = a.d || ((a.y || 0) + '-00-00'), kb = b.d || ((b.y || 0) + '-00-00')
       return ka < kb ? 1 : ka > kb ? -1 : 0
@@ -2631,11 +2660,10 @@
     const conAutores = autores && autores.length
     const conUtm = autoresUtm && autoresUtm.length
     const badgeTxt = `${lista.length} pub.${lista.length > cap && !conAutores && !conUtm ? ` · últ. ${cap}` : ''}`
-    const cabHtml = `<div class="pop-cab" style="${estiloPop(sub, color)}">
-      <span class="pop-ico">${iconoHtml}</span>
+    const cabHtml = `<div class="pop-cab">
       <div class="pop-tit-wrap">
-        <div class="pop-sub">${esc(sub)}</div>
         <div class="pop-val">${valorHtml}</div>
+        <div class="pop-sub">${esc(sub)}</div>
       </div>
       <div class="pop-cab-der">
         <span class="pop-badge">${badgeTxt}</span>
@@ -2686,9 +2714,17 @@
       const r = ev.target.getBoundingClientRect()
       cx = r.left + r.width / 2; cy = r.bottom
     }
-    let x = cx + 12, y = cy + 12
+    let x = cx - 40, y = cy + 12
+    if (x < 8) x = 8
     if (x + w > window.innerWidth - 8) x = Math.max(8, window.innerWidth - w - 8)
-    if (y + h > window.innerHeight - 8) y = Math.max(8, cy - h - 12)
+    let arriba = false
+    if (y + h > window.innerHeight - 8) {
+      y = Math.max(8, cy - h - 12)
+      arriba = y < cy
+    }
+    const px = Math.max(18, Math.min(w - 32, Math.round(cx - x - 6)))
+    popEl.classList.toggle('arriba', arriba)
+    popEl.style.setProperty('--pop-px', px + 'px')
     popEl.style.left = x + 'px'; popEl.style.top = y + 'px'
     popEl.querySelector('.pop-x').addEventListener('click', cerrarPop)
     setTimeout(() => document.addEventListener('mousedown', fueraPop, true), 0)
