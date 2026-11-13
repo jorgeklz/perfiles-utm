@@ -1764,7 +1764,7 @@
 
   // ---------- perfil ----------
   // Ruta de navegación: "Inicio › página actual". El primer tramo vuelve a la portada.
-  const migas = (actual, medio) => `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span>${medio ? `<a href="${medio.href}" title="Volver al perfil de ${esc(medio.n)}"><span>${esc(medio.n)}</span></a><span class="mg-sep" aria-hidden="true">›</span>` : ''}<span class="mg-act" aria-current="page">${esc(actual)}</span></nav>`
+  const migas = actual => `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span><span class="mg-act" aria-current="page">${esc(actual)}</span></nav>`
   function renderPerfil(id, mantenerScroll) {
     const a = porId.get(id)
     if (!a) {
@@ -3917,7 +3917,15 @@
     let slots = [0, 1].map(i => porId.get((partes[i] || '').trim()) || null)
     if (slots[0] && slots[1] && slots[0].id === slots[1].id) slots[1] = null
     const url = (x, y) => '#/comparar/' + [x, y].map(v => (v ? encodeURIComponent(v.id || v) : '')).join(',').replace(/,$/, '') + (per !== 'todo' ? '?per=' + per : '')
-    const intro = `${migas('Comparar investigadores', porId.get(cmpOrigen) ? { n: porId.get(cmpOrigen).n, href: '#/autor/' + encodeURIComponent(cmpOrigen) } : null)}<div class="panel cmp-intro">
+    // Migas: Inicio › investigador 1 › investigador 2, cada uno con enlace a su perfil.
+    const migasCmp = () => {
+      const ps = slots.filter(Boolean)
+      const lim = n => esc(String(n))
+      const tramos = ps.map(x => `<a href="#/autor/${encodeURIComponent(x.id)}" title="Ir al perfil de ${lim(x.n)}"><span>${lim(x.n)}</span></a>`)
+      if (ps.length < 2) tramos.push('<span class="mg-act" aria-current="page">Comparar investigadores</span>')
+      return `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a>${tramos.map(t => `<span class="mg-sep" aria-hidden="true">›</span>${t}`).join('')}</nav>`
+    }
+    const intro = `${migasCmp()}<div class="panel cmp-intro">
       <h1>Comparar investigadores</h1>
       <p>Dos perfiles frente a frente con sus indicadores de todo el historial en Scopus. Las cifras no son comparables entre disciplinas con hábitos de publicación muy distintos.</p></div>`
     const ladoVacio = (cual, otro) => `<div class="cmp-lado cmp-${cual} cmp-vacio"><div class="cmp-rol">${cual === 'a' ? 'Investigador 1' : 'Investigador 2'}</div>
@@ -4070,15 +4078,9 @@
   // donde estaba la persona (los filtros y la página ya se conservan en "estado").
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual' } catch (e) { /* sin historial */ }
   let enLista = true, scrollLista = 0
-  let rutaPrevia = '', cmpOrigen = null   // perfil desde el que se llegó a comparar, para las migas
   const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h.indexOf('#/area/') === 0 || h === '#/metodologia' || h === '#/publicaciones' || h.indexOf('#/comparar') === 0)
   function router() {
     const h = hashPartes()[0]
-    const prev = rutaPrevia
-    rutaPrevia = h
-    if (h.indexOf('#/comparar') === 0 && prev.indexOf('#/comparar') !== 0) {
-      cmpOrigen = prev.indexOf('#/autor/') === 0 ? decodeURIComponent(prev.slice(8)) : null
-    }
     document.body.classList.remove('hoja-abierta')   // por si se navegó con la hoja de filtros abierta
     const lista = esRutaLista(h)
     if (enLista && !lista) scrollLista = window.scrollY
