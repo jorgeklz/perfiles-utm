@@ -808,8 +808,6 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .ce-chip.sel { background: #ecc43e; color: #4a3700; border-color: #9a6b00; font-weight: 700; }
 .ce-chip.sel b { color: #4a3700; }
 
-.pop-cab .pop-badge { background: rgba(255, 255, 255, .2); color: #ffffff; }
-
 /* Líneas de investigación: total de publicaciones junto al nombre del área */
 .tev-tot { font-size: var(--fs-2xs); font-weight: 600; color: var(--texto3); }
 

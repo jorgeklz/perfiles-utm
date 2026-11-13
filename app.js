@@ -2624,24 +2624,6 @@
       ${nombre}
       <span class="ctx-aut-n">${a.n} pub.</span></div>`
   }
-  // Tono de la barra de título del popup, por grupo de función y con la paleta del portal:
-  // verde = producción, azul = colaboración, ocre = temas. Cuartil SJR usa el color de cada Q del
-  // gráfico de distribución; el rol de autoría, el de su gráfico en versión oscura.
-  const POP_TONO = { 'Colaboración internacional': '#2f4f7a', 'Filiación externa': '#2f4f7a', 'Coautor externo': '#2f4f7a',
-    'Área temática': '#8a5a0c', 'Tema recurrente': '#8a5a0c' }
-  const POP_TONO_ROL = { '#1e6b14': '#185a10', '#e0902d': '#9a5f0a', '#4a6fa5': '#2f4f7a' }
-  const POP_CLAROS = ['#7bbf3a', '#e0902d', '#a8a394', '#c9c4b8']
-  function tonoPop(sub, color) {
-    const c = String(color || '').toLowerCase()
-    if (/^Cuartil SJR/.test(sub) && /^#[0-9a-f]{6}$/.test(c)) return c
-    if (/^Rol de autoría/.test(sub) && POP_TONO_ROL[c]) return POP_TONO_ROL[c]
-    const k = Object.keys(POP_TONO).find(x => sub.startsWith(x))
-    return k ? POP_TONO[k] : '#185a10'
-  }
-  function estiloPop(sub, color) {
-    const t = tonoPop(sub, color), claro = POP_CLAROS.includes(t)
-    return `--pop-t:${t};--pop-fg:${claro ? '#16210e' : '#fff'};--pop-b:${claro ? '#16210e' : t}`
-  }
   function mostrarPopover(ev, titulo, lista, color, autores, autoresUtm, opts) {
     const previo = focoOrigen || origenPop(ev)
     cerrarPop()
@@ -2835,6 +2817,33 @@
     }
   }
 
+  function wireMenuTeclado(menu, triggerBtn, onClose) {
+    if (!menu || menu.dataset.kbd) return
+    menu.dataset.kbd = '1'
+    menu.addEventListener('keydown', ev => {
+      const items = Array.from(menu.querySelectorAll('[role="menuitem"]'))
+      if (!items.length) return
+      const idx = items.indexOf(document.activeElement)
+      if (ev.key === 'ArrowDown') {
+        ev.preventDefault()
+        items[(idx + 1) % items.length].focus()
+      } else if (ev.key === 'ArrowUp') {
+        ev.preventDefault()
+        items[(idx - 1 + items.length) % items.length].focus()
+      } else if (ev.key === 'Home') {
+        ev.preventDefault()
+        items[0].focus()
+      } else if (ev.key === 'End') {
+        ev.preventDefault()
+        items[items.length - 1].focus()
+      } else if (ev.key === 'Escape') {
+        ev.preventDefault()
+        ev.stopPropagation()
+        if (onClose) onClose()
+        if (triggerBtn) triggerBtn.focus()
+      }
+    })
+  }
   function cerrarMenuCita() {
     document.querySelectorAll('.cite-menu').forEach(m => m.remove())
     document.querySelectorAll('.btn-citar[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'))
@@ -2855,6 +2864,9 @@
     wrap.appendChild(menu)
     btn.setAttribute('aria-expanded', 'true')
     ajustarMenuPos(menu)
+    wireMenuTeclado(menu, btn, cerrarMenuCita)
+    const primero = menu.querySelector('[role="menuitem"]')
+    if (primero) primero.focus()
     menu.addEventListener('click', ev => {
       const b = ev.target.closest('button[data-ca]')
       if (!b) return
@@ -3040,12 +3052,17 @@
     const descargarFormato = fmt => exportarListaCitas(ordenada, fmt, nombreBase)
     if (btnExpMenu && expMenu) {
       const cerrarExp = () => { expMenu.hidden = true; btnExpMenu.setAttribute('aria-expanded', 'false') }
+      wireMenuTeclado(expMenu, btnExpMenu, cerrarExp)
       btnExpMenu.addEventListener('click', ev => {
         ev.stopPropagation()
         const abrir = expMenu.hidden
         expMenu.hidden = !abrir
         btnExpMenu.setAttribute('aria-expanded', abrir ? 'true' : 'false')
-        if (abrir) ajustarMenuPos(expMenu)
+        if (abrir) {
+          ajustarMenuPos(expMenu)
+          const primero = expMenu.querySelector('[role="menuitem"]')
+          if (primero) primero.focus()
+        }
       })
       expMenu.querySelectorAll('button[data-exp]').forEach(b => b.addEventListener('click', () => {
         descargarFormato(b.dataset.exp)
@@ -3930,33 +3947,33 @@
     }
     if (cat === 'anio') {
       lista = listaCat(fuente, cat, val); titulo = 'Año ' + val
-      opts = { sub: 'Producción anual', valorHtml: 'Año ' + esc(val), iconoHtml: ico('calendario') }
+      opts = { sub: 'Producción anual', valorHtml: 'Año ' + esc(val) }
     }
     else if (cat === 'cuartil') {
       lista = listaCat(fuente, cat, val); titulo = 'Cuartil ' + val; color = COLQ[val] || '#2e8a1f'
-      opts = { sub: 'Cuartil SJR', valorHtml: 'Cuartil ' + esc(val), iconoHtml: icoQ(val === 'N/A' ? 'NA' : val) }
+      opts = { sub: 'Cuartil SJR', valorHtml: 'Cuartil ' + esc(val) }
     }
     else if (cat === 'tipo') {
       lista = listaCat(fuente, cat, val); titulo = 'Tipo: ' + val
-      opts = { sub: 'Tipo de documento', valorHtml: esc(val), iconoHtml: ico('recientes') }
+      opts = { sub: 'Tipo de documento', valorHtml: esc(val) }
     }
     else if (cat === 'revista') {
       lista = listaCat(fuente, cat, val); titulo = 'Fuente: ' + val
-      opts = { sub: 'Revista o conferencia', valorHtml: esc(val), iconoHtml: ico('fuente') }
+      opts = { sub: 'Revista o conferencia', valorHtml: esc(val) }
     }
     else if (cat === 'area') {
       lista = listaCat(fuente, cat, val); titulo = 'Área: ' + val
-      opts = { sub: 'Área temática Scopus', valorHtml: esc(val), iconoHtml: ico('area') }
+      opts = { sub: 'Área temática Scopus', valorHtml: esc(val) }
     }
     else if (cat === 'frase') {
       lista = listaCat(fuente, cat, val)
       titulo = 'Tema: ' + val
-      opts = { sub: 'Tema recurrente', valorHtml: esc(val), iconoHtml: ico('tema') }
+      opts = { sub: 'Tema recurrente', valorHtml: esc(val) }
     }
     else if (cat === 'pais') {
       lista = listaCat(fuente, cat, val); titulo = 'País: ' + val
       const band = banderaPais(val)
-      opts = { sub: 'Colaboración internacional', valorHtml: (band ? band + ' ' : '') + esc(val), iconoHtml: ico('globe') }
+      opts = { sub: 'Colaboración internacional', valorHtml: (band ? band + ' ' : '') + esc(val) }
       const ext = (D.extNombres) || {}, extP = (D.extPais) || {}
       const ct = {}
       lista.forEach(p => (p.xa || []).forEach(id => { if (ext[id]) ct[id] = (ct[id] || 0) + 1 }))
@@ -3967,7 +3984,7 @@
     }
     else if (cat === 'inst') {
       lista = listaCat(fuente, cat, val); titulo = 'Institución: ' + val
-      opts = { sub: 'Filiación externa', valorHtml: esc(val), iconoHtml: ico('inst') }
+      opts = { sub: 'Filiación externa', valorHtml: esc(val) }
       autoresUtm = calcAutoresUtm(lista)
     }
     else if (cat === 'coautorExt') {
@@ -3975,40 +3992,40 @@
       const et = el.querySelector('span')
       const nomExt = et ? et.textContent : val
       titulo = 'Coautor: ' + nomExt
-      opts = { sub: 'Coautor externo', valorHtml: esc(nomExt), iconoHtml: ico('autores') }
+      opts = { sub: 'Coautor externo', valorHtml: esc(nomExt) }
     }
     else if (cat === 'coautorUtm') {
       lista = listaCat(fuente, cat, val)
       const co = porId.get(val)
       const nomUtm = co ? co.n : val
       titulo = 'Coautor: ' + nomUtm
-      opts = { sub: 'Coautor UTM', valorHtml: esc(nomUtm), iconoHtml: ico('primerAutor') }
+      opts = { sub: 'Coautor UTM', valorHtml: esc(nomUtm) }
     }
     else if (cat === 'rol') {
       lista = listaCat(fuente, cat, val); titulo = 'Rol: ' + ROL_ET[val]; color = ROL_COL[val]
-      opts = { sub: 'Rol de autoría', valorHtml: esc(ROL_ET[val]), iconoHtml: ico('rol') }
+      opts = { sub: 'Rol de autoría', valorHtml: esc(ROL_ET[val]) }
     }
     else if (cat === 'rolAnio') {
       const [y, r] = val.split('|')
       lista = listaCat(fuente, cat, val); titulo = y + ' · ' + ROL_ET[r]; color = ROL_COL[r]
-      opts = { sub: 'Rol de autoría en ' + y, valorHtml: esc(ROL_ET[r]) + ' · ' + esc(y), iconoHtml: ico('rol') }
+      opts = { sub: 'Rol de autoría en ' + y, valorHtml: esc(ROL_ET[r]) + ' · ' + esc(y) }
     }
     else if (cat === 'cuartilAnio') {
       const [y, q] = val.split('|')
       const q12 = q === 'Q12'
       lista = listaCat(fuente, cat, val); titulo = tituloCat(cat, val); color = q12 ? COLQ.Q1 : (COLQ[q] || '#2e8a1f')
-      opts = { sub: 'Cuartil SJR en ' + y, valorHtml: (q12 ? 'Q1 y Q2' : 'Cuartil ' + esc(q)) + ' · ' + esc(y), iconoHtml: icoQ(color) }
+      opts = { sub: 'Cuartil SJR en ' + y, valorHtml: (q12 ? 'Q1 y Q2' : 'Cuartil ' + esc(q)) + ' · ' + esc(y) }
     }
     // Top 10 del landing: publicaciones del autor (histórico y del año en curso).
     else if (cat === 'autorPubs') {
       lista = (D.porAutor[val] || []).map(i => D.pubs[i]).filter(Boolean)
       const co = porId.get(val); titulo = co ? co.n : val
-      opts = { sub: 'Investigador UTM · Historial', valorHtml: esc(titulo), iconoHtml: ico('trofeo') }
+      opts = { sub: 'Investigador UTM · Historial', valorHtml: esc(titulo) }
     }
     else if (cat === 'autorPubsAnio') {
       lista = (D.porAutor[val] || []).map(i => D.pubs[i]).filter(p => p && p.y === ANIO_ACTUAL)
       const co = porId.get(val); titulo = (co ? co.n : val) + ' · ' + ANIO_ACTUAL
-      opts = { sub: 'Investigador UTM · Año ' + ANIO_ACTUAL, valorHtml: esc(co ? co.n : val), iconoHtml: ico('calendario') }
+      opts = { sub: 'Investigador UTM · Año ' + ANIO_ACTUAL, valorHtml: esc(co ? co.n : val) }
     }
     else return
     opts.ctx = { cat, val }
@@ -4089,8 +4106,10 @@
     const m = document.getElementById('expMenu')
     const b = document.getElementById('btnExpMenu')
     const estabaExp = m && !m.hidden
+    const btnCita = document.querySelector('.btn-citar[aria-expanded="true"]')
     cerrarMenusExport()
     if (estabaExp && b) b.focus()
+    else if (btnCita) btnCita.focus()
   })
   window.addEventListener('scroll', vigilaArriba, { passive: true })
   window.addEventListener('hashchange', () => { cerrarPop(); cerrarGlobo(); cerrarMenusExport(); router() })
