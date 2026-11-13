@@ -178,6 +178,7 @@
     area: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
     trofeo: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-1.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98 1.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>',
     tabla: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>',
+    orden: '<line x1="4" y1="6" x2="13" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/><polyline points="15 15 18 18 21 15"/><line x1="18" y1="6" x2="18" y2="18"/>',
   }
   const ico = n => `<svg class="ic-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`
   const icoQ = c => `<svg class="ic-svg ic-q" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="${c}" fill-opacity="0.22" stroke="${c}"/><circle cx="12" cy="12" r="3.2" fill="${c}" stroke="none"/></svg>`
@@ -359,30 +360,35 @@
             <input id="q" type="search" aria-label="Buscar investigador en el directorio" placeholder="Buscar por nombre, apellido o Scopus ID…" autocomplete="off" />
           </div>
           <div class="modo-busq" role="group" aria-label="Buscar por">
-            <button type="button" data-m="nombre" title="Buscar por nombre, apellido o Scopus ID">Nombre</button>
-            <button type="button" data-m="tema" title="Buscar quién publica sobre un tema: palabras del título, la revista o el área">Tema</button>
+            <button type="button" data-m="nombre" title="Buscar por nombre, apellido o Scopus ID">${ico('rol')}<span>Nombre</span></button>
+            <button type="button" data-m="tema" title="Buscar quién publica sobre un tema: palabras del título, la revista o el área">${ico('tema')}<span>Tema</span></button>
           </div>
           <button type="button" class="btn-filtros" id="btnFiltros" aria-expanded="false" aria-controls="hojaFiltros">${ico('filtro')}<span>Filtros</span><b class="btn-filtros-n" hidden></b></button>
-          <div class="hoja-vel" id="hojaVel"></div>
-          <div class="hoja-filtros" id="hojaFiltros" role="dialog" aria-label="Filtros del directorio">
-            <div class="hoja-cab"><span>Filtros del directorio</span><button type="button" class="hoja-x" data-cerrar-hoja aria-label="Cerrar filtros">×</button></div>
-            <select class="selector" id="areaDir" aria-label="Filtrar directorio por área temática">
-              <option value="">Área temática: Todas (${GI.todasAreas.length})</option>
-              ${GI.todasAreas.map(([ar, c]) => `<option value="${esc(ar)}">${esc(ar)} (${c})</option>`).join('')}
-            </select>
-            <select class="selector" id="orden" aria-label="Ordenar directorio de investigadores">
-              ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Ordenar: ${et}</option>`).join('')}
-              <option value="ap">Ordenar: Apellido (A-Z)</option>
-            </select>
-            <button type="button" class="btn-filtro-vig${estado.soloVig ? ' on' : ''}" id="btnVigente"
-              aria-pressed="${estado.soloVig ? 'true' : 'false'}"
-              title="Mostrar únicamente investigadores con afiliación UTM vigente en Scopus">${ico('primerAutor')}<span>Solo filiación vigente</span></button>
-            <div class="hoja-pie"><button type="button" class="hoja-aplicar" data-cerrar-hoja></button></div>
-          </div>
+          <span class="sel-ico">${ico('orden')}<select class="selector" id="orden" aria-label="Ordenar directorio de investigadores">
+            ${METRICAS_ORD.map(([k, et]) => `<option value="${k}">Ordenar: ${et}</option>`).join('')}
+            <option value="ap">Ordenar: Apellido (A-Z)</option>
+          </select></span>
           <button type="button" class="btn-exp" id="btnExpDir" title="Descargar en CSV los investigadores de la lista, con los filtros aplicados">${ico('csv')}<span>CSV</span></button>
           <div class="conteo" id="conteo"></div>
         </div>
-        <div class="alfabeto" id="alf"></div>
+        <div class="dir-filtros filtro-zona">
+          <div class="dir-filtros-fila">
+            <div class="hoja-vel" id="hojaVel"></div>
+            <div class="hoja-filtros" id="hojaFiltros" role="dialog" aria-label="Filtros del directorio">
+              <div class="hoja-cab"><span>Filtros del directorio</span><button type="button" class="hoja-x" data-cerrar-hoja aria-label="Cerrar filtros">×</button></div>
+              <span class="filtro-lbl">Filtrar:</span>
+              <span class="sel-ico">${ico('area')}<select class="selector" id="areaDir" aria-label="Filtrar directorio por área temática">
+                <option value="">Área temática: Todas (${GI.todasAreas.length})</option>
+                ${GI.todasAreas.map(([ar, c]) => `<option value="${esc(ar)}">${esc(ar)} (${c})</option>`).join('')}
+              </select></span>
+              <button type="button" class="btn-filtro-vig${estado.soloVig ? ' on' : ''}" id="btnVigente"
+                aria-pressed="${estado.soloVig ? 'true' : 'false'}"
+                title="Mostrar únicamente investigadores con afiliación UTM vigente en Scopus">${ico('primerAutor')}<span>Solo filiación vigente</span></button>
+              <div class="hoja-pie"><button type="button" class="hoja-aplicar" data-cerrar-hoja></button></div>
+            </div>
+          </div>
+          <div class="alfabeto" id="alf"></div>
+        </div>
         <div class="paginacion" id="pagTop"></div>
         <div class="grid-inv" id="grid"></div>
         <div class="paginacion" id="pag"></div>
@@ -393,7 +399,11 @@
     wireBuscadorHero()
     const q = document.getElementById('q'); q.value = estado.q
     const orden = document.getElementById('orden'); orden.value = estado.orden
-    const areaDir = document.getElementById('areaDir'); if (areaDir) areaDir.value = estado.area
+    const areaDir = document.getElementById('areaDir')
+    if (areaDir) {
+      areaDir.value = estado.area
+      areaDir.parentElement.classList.toggle('on', !!estado.area)
+    }
     const btnVig = document.getElementById('btnVigente')
     refGrid = document.getElementById('grid')
     refConteo = document.getElementById('conteo')
@@ -406,7 +416,11 @@
     }))
     q.addEventListener('input', () => { estado.q = q.value; estado.pagina = 1; pintar(); verDirectorio(false) })
     orden.addEventListener('change', () => { estado.orden = orden.value; estado.pagina = 1; pintar(); verDirectorio(false) })
-    if (areaDir) areaDir.addEventListener('change', () => { estado.area = areaDir.value; estado.pagina = 1; pintar(); verDirectorio(false) })
+    if (areaDir) areaDir.addEventListener('change', () => {
+      estado.area = areaDir.value
+      areaDir.parentElement.classList.toggle('on', !!estado.area)
+      estado.pagina = 1; pintar(); verDirectorio(false)
+    })
     const btnExpDir = document.getElementById('btnExpDir')
     if (btnExpDir) btnExpDir.addEventListener('click', () => {
       if (window.registrarEvento) window.registrarEvento('csv', 'directorio')
@@ -477,7 +491,7 @@
     pintar()
     hojaFiltros({ btn: 'btnFiltros', hoja: 'hojaFiltros', vel: 'hojaVel' }, {
       contar: () => filtrar().length, unidad: ['investigador', 'investigadores'],
-      activos: () => (estado.area ? 1 : 0) + (estado.soloVig ? 1 : 0) + (estado.orden !== 'P' ? 1 : 0),
+      activos: () => (estado.area ? 1 : 0) + (estado.soloVig ? 1 : 0),
     })
   }
 
@@ -948,15 +962,18 @@
           <button class="top-tab" data-tab="hist">${ico('h')}<span>Top 10 histórico</span></button>
         </div>
         <div class="top-cab-der">
-          <button type="button" class="btn-filtro-vig${estado.topSoloVig ? ' on' : ''}" id="btnTopVigente"
-            aria-pressed="${estado.topSoloVig ? 'true' : 'false'}"
-            title="Mostrar únicamente investigadores con afiliación UTM vigente en Scopus">${ico('primerAutor')}<span>Solo filiación vigente</span></button>
-          <select class="selector" id="topMetricAnual" aria-label="Indicador del Top 10 del año">
+          <div class="filtro-zona top-filtro-zona">
+            <span class="filtro-lbl">Filtrar:</span>
+            <button type="button" class="btn-filtro-vig${estado.topSoloVig ? ' on' : ''}" id="btnTopVigente"
+              aria-pressed="${estado.topSoloVig ? 'true' : 'false'}"
+              title="Mostrar únicamente investigadores con afiliación UTM vigente en Scopus">${ico('primerAutor')}<span>Solo filiación vigente</span></button>
+          </div>
+          <span class="sel-ico">${ico('orden')}<select class="selector" id="topMetricAnual" aria-label="Indicador del Top 10 del año">
             ${METRICAS_ORD.map(([k, et]) => optTop(k, et, MIN_PUBS_CP_ANUAL)).join('')}
-          </select>
-          <select class="selector" id="topMetric" aria-label="Indicador del Top 10 histórico" style="display:none">
+          </select></span>
+          <span class="sel-ico" style="display:none">${ico('orden')}<select class="selector" id="topMetric" aria-label="Indicador del Top 10 histórico">
             ${METRICAS_ORD.map(([k, et]) => optTop(k, et, MIN_PUBS_CP)).join('')}
-          </select>
+          </select></span>
         </div></div>
         <div id="destTopAnual"></div>
         <div id="destTop" style="display:none"></div></div></div>`
@@ -967,8 +984,8 @@
     const dt = el('destTop'), dta = el('destTopAnual'), sm = el('topMetric'), sma = el('topMetricAnual')
     if (dt) dt.style.display = hist ? '' : 'none'
     if (dta) dta.style.display = hist ? 'none' : ''
-    if (sm) sm.style.display = hist ? '' : 'none'
-    if (sma) sma.style.display = hist ? 'none' : ''
+    if (sm && sm.parentElement) sm.parentElement.style.display = hist ? '' : 'none'
+    if (sma && sma.parentElement) sma.parentElement.style.display = hist ? 'none' : ''
     document.querySelectorAll('.top-tab[data-tab]').forEach(b =>
       b.classList.toggle('on', (b.dataset.tab === 'anual') === !hist))
   }
@@ -1395,7 +1412,7 @@
         <button type="button" class="top-tab evo-tab on" data-evo="h">${ico('trayectoria')}<span>Índice h y citas</span></button>
         <button type="button" class="top-tab evo-tab" data-evo="rol">${ico('rol')}<span>Rol de autoría</span></button>
         <button type="button" class="top-tab evo-tab" data-evo="q">${ico('calidad')}<span>Calidad de las revistas</span></button>
-        ${hitos.length >= 2 ? `<button type="button" class="top-tab evo-tab" data-evo="hitos">${ico('citas')}<span>Hitos</span></button>` : ''}
+        ${hitos.length >= 2 ? `<button type="button" class="top-tab evo-tab" data-evo="hitos">${ico('trofeo')}<span>Hitos</span></button>` : ''}
       </div>
       <div class="evo-pane" data-evo="h">
         <div class="evo-tit">Índice h acumulado (línea naranja) y citas de las publicaciones de cada año (barras)</div>
@@ -1932,11 +1949,12 @@
       <div class="panel" style="margin-bottom:18px">
         <h2 class="dir-tit">Ventana de análisis e indicadores</h2>
         <div class="ayuda-filtros">Seleccione el periodo temporal para recalcular las métricas de producción, citas e impacto.</div>
-        <div class="periodo-bar" role="tablist" aria-label="Ventana temporal del perfil">
+        <div class="periodo-bar filtro-zona" role="tablist" aria-label="Ventana temporal del perfil">
+          <span class="filtro-lbl">Filtrar:</span>
           <div class="top-tabs">
-            <button type="button" class="top-tab per-tab${per === 'todo' ? ' on' : ''}" data-per="todo">${ico('historial')}<span>Todo el historial (${todasPubs.length})</span></button>
-            <button type="button" class="top-tab per-tab${per === '5a' ? ' on' : ''}" data-per="5a">${ico('g')}<span>Últimos 5 años · ${ANIO_ACTUAL - 4} a ${ANIO_ACTUAL} (${n5a})</span></button>
-            <button type="button" class="top-tab per-tab${per === 'actual' ? ' on' : ''}" data-per="actual">${ico('fecha')}<span>Año ${ANIO_ACTUAL} (${nAct})</span></button>
+            <button type="button" class="top-tab per-tab${per === 'todo' ? ' on' : ''}" data-per="todo">${ico('filtro')}<span>Todo el historial (${todasPubs.length})</span></button>
+            <button type="button" class="top-tab per-tab${per === '5a' ? ' on' : ''}" data-per="5a">${ico('calendario')}<span>Últimos 5 años · ${ANIO_ACTUAL - 4} a ${ANIO_ACTUAL} (${n5a})</span></button>
+            <button type="button" class="top-tab per-tab${per === 'actual' ? ' on' : ''}" data-per="actual">${ico('reciente')}<span>Año ${ANIO_ACTUAL} (${nAct})</span></button>
           </div>
         </div>
 
@@ -2877,25 +2895,37 @@
   }
 
   // panel de publicaciones con filtros cruzados, buscador, exportación y paginación
-  function panelPubsHTML(titulo, n, conOrden, autorId) {
+  function panelPubsHTML(titulo, n, conOrden, autorId, desc) {
     return `<div class="panel" id="panelPubs"><h2 class="h3-flex">
       <span id="pubTitCont" data-base="${esc(titulo)}">${esc(titulo)} (${num(n)})</span>
       <span class="pp-ctrl">
-        ${conOrden ? `<select class="selector" id="pubOrden" aria-label="Ordenar publicaciones">
+        ${conOrden ? `<span class="sel-ico">${ico('orden')}<select class="selector" id="pubOrden" aria-label="Ordenar publicaciones">
           <option value="recientes">Ordenar: Más recientes</option>
           <option value="citadas">Ordenar: Más citadas</option>
           <option value="ritmo">Ordenar: Citas por año</option>
-        </select>` : ''}
-        <select class="selector" id="pp" aria-label="Publicaciones por página">
+        </select></span>` : ''}
+        <span class="sel-ico">${ico('tabla')}<select class="selector" id="pp" aria-label="Publicaciones por página">
           <option value="10">Ítems por página: 10</option>
           <option value="25">Ítems por página: 25</option>
           <option value="50">Ítems por página: 50</option>
           <option value="0">Ítems por página: Todas</option>
-        </select></span></h2>
+        </select></span>
+        <div class="pub-exp-wrap">
+          <div class="exp-drop">
+            <button type="button" class="btn-exp" id="btnExpMenu" aria-haspopup="menu" aria-expanded="false" title="Seleccionar formato para descargar las publicaciones listadas"><span>❞ Citar ▾</span></button>
+            <div class="exp-menu" id="expMenu" role="menu" hidden>
+              <button type="button" role="menuitem" data-exp="csv">${ico('csv')}<span>CSV (.csv)</span></button>
+              <button type="button" role="menuitem" data-exp="bib">${ico('bibtex')}<span>BibTeX (.bib)</span></button>
+              <button type="button" role="menuitem" data-exp="ris">${ico('bibtex')}<span>RIS (.ris)</span></button>
+            </div>
+          </div>
+        </div></span></h2>
+      ${desc ? `<div class="ayuda-filtros">${esc(desc)}</div>` : ''}
       <div class="pub-filtros">
         <input id="pubQ" class="entrada pub-busq" placeholder="Filtrar por título, revista, coautor o DOI…" aria-label="Filtrar publicaciones por texto">
         <div class="pub-fchips">
-          <button type="button" class="pub-fchip pub-qchip on" data-q="todos" title="Mostrar todos los cuartiles">${ico('cuartil')}<span>Todas</span></button>
+          <span class="filtro-lbl">Filtrar:</span>
+          <button type="button" class="pub-fchip pub-qchip on" data-q="todos" title="Mostrar todos los cuartiles">${ico('filtro')}<span>Todas</span></button>
           <button type="button" class="pub-fchip pub-qchip" data-q="Q1" title="Cuartil 1 (SJR)">${icoQ(COLQ.Q1)}<span>Q1</span></button>
           <button type="button" class="pub-fchip pub-qchip" data-q="Q2" title="Cuartil 2 (SJR)">${icoQ(COLQ.Q2)}<span>Q2</span></button>
           <button type="button" class="pub-fchip pub-qchip" data-q="Q3" title="Cuartil 3 (SJR)">${icoQ(COLQ.Q3)}<span>Q3</span></button>
@@ -2906,16 +2936,6 @@
           ${autorId ? `<button type="button" class="pub-fchip" data-pf="fa">${ico('primerAutor')}<span>Primer autor</span></button>` : ''}
           <button type="button" class="pub-fchip" data-pf="cit">${ico('citas')}<span>Con citas</span></button>
           <span id="pubCtxWrap" class="pub-ctx-wrap"></span>
-        </div>
-        <div class="pub-exp-wrap">
-          <div class="exp-drop">
-            <button type="button" class="btn-exp" id="btnExpMenu" aria-haspopup="menu" aria-expanded="false" title="Seleccionar formato para descargar las publicaciones listadas"><span>❞ Citar ▾</span></button>
-            <div class="exp-menu" id="expMenu" role="menu" hidden>
-              <button type="button" role="menuitem" data-exp="csv">${ico('csv')}<span>CSV (.csv)</span></button>
-              <button type="button" role="menuitem" data-exp="bib">${ico('bibtex')}<span>BibTeX (.bib)</span></button>
-              <button type="button" role="menuitem" data-exp="ris">${ico('bibtex')}<span>RIS (.ris)</span></button>
-            </div>
-          </div>
         </div>
       </div>
       ${autorId ? `<div class="ctx-hint pub-hint">Haga clic en un año, revista, coautor, país, área o tema del perfil y elija «Filtrar»; con Ctrl o ⌘ + clic se filtra al instante. Los filtros se combinan y quedan guardados en el enlace.</div>` : ''}
@@ -3575,11 +3595,12 @@
         <div style="flex:1"><h1>${esc(area)}</h1>
           <div class="sub">Área temática de Scopus · ${num(lista.length)} publicaciones UTM · ${num(autArea.length)} investigadores UTM</div></div></div>
       ${autArea.length ? `<div class="panel" style="margin-bottom:18px">
-        <h2>Investigadores UTM en esta área (${num(autArea.length)})</h2>
+        <h2 class="dir-tit">Investigadores UTM en esta área (${num(autArea.length)})</h2>
+        <div class="ayuda-filtros">Autores con filiación UTM que han publicado en esta área. Haga clic en «pub. en el área» para filtrar el listado inferior por investigador.</div>
         <div class="coautores" id="areaAutCont"></div>
         <div class="paginacion" id="areaAutPager"></div>
       </div>` : ''}
-      ${panelPubsHTML('Publicaciones', lista.length, true)}</div>
+      ${panelPubsHTML('Publicaciones en el área', lista.length, true, null, 'Filtre por cuartil SJR, acceso abierto, texto o investigador del área, y exporte citas en CSV, BibTeX o RIS.')}</div>
     ${TOP_PAGE_HTML}`
     wirePubs(lista, pubRowArea, null, slug)
     if (autArea.length) {
@@ -3643,18 +3664,18 @@
           <div class="hoja-vel" id="hojaVelPub"></div>
           <div class="hoja-filtros" id="hojaFiltrosPub" role="dialog" aria-label="Filtros de publicaciones">
             <div class="hoja-cab"><span>Filtros de publicaciones</span><button type="button" class="hoja-x" data-cerrar-hoja aria-label="Cerrar filtros">×</button></div>
-            <select class="selector" id="anioPub" aria-label="Filtrar por año">
+            <span class="sel-ico">${ico('calendario')}<select class="selector" id="anioPub" aria-label="Filtrar por año">
               <option value="">Año: Todos</option>${anios.map(y => `<option value="${y}">${y}</option>`).join('')}
-            </select>
-            <select class="selector" id="cuartilPub" aria-label="Filtrar por cuartil de la revista">
+            </select></span>
+            <span class="sel-ico">${ico('cuartil')}<select class="selector" id="cuartilPub" aria-label="Filtrar por cuartil de la revista">
               <option value="">Cuartil: Todos</option>
               ${['Q1', 'Q2', 'Q3', 'Q4', 'N/A'].map(q => `<option value="${q}">${q === 'N/A' ? 'Sin cuartil' : q}</option>`).join('')}
-            </select>
-            <select class="selector" id="ordenPub" aria-label="Ordenar publicaciones">
+            </select></span>
+            <span class="sel-ico">${ico('orden')}<select class="selector" id="ordenPub" aria-label="Ordenar publicaciones">
               <option value="recientes">Ordenar: Más recientes</option>
               <option value="citadas">Ordenar: Más citadas</option>
-            </select>
-            <button type="button" class="btn-filtro-vig" id="btnOaPub" aria-pressed="false" title="Mostrar solo publicaciones de acceso abierto"><span>Solo acceso abierto</span></button>
+            </select></span>
+            <button type="button" class="btn-filtro-vig" id="btnOaPub" aria-pressed="false" title="Mostrar solo publicaciones de acceso abierto">${ico('oa')}<span>Solo acceso abierto</span></button>
             <div class="hoja-pie"><button type="button" class="hoja-aplicar" data-cerrar-hoja></button></div>
           </div>
           <div class="conteo" id="conteoPub"></div>
