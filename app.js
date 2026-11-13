@@ -1764,7 +1764,7 @@
 
   // ---------- perfil ----------
   // Ruta de navegación: "Inicio › página actual". El primer tramo vuelve a la portada.
-  const migas = actual => `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span><span class="mg-act" aria-current="page">${esc(actual)}</span></nav>`
+  const migas = (actual, medio) => `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span>${medio ? `<a href="${medio.href}" title="Volver al perfil de ${esc(medio.n)}"><span>${esc(medio.n)}</span></a><span class="mg-sep" aria-hidden="true">›</span>` : ''}<span class="mg-act" aria-current="page">${esc(actual)}</span></nav>`
   function renderPerfil(id, mantenerScroll) {
     const a = porId.get(id)
     if (!a) {
@@ -2655,12 +2655,14 @@
       return ka < kb ? 1 : ka > kb ? -1 : 0
     })
     const cap = 10, vis = orden.slice(0, cap)
-    const pubsBody = vis.length ? vis.map(ctxRow).join('') : '<div class="ctx-m">Sin publicaciones.</div>'
+    const pubsBody = opts.filas
+      ? (opts.filas.length ? opts.filas.map(f => `<div class="pop-fila"><span>${f.ico ? f.ico + ' ' : ''}${esc(f.t)}</span><b>${esc(f.v)}</b></div>`).join('') : '<div class="ctx-m">Sin datos.</div>')
+      : vis.length ? vis.map(ctxRow).join('') : '<div class="ctx-m">Sin publicaciones.</div>'
     popEl = document.createElement('div')
     popEl.className = 'popover-ctx'
     const conAutores = autores && autores.length
     const conUtm = autoresUtm && autoresUtm.length
-    const badgeTxt = `${lista.length} pub.${lista.length > cap && !conAutores && !conUtm ? ` · ${opts.sinOrden ? 'primeras' : 'últ.'} ${cap}` : ''}`
+    const badgeTxt = opts.badge || `${lista.length} pub.${lista.length > cap && !conAutores && !conUtm ? ` · ${opts.sinOrden ? 'primeras' : 'últ.'} ${cap}` : ''}`
     const cabHtml = `<div class="pop-cab">
       <div class="pop-tit-wrap">
         <div class="pop-val">${valorHtml}</div>
@@ -2671,7 +2673,7 @@
         <button type="button" class="pop-x" title="Cerrar" aria-label="Cerrar">✕</button>
       </div>
     </div>`
-    const pieFiltro = (perfilPubs && aplicarFiltroCtxPubs && lista.length)
+    const pieFiltro = (!opts.filas && perfilPubs && aplicarFiltroCtxPubs && lista.length)
       ? `<div class="pop-pie"><button type="button" class="pop-ir-lista">${ico('filtro')}<span>Filtrar estas ${lista.length} publicaci${lista.length === 1 ? 'ón' : 'ones'} en la lista inferior ↓</span></button></div>`
       : ''
     if (conAutores || conUtm) {
@@ -3915,7 +3917,7 @@
     let slots = [0, 1].map(i => porId.get((partes[i] || '').trim()) || null)
     if (slots[0] && slots[1] && slots[0].id === slots[1].id) slots[1] = null
     const url = (x, y) => '#/comparar/' + [x, y].map(v => (v ? encodeURIComponent(v.id || v) : '')).join(',').replace(/,$/, '') + (per !== 'todo' ? '?per=' + per : '')
-    const intro = `<div class="panel cmp-intro"><a class="btn-ext" href="#/">← Directorio</a>
+    const intro = `${migas('Comparar investigadores', porId.get(cmpOrigen) ? { n: porId.get(cmpOrigen).n, href: '#/autor/' + encodeURIComponent(cmpOrigen) } : null)}<div class="panel cmp-intro">
       <h1>Comparar investigadores</h1>
       <p>Dos perfiles frente a frente con sus indicadores de todo el historial en Scopus. Las cifras no son comparables entre disciplinas con hábitos de publicación muy distintos.</p></div>`
     const ladoVacio = (cual, otro) => `<div class="cmp-lado cmp-${cual} cmp-vacio"><div class="cmp-rol">${cual === 'a' ? 'Investigador 1' : 'Investigador 2'}</div>
@@ -3970,9 +3972,19 @@
         case 'g': return { lista: porCit.slice(0, k.g), sinOrden: true, sub: `Las ${k.g} más citadas suman al menos ${k.g * k.g} citas` }
         case 'm': return { lista: porCit.slice(0, k.h), sinOrden: true, sub: `Índice m ${dec(k.m, 2)}: índice h (${k.h}) entre los años de actividad` }
         case 'q12': return { lista: P.filter(p => p.q === 'Q1' || p.q === 'Q2'), sub: `Publicaciones en revistas Q1 o Q2 (${v} % del total)` }
-        case 'oa': return { lista: P.filter(esAbierta), sub: `Publicaciones en acceso abierto (${v} % del total)` }
+        case 'oa': {
+          const ab = P.filter(esAbierta), m = new Map()
+          ab.forEach(p => { const j = p.j || 'Sin revista indicada'; m.set(j, (m.get(j) || 0) + 1) })
+          const filas = [...m].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).map(([j, n]) => ({ t: j, v: `${n} pub.` }))
+          return { lista: ab, filas, badge: pl(filas.length, 'revista', 'revistas'), sub: `Revistas y conferencias en acceso abierto: ${pl(ab.length, 'publicación', 'publicaciones')} (${v} % del total)` }
+        }
         case 'pfa': return { lista: P.filter(p => String(p.fa || (p.u || [])[0] || '') === String(r.a.id)), sub: `Publicaciones como primer autor (${v} % del total)` }
-        case 'paises': return { lista: P.filter(p => (p.pc || []).length), sub: `Publicaciones con coautores de ${pl(r.paises, 'país', 'países')}` }
+        case 'paises': {
+          const m = new Map()
+          P.forEach(p => new Set(p.pc || []).forEach(c => m.set(c, (m.get(c) || 0) + 1)))
+          const filas = [...m].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).map(([c, n]) => ({ ico: banderaPais(c) || '', t: c, v: `${n} pub.` }))
+          return { lista: [], filas, badge: pl(filas.length, 'país', 'países'), sub: `Países de los coautores, con las publicaciones conjuntas de ${r.a.n}` }
+        }
         default: return { lista: P, sub: '' }
       }
     }
@@ -4039,7 +4051,7 @@
       const v = fila[1](r)
       const d = detalle(bt.dataset.ind, r, v)
       mostrarPopover(ev, `${fila[0]}, ${nom}`, d.lista, COL[bt.dataset.lado], null, null,
-        { sub: d.sub, sinOrden: d.sinOrden, valorHtml: `${esc(fila[0])} · ${esc(nom)}: ${fila[2](v)}` })
+        { sub: d.sub, sinOrden: d.sinOrden, filas: d.filas, badge: d.badge, valorHtml: `${esc(fila[0])} · ${esc(nom)}: ${fila[2](v)}` })
     }))
     app.querySelectorAll('.cmp-per').forEach(bt => bt.addEventListener('click', () => {
       if (bt.dataset.per === per) return
@@ -4058,9 +4070,15 @@
   // donde estaba la persona (los filtros y la página ya se conservan en "estado").
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual' } catch (e) { /* sin historial */ }
   let enLista = true, scrollLista = 0
+  let rutaPrevia = '', cmpOrigen = null   // perfil desde el que se llegó a comparar, para las migas
   const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h.indexOf('#/area/') === 0 || h === '#/metodologia' || h === '#/publicaciones' || h.indexOf('#/comparar') === 0)
   function router() {
     const h = hashPartes()[0]
+    const prev = rutaPrevia
+    rutaPrevia = h
+    if (h.indexOf('#/comparar') === 0 && prev.indexOf('#/comparar') !== 0) {
+      cmpOrigen = prev.indexOf('#/autor/') === 0 ? decodeURIComponent(prev.slice(8)) : null
+    }
     document.body.classList.remove('hoja-abierta')   // por si se navegó con la hoja de filtros abierta
     const lista = esRutaLista(h)
     if (enLista && !lista) scrollLista = window.scrollY
