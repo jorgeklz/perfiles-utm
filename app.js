@@ -61,7 +61,7 @@
 
   // quita acentos y pasa a minúsculas para buscar sin importar tildes ni comas
   const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .toLowerCase().replace(/[,\-]/g, ' ')
+    .toLowerCase().replace(/[,\-\u2010-\u2015\u2212]/g, ' ')
 
   // índice rápido de publicaciones, áreas por autor y texto buscable por documento
   const PUB_IDX = new Map(D.pubs.map((p, i) => [p, i]))
@@ -1938,6 +1938,7 @@
         : `<a class="btn-ext" href="https://orcid.org/orcid-search/search?searchQuery=${orcid}" target="_blank" rel="noreferrer">${ico('orcid')}<span>Buscar en ORCID ↗</span></a>`}
             <a class="btn-ext" href="https://scholar.google.com/citations?view_op=search_authors&mauthors=${orcid}" target="_blank" rel="noreferrer">${ico('scholar')}<span>Buscar en Google Scholar ↗</span></a>
             <a class="btn-ext" href="https://www.researchgate.net/search/researcher?q=${orcid}" target="_blank" rel="noreferrer">${ico('rg')}<span>Buscar en ResearchGate ↗</span></a>
+            <a class="btn-ext" id="btnComparar" href="#/comparar/${encodeURIComponent(a.id)}" title="Compara este perfil con el de otro investigador">${ico('autores')}<span>Comparar con otro</span></a>
             <button type="button" class="btn-ext btn-print" id="btnFichaA4" title="Ficha de una página (A4) con indicadores, mejores publicaciones y código QR, lista para guardar en PDF">${ico('print')}<span>Ficha A4</span></button>
             <button type="button" class="btn-ext" id="btnCompartir" title="Copia el enlace del perfil. Al pegarlo en WhatsApp, LinkedIn o correo se muestra una tarjeta con sus indicadores">${ico('enlace')}<span>Copiar enlace para WhatsApp</span></button>
           </div>
@@ -2649,7 +2650,7 @@
     opts = opts || {}
     const sub = opts.sub || 'Detalle de publicaciones'
     const valorHtml = opts.valorHtml || esc(titulo)
-    const orden = [...lista].sort((a, b) => {
+    const orden = opts.sinOrden ? [...lista] : [...lista].sort((a, b) => {
       const ka = a.d || ((a.y || 0) + '-00-00'), kb = b.d || ((b.y || 0) + '-00-00')
       return ka < kb ? 1 : ka > kb ? -1 : 0
     })
@@ -2659,7 +2660,7 @@
     popEl.className = 'popover-ctx'
     const conAutores = autores && autores.length
     const conUtm = autoresUtm && autoresUtm.length
-    const badgeTxt = `${lista.length} pub.${lista.length > cap && !conAutores && !conUtm ? ` · últ. ${cap}` : ''}`
+    const badgeTxt = `${lista.length} pub.${lista.length > cap && !conAutores && !conUtm ? ` · ${opts.sinOrden ? 'primeras' : 'últ.'} ${cap}` : ''}`
     const cabHtml = `<div class="pop-cab">
       <div class="pop-tit-wrap">
         <div class="pop-val">${valorHtml}</div>
@@ -3867,13 +3868,197 @@
     }
   }
 
+  // ---------- comparar dos investigadores ----------
+  // Ventana temporal igual que en el perfil: todo el historial, últimos 5 años o el año en curso.
+  const enVentana = (pubs, per) => per === '5a' ? pubs.filter(p => (p.y || 0) >= ANIO_ACTUAL - 4)
+    : per === 'actual' ? pubs.filter(p => (p.y || 0) >= ANIO_ACTUAL) : pubs
+  function resumenComparar(a, per) {
+    const todas = (D.porAutor[a.id] || []).map(i => D.pubs[i]).filter(Boolean)
+    const pubs = enVentana(todas, per)
+    const n = pubs.length || 1
+    const q12 = pubs.filter(p => p.q === 'Q1' || p.q === 'Q2').length
+    const areas = new Map()
+    pubs.forEach(p => (p.a || []).forEach(x => { const k = String(x).replace(/\s*\(all\)\s*$/i, ''); areas.set(k, (areas.get(k) || 0) + 1) }))
+    const porAnio = {}
+    pubs.forEach(p => { if (p.y) porAnio[p.y] = (porAnio[p.y] || 0) + 1 })
+    // Indicadores: con todo el historial se usan los de Scopus; con ventana se recalculan como en el perfil.
+    let P = a.P, C = a.C, h = a.h, CP = a.CP, i10 = a.i10, g = a.g || 0, m = a.m || 0, pfa = a.pfa || 0
+    let paises = (a.px || []).length
+    if (per !== 'todo') {
+      P = pubs.length
+      const cit = pubs.map(p => p.c || 0).sort((x, y) => y - x)
+      C = cit.reduce((t, v) => t + v, 0)
+      h = 0; for (let i = 0; i < cit.length; i++) if (cit[i] >= i + 1) h = i + 1
+      g = 0; let ac = 0; for (let i = 0; i < cit.length; i++) { ac += cit[i]; if (ac >= (i + 1) * (i + 1)) g = i + 1 }
+      i10 = cit.filter(c => c >= 10).length
+      CP = P ? C / P : 0
+      const ys = pubs.map(p => p.y).filter(Boolean)
+      m = h / (ys.length ? Math.max(1, ANIO_ACTUAL - Math.min(...ys) + 1) : 1)
+      pfa = P ? Math.round(100 * pubs.filter(p => String(p.fa || (p.u || [])[0] || '') === String(a.id)).length / P) : 0
+      paises = new Set(pubs.flatMap(p => p.pc || [])).size
+    }
+    return {
+      a, pubs, todas, k: { P, C, h, CP, i10, g, m, pfa },
+      q12: Math.round(100 * q12 / n), oa: Math.round(100 * pubs.filter(esAbierta).length / n),
+      paises,
+      areas: [...areas.entries()].sort((x, y) => y[1] - x[1]).slice(0, 3).map(x => x[0]),
+      porAnio,
+    }
+  }
+  // Las dos posiciones se conservan en la URL ("#/comparar/ID1,ID2", "#/comparar/,ID2"), así cada lado se puede cambiar por separado.
+  function renderComparar(partes) {
+    perfilPubs = null
+    aplicarFiltroCtxPubs = null
+    limpiarGrafObs()
+    const per0 = paramsHash().get('per')
+    const per = per0 === '5a' || per0 === 'actual' ? per0 : 'todo'
+    let slots = [0, 1].map(i => porId.get((partes[i] || '').trim()) || null)
+    if (slots[0] && slots[1] && slots[0].id === slots[1].id) slots[1] = null
+    const url = (x, y) => '#/comparar/' + [x, y].map(v => (v ? encodeURIComponent(v.id || v) : '')).join(',').replace(/,$/, '') + (per !== 'todo' ? '?per=' + per : '')
+    const intro = `<div class="panel cmp-intro"><a class="btn-ext" href="#/">← Directorio</a>
+      <h1>Comparar investigadores</h1>
+      <p>Dos perfiles frente a frente con sus indicadores de todo el historial en Scopus. Las cifras no son comparables entre disciplinas con hábitos de publicación muy distintos.</p></div>`
+    const ladoVacio = (cual, otro) => `<div class="cmp-lado cmp-${cual} cmp-vacio"><div class="cmp-rol">${cual === 'a' ? 'Investigador 1' : 'Investigador 2'}</div>
+      <label for="cmpQ" class="cmp-pide">Elige ${cual === 'a' ? 'al primer' : 'al segundo'} investigador</label>
+      <input id="cmpQ" type="search" autocomplete="off" placeholder="Escribe un nombre o apellido…" class="cmp-q">
+      <div class="cmp-sug" id="cmpSug"></div></div>`
+    const ladoLleno = (r, cual) => `<div class="cmp-lado cmp-${cual}">
+      <div class="cmp-rol">${cual === 'a' ? 'Investigador 1' : 'Investigador 2'}</div>
+      <div class="cmp-id">${avatar(r.a)}<div><a class="cmp-nom" href="#/autor/${encodeURIComponent(r.a.id)}">${esc(r.a.n)}</a>
+        <div class="cmp-sub">Activo ${r.a.pa || '—'} a ${r.a.ua || '—'}</div></div></div>
+      <div class="cmp-areas">${esc(r.areas.join(' · ') || 'Sin áreas registradas')}</div>
+      <a class="cmp-cambiar" href="${cual === 'a' ? url('', slots[1]) : url(slots[0], '')}">Cambiar investigador</a></div>`
+    // Un solo investigador (o ninguno): se muestra el lado elegido y el buscador del que falta.
+    if (!slots[0] || !slots[1]) {
+      const R = slots.map(x => (x ? resumenComparar(x, per) : null))
+      app.innerHTML = `<div class="wrap cmp-pag">${intro}
+        <div class="cmp-vs">${R[0] ? ladoLleno(R[0], 'a') : ladoVacio('a')}<div class="cmp-vsb" aria-hidden="true"><span>VS</span></div>${R[1] ? ladoLleno(R[1], 'b') : ladoVacio('b')}</div></div>`
+      const q = document.getElementById('cmpQ'), caja = document.getElementById('cmpSug')
+      const falta = R[0] ? 1 : 0
+      const pintar = () => {
+        const t = norm(q.value.trim())
+        const otro = slots[1 - falta]
+        const lista = (t.length < 2 ? [...D.autores] : D.autores.filter(x => norm(x.n).includes(t)))
+          .filter(x => !otro || x.id !== otro.id).sort((x, y) => y.P - x.P).slice(0, 8)
+        caja.innerHTML = lista.length
+          ? lista.map(x => `<a class="cmp-item" href="${falta ? url(slots[0], x) : url(x, slots[1])}"><b>${esc(x.n)}</b><span>${x.P} pub. · ${num(x.C)} citas · h ${x.h}</span></a>`).join('')
+          : '<div class="svacio">Sin coincidencias.</div>'
+      }
+      q.addEventListener('input', pintar)
+      pintar()
+      return
+    }
+    const [A, B] = slots.map(x => resumenComparar(x, per))
+    const filas = [
+      ['Publicaciones', x => x.k.P, v => num(v), 'P'], ['Citas', x => x.k.C, v => num(v), 'C'], ['Índice h', x => x.k.h, v => v, 'h'],
+      ['Citas por publicación', x => x.k.CP, v => dec(v, 2), 'CP'], ['Índice i10', x => x.k.i10, v => v, 'i10'],
+      ['Índice g', x => x.k.g, v => v, 'g'], ['Índice m', x => x.k.m, v => dec(v, 2), 'm'],
+      ['Publicaciones en Q1 o Q2', x => x.q12, v => v + ' %', 'q12'], ['En acceso abierto', x => x.oa, v => v + ' %', 'oa'],
+      ['Como primer autor', x => x.k.pfa, v => v + ' %', 'pfa'], ['Países de coautores', x => x.paises, v => v, 'paises'],
+    ]
+    // Detalle que se abre al hacer clic en una cápsula: las publicaciones que explican ese valor.
+    const detalle = (clave, r, v) => {
+      const P = r.pubs, k = r.k
+      const porCit = [...P].sort((x, y) => (y.c || 0) - (x.c || 0))
+      const pl = (n, u, us) => `${n} ${n === 1 ? u : us}`
+      switch (clave) {
+        case 'P': return { lista: P, sub: `${pl(P.length, 'publicación indexada', 'publicaciones indexadas')} en el periodo` }
+        case 'C': return { lista: porCit.filter(p => (p.c || 0) > 0), sinOrden: true, sub: `${num(k.C)} citas en total. Se muestran las más citadas` }
+        case 'CP': return { lista: porCit.filter(p => (p.c || 0) > 0), sinOrden: true, sub: `${dec(k.CP, 2)} citas por publicación (citas totales entre publicaciones)` }
+        case 'h': return { lista: porCit.slice(0, k.h), sinOrden: true, sub: `Índice h ${k.h}: ${pl(k.h, 'publicación tiene', 'publicaciones tienen')} al menos ${k.h} citas` }
+        case 'i10': return { lista: P.filter(p => (p.c || 0) >= 10), sinOrden: true, sub: `${pl(k.i10, 'publicación con', 'publicaciones con')} 10 citas o más` }
+        case 'g': return { lista: porCit.slice(0, k.g), sinOrden: true, sub: `Las ${k.g} más citadas suman al menos ${k.g * k.g} citas` }
+        case 'm': return { lista: porCit.slice(0, k.h), sinOrden: true, sub: `Índice m ${dec(k.m, 2)}: índice h (${k.h}) entre los años de actividad` }
+        case 'q12': return { lista: P.filter(p => p.q === 'Q1' || p.q === 'Q2'), sub: `Publicaciones en revistas Q1 o Q2 (${v} % del total)` }
+        case 'oa': return { lista: P.filter(esAbierta), sub: `Publicaciones en acceso abierto (${v} % del total)` }
+        case 'pfa': return { lista: P.filter(p => String(p.fa || (p.u || [])[0] || '') === String(r.a.id)), sub: `Publicaciones como primer autor (${v} % del total)` }
+        case 'paises': return { lista: P.filter(p => (p.pc || []).length), sub: `Publicaciones con coautores de ${pl(r.paises, 'país', 'países')}` }
+        default: return { lista: P, sub: '' }
+      }
+    }
+    let gA = 0, gB = 0
+    const corto = n => String(n).split(',')[0]
+    const filasHTML = filas.map(([n, g, f, clave]) => {
+      const va = Number(g(A)) || 0, vb = Number(g(B)) || 0
+      const m = Math.max(va, vb, 1e-9)
+      if (va > vb) gA++; else if (vb > va) gB++
+      const celda = (v, cual, gana) => `<div class="cmp-cel cmp-${cual}"><button type="button" class="cmp-cap cmp-pop${gana ? ' gana' : ''}${va === vb ? ' emp' : ''}" data-ind="${clave}" data-lado="${cual}" title="Ver las publicaciones de ${esc(corto((cual === 'a' ? A : B).a.n))} detrás de este valor">${gana && cual === 'b' ? '<span class="cmp-ok" aria-hidden="true">✓</span>' : ''}${f(v)}${gana && cual === 'a' ? '<span class="cmp-ok" aria-hidden="true">✓</span>' : ''}${gana ? '<span class="cmp-vh"> (es mayor)</span>' : ''}</button></div>`
+      const medio = `<span class="cmp-et"${AY[clave] ? ` title="${esc(AY[clave])}"` : ''}>${n}</span>${va === vb ? '<span class="cmp-emp">Empate</span>' : ''}`
+      return `<div class="cmp-fila">${celda(va, 'a', va > vb)}<div class="cmp-med">${medio}</div>${celda(vb, 'b', vb > va)}</div>`
+    }).join('')
+    const anios = []
+    for (let y = per === 'actual' ? ANIO_ACTUAL : per === '5a' ? ANIO_ACTUAL - 4 : ANIO_ACTUAL - 5; y <= ANIO_ACTUAL; y++) anios.push(y)
+    const maxA = Math.max(1, ...anios.map(y => Math.max(A.porAnio[y] || 0, B.porAnio[y] || 0)))
+    const aniosHTML = anios.map(y => {
+      const va = A.porAnio[y] || 0, vb = B.porAnio[y] || 0
+      return `<div class="cmp-anio"><div class="cmp-ay">${y}${y >= ANIO_ACTUAL ? '*' : ''}</div>
+        <div class="cmp-barras"><button type="button" class="cmp-bar cmp-a cmp-pop" data-anio="${y}" data-lado="a" title="${esc(corto(A.a.n))}, ${y}: ${va} publicaci${va === 1 ? 'ón' : 'ones'}"><i style="width:${Math.round(100 * va / maxA)}%;min-width:${va ? 26 : 0}px"></i><b${va ? '' : ' class="cero"'}>${va}</b></button>
+        <button type="button" class="cmp-bar cmp-b cmp-pop" data-anio="${y}" data-lado="b" title="${esc(corto(B.a.n))}, ${y}: ${vb} publicaci${vb === 1 ? 'ón' : 'ones'}"><i style="width:${Math.round(100 * vb / maxA)}%;min-width:${vb ? 26 : 0}px"></i><b${vb ? '' : ' class="cero"'}>${vb}</b></button></div></div>`
+    }).join('')
+    const juntas = A.pubs.filter(p => (p.u || []).map(String).includes(B.a.id)).sort((x, y) => (y.y || 0) - (x.y || 0))
+    app.innerHTML = `<div class="wrap cmp-pag">${intro}
+      <div class="cmp-vs">${ladoLleno(A, 'a')}<div class="cmp-vsb"><span>VS</span><a class="cmp-swap" href="${url(slots[1], slots[0])}" title="Intercambiar los lados" aria-label="Intercambiar los lados">⇄</a></div>${ladoLleno(B, 'b')}</div>
+      <div class="panel cmp-panel"><h2 class="dir-tit">Ventana de análisis e indicadores</h2>
+        <div class="ayuda-filtros">Seleccione el periodo temporal para recalcular los indicadores de los dos investigadores.</div>
+        <div class="periodo-bar filtro-zona" role="tablist" aria-label="Ventana temporal de la comparación">
+          <span class="filtro-lbl">Filtrar:</span>
+          <div class="top-tabs">
+            <button type="button" class="top-tab cmp-per${per === 'todo' ? ' on' : ''}" data-per="todo">${ico('filtro')}<span>Todo el historial (${A.todas.length} · ${B.todas.length})</span></button>
+            <button type="button" class="top-tab cmp-per${per === '5a' ? ' on' : ''}" data-per="5a">${ico('calendario')}<span>Últimos 5 años · ${ANIO_ACTUAL - 4} a ${ANIO_ACTUAL} (${enVentana(A.todas, '5a').length} · ${enVentana(B.todas, '5a').length})</span></button>
+            <button type="button" class="top-tab cmp-per${per === 'actual' ? ' on' : ''}" data-per="actual">${ico('reciente')}<span>Año ${ANIO_ACTUAL} (${enVentana(A.todas, 'actual').length} · ${enVentana(B.todas, 'actual').length})</span></button>
+          </div>
+        </div>
+        <div class="ctx-hint">Entre paréntesis, publicaciones de cada investigador en ese periodo: ${esc(A.a.n.split(',')[0])} · ${esc(B.a.n.split(',')[0])}.</div></div>
+      <div class="panel cmp-panel"><h2 class="dir-tit">Indicadores</h2>
+        <div class="ayuda-filtros">En cada fila, la cápsula rellena con ✓ marca el valor más alto. Clic en una cápsula para ver las publicaciones detrás de ese valor.</div>
+        <div class="cmp-cols"><div class="cmp-a"><b>${esc(corto(A.a.n))}</b><span>${gA} de ${filas.length} indicadores a favor</span></div><div></div><div class="cmp-b"><b>${esc(corto(B.a.n))}</b><span>${gB} de ${filas.length} indicadores a favor</span></div></div>
+        <div class="cmp-filas">${filasHTML}</div>
+        <div class="ctx-hint">El conteo no es una calificación global: cada indicador mide algo distinto.</div></div>
+      <div class="panel cmp-panel"><h2 class="dir-tit">Publicaciones por año</h2>
+        <div class="cmp-leyenda"><span class="cmp-a">${esc(A.a.n)}</span><span class="cmp-b">${esc(B.a.n)}</span></div>
+        <div class="cmp-anios">${aniosHTML}</div>
+        <div class="ctx-hint">Clic en una barra para ver las publicaciones de ese año. * Año en curso, cifra parcial.</div></div>
+      <div class="panel cmp-panel"><h2 class="dir-tit">Publicaciones en conjunto</h2>
+        ${juntas.length ? `<div class="ayuda-filtros">${juntas.length} publicaci${juntas.length === 1 ? 'ón' : 'ones'} firmada${juntas.length === 1 ? '' : 's'} por ambos.</div>
+          <div class="pubs">${juntas.slice(0, 15).map(p => pubRow(p)).join('')}</div>
+          ${juntas.length > 15 ? `<div class="ctx-hint">Se muestran 15 de ${juntas.length}.</div>` : ''}`
+          : '<div class="ayuda-filtros">No tienen publicaciones en conjunto en Scopus.</div>'}</div>
+    </div>`
+    const COL = { a: '#185a10', b: '#b5800e' }
+    app.querySelectorAll('.cmp-pop').forEach(bt => bt.addEventListener('click', ev => {
+      const r = bt.dataset.lado === 'a' ? A : B
+      const nom = corto(r.a.n)
+      if (bt.dataset.anio) {
+        const y = +bt.dataset.anio
+        const lista = r.pubs.filter(p => p.y === y)
+        mostrarPopover(ev, `${nom}, ${y}`, lista, COL[bt.dataset.lado], null, null,
+          { sub: `Publicaciones de ${r.a.n} en ${y}`, valorHtml: `${esc(nom)} · ${y}` })
+        return
+      }
+      const fila = filas.find(x => x[3] === bt.dataset.ind)
+      const v = fila[1](r)
+      const d = detalle(bt.dataset.ind, r, v)
+      mostrarPopover(ev, `${fila[0]}, ${nom}`, d.lista, COL[bt.dataset.lado], null, null,
+        { sub: d.sub, sinOrden: d.sinOrden, valorHtml: `${esc(fila[0])} · ${esc(nom)}: ${fila[2](v)}` })
+    }))
+    app.querySelectorAll('.cmp-per').forEach(bt => bt.addEventListener('click', () => {
+      if (bt.dataset.per === per) return
+      const pr = paramsHash()
+      if (bt.dataset.per === 'todo') pr.delete('per'); else pr.set('per', bt.dataset.per)
+      fijarParams(pr)
+      const y = window.scrollY
+      renderComparar(partes)
+      window.scrollTo(0, y)
+    }))
+  }
+
   // ---------- router ----------
   const TITULO = 'Investigadores UTM · Producción científica Scopus'
   // Al volver al directorio desde un perfil, un área, Metodología o Publicaciones se recupera la posición
   // donde estaba la persona (los filtros y la página ya se conservan en "estado").
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual' } catch (e) { /* sin historial */ }
   let enLista = true, scrollLista = 0
-  const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h.indexOf('#/area/') === 0 || h === '#/metodologia' || h === '#/publicaciones')
+  const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h.indexOf('#/area/') === 0 || h === '#/metodologia' || h === '#/publicaciones' || h.indexOf('#/comparar') === 0)
   function router() {
     const h = hashPartes()[0]
     document.body.classList.remove('hoja-abierta')   // por si se navegó con la hoja de filtros abierta
@@ -3887,6 +4072,9 @@
       if (window.registrarEvento) window.registrarEvento('perfil', id)
       const a = porId.get(id)
       document.title = a ? `${a.n} · ${TITULO}` : TITULO
+    } else if (h.indexOf('#/comparar') === 0) {
+      renderComparar(decodeURIComponent(h.slice(11)).split(','))
+      document.title = `Comparar investigadores · ${TITULO}`
     } else if (h === '#/publicaciones') {
       renderPublicaciones()
       document.title = `Publicaciones · ${TITULO}`
