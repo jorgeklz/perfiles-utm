@@ -3631,34 +3631,38 @@
       <div class="perfil-hero" style="border-left-color:var(--g3)">
         <div style="flex:1"><h1>Publicaciones</h1>
           <div class="sub">Todas las publicaciones UTM indexadas en Scopus. Busque por título, DOI, revista o autor.</div></div></div>
-      <div class="controles">
-        <div class="buscador">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="qPub" type="search" aria-label="Buscar publicaciones" placeholder="Título, DOI, revista o autor…" autocomplete="off" />
+      <div class="panel" id="listaPubBox">
+        <h2 class="dir-tit">Catálogo de publicaciones</h2>
+        <div class="ayuda-filtros">Filtre por año, cuartil SJR o acceso abierto, ordene por fecha o citas y use los botones de exportación en cada registro.</div>
+        <div class="controles">
+          <div class="buscador">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="qPub" type="search" aria-label="Buscar publicaciones" placeholder="Título, DOI, revista o autor…" autocomplete="off" />
+          </div>
+          <button type="button" class="btn-filtros" id="btnFiltrosPub" aria-expanded="false" aria-controls="hojaFiltrosPub">${ico('filtro')}<span>Filtros</span><b class="btn-filtros-n" hidden></b></button>
+          <div class="hoja-vel" id="hojaVelPub"></div>
+          <div class="hoja-filtros" id="hojaFiltrosPub" role="dialog" aria-label="Filtros de publicaciones">
+            <div class="hoja-cab"><span>Filtros de publicaciones</span><button type="button" class="hoja-x" data-cerrar-hoja aria-label="Cerrar filtros">×</button></div>
+            <select class="selector" id="anioPub" aria-label="Filtrar por año">
+              <option value="">Año: Todos</option>${anios.map(y => `<option value="${y}">${y}</option>`).join('')}
+            </select>
+            <select class="selector" id="cuartilPub" aria-label="Filtrar por cuartil de la revista">
+              <option value="">Cuartil: Todos</option>
+              ${['Q1', 'Q2', 'Q3', 'Q4', 'N/A'].map(q => `<option value="${q}">${q === 'N/A' ? 'Sin cuartil' : q}</option>`).join('')}
+            </select>
+            <select class="selector" id="ordenPub" aria-label="Ordenar publicaciones">
+              <option value="recientes">Ordenar: Más recientes</option>
+              <option value="citadas">Ordenar: Más citadas</option>
+            </select>
+            <button type="button" class="btn-filtro-vig" id="btnOaPub" aria-pressed="false" title="Mostrar solo publicaciones de acceso abierto"><span>Solo acceso abierto</span></button>
+            <div class="hoja-pie"><button type="button" class="hoja-aplicar" data-cerrar-hoja></button></div>
+          </div>
+          <div class="conteo" id="conteoPub"></div>
         </div>
-        <button type="button" class="btn-filtros" id="btnFiltrosPub" aria-expanded="false" aria-controls="hojaFiltrosPub">${ico('filtro')}<span>Filtros</span><b class="btn-filtros-n" hidden></b></button>
-        <div class="hoja-vel" id="hojaVelPub"></div>
-        <div class="hoja-filtros" id="hojaFiltrosPub" role="dialog" aria-label="Filtros de publicaciones">
-          <div class="hoja-cab"><span>Filtros de publicaciones</span><button type="button" class="hoja-x" data-cerrar-hoja aria-label="Cerrar filtros">×</button></div>
-          <select class="selector" id="anioPub" aria-label="Filtrar por año">
-            <option value="">Año: Todos</option>${anios.map(y => `<option value="${y}">${y}</option>`).join('')}
-          </select>
-          <select class="selector" id="cuartilPub" aria-label="Filtrar por cuartil de la revista">
-            <option value="">Cuartil: Todos</option>
-            ${['Q1', 'Q2', 'Q3', 'Q4', 'N/A'].map(q => `<option value="${q}">${q === 'N/A' ? 'Sin cuartil' : q}</option>`).join('')}
-          </select>
-          <select class="selector" id="ordenPub" aria-label="Ordenar publicaciones">
-            <option value="recientes">Ordenar: Más recientes</option>
-            <option value="citadas">Ordenar: Más citadas</option>
-          </select>
-          <button type="button" class="btn-filtro-vig" id="btnOaPub" aria-pressed="false" title="Mostrar solo publicaciones de acceso abierto"><span>Solo acceso abierto</span></button>
-          <div class="hoja-pie"><button type="button" class="hoja-aplicar" data-cerrar-hoja></button></div>
-        </div>
-        <div class="conteo" id="conteoPub"></div>
+        <div class="paginacion" id="pagPubTop"></div>
+        <div id="listaPub"></div>
+        <div class="paginacion" id="pagPub"></div>
       </div>
-      <div class="paginacion" id="pagPubTop"></div>
-      <div class="panel" id="listaPubBox"><div id="listaPub"></div></div>
-      <div class="paginacion" id="pagPub"></div>
     </div>
     ${TOP_PAGE_HTML}`
     const qI = document.getElementById('qPub'), anioS = document.getElementById('anioPub'), cuS = document.getElementById('cuartilPub')
