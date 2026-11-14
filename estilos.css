@@ -1125,11 +1125,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .cmp-et { text-align: center; font-size: var(--fs-xs); font-weight: 600; color: var(--texto2); }
 .cmp-emp { font-size: var(--fs-xs); color: #3c4a6b; background: #e4e9f4; border-radius: 10px; padding: 1px 9px; }
 .cmp-cap.emp { border-style: dashed; border-color: #8a98b8; color: #3c4a6b; }
-.cmp-dual { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; height: 10px; }
-.cmp-mitad { background: var(--sup2); border-radius: 6px; overflow: hidden; display: flex; }
-.cmp-mitad i { display: block; height: 100%; background: var(--cb); border-radius: 6px; }
-.cmp-izq { justify-content: flex-end; }
-.cmp-izq i { background: var(--ca); }
 .cmp-leyenda { display: flex; gap: 22px; flex-wrap: wrap; font-weight: 700; font-size: var(--fs-xs); margin: 2px 0 14px; }
 .cmp-leyenda .cmp-a { color: var(--ca); } .cmp-leyenda .cmp-b { color: var(--cb-t); }
 .cmp-leyenda span::before { content: ''; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; background: currentColor; }
