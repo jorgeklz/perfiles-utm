@@ -162,7 +162,12 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
 .sel-ico .ic-svg { position: absolute; left: 11px; z-index: 1; width: 15px; height: 15px; color: var(--texto3); pointer-events: none; transition: color .15s; }
 .sel-ico:hover .ic-svg, .sel-ico:focus-within .ic-svg { color: var(--g1); }
 .sel-ico .selector { padding-left: 32px; width: 100%; }
-.conteo { width: 100%; font-size: var(--fs-sm); color: var(--texto3); margin-top: 2px; }
+.conteo { width: 100%; font-size: var(--fs-sm); color: var(--texto3); margin-top: 2px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-limpiar { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px;
+  border: 1px solid #d5c799; background: #fff9e6; color: #7a5600; font-family: inherit;
+  font-size: var(--fs-2xs); font-weight: 700; cursor: pointer; transition: background .14s, border-color .14s; }
+.btn-limpiar:hover { background: #fdf0c4; border-color: #b8942a; }
+.btn-limpiar[hidden] { display: none; }
 
 /* alfabeto */
 .alfabeto { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; }
@@ -571,13 +576,14 @@ h1, h2, h3 { font-family: 'Montserrat', sans-serif; }
   html, body { background: #fff !important; }
   .topbar { position: static !important; background: #fff !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   .topbar-acciones, .hero, .volver, .acciones, .enlaces, .ayuda-filtros, .paginacion, .pp-ctrl, .ctx-hint,
-  .busq-global, .controles, .alfabeto, .periodo-bar, .pub-controles, .pub-filtros, .btn-citar, .pub-exp-wrap, .graf-pie-ctrl, .ir-arriba, .top-page, .com-zoom { display: none !important; }
+  .busq-global, .controles, .alfabeto, .periodo-bar, .pub-controles, .pub-filtros, .btn-citar, .pub-exp-wrap, .graf-pie-ctrl, .ir-arriba, .top-page, .com-zoom,
+  .cmp-cambiar, .cmp-swap, .btn-limpiar { display: none !important; }
   .wrap { max-width: none; padding: 0; }
   .grid2 { display: block; }
   .grid2 > .panel { margin-bottom: 14px; }
   .panel { box-shadow: none; margin-bottom: 14px; }
   .panel h2, .panel h3, .subtitulo-panel { break-after: avoid; page-break-after: avoid; }
-  .donut-fila, .com-wrap, .kpi, .pub, .revista-fila, .coautor, .ce-inst, .area-fila, .perfil-hero { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
+  .donut-fila, .com-wrap, .kpi, .pub, .revista-fila, .coautor, .ce-inst, .area-fila, .perfil-hero, .cmp-panel, .cmp-fila { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
   .com-wrap canvas { object-fit: contain; margin: 0 auto; }
   a { color: inherit; text-decoration: none; }
   .pie-print-ficha { display: block !important; margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--borde);

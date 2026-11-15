@@ -144,7 +144,6 @@
     g: '<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4l3 2"/>',
     m: '<path d="M3 20V10"/><path d="M9 20V4"/><path d="M15 20v-8"/><path d="M21 20V7"/>',
     fecha: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
-    historial: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><polyline points="12 7 12 12 15 15"/>',
     scopus: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
     orcid: '<circle cx="12" cy="12" r="10"/><line x1="8.8" y1="10.2" x2="8.8" y2="16"/><circle cx="8.8" cy="7.5" r="0.6" fill="currentColor"/><path d="M12 10.2h2.1a2.9 2.9 0 0 1 0 5.8H12z"/>',
     scholar: '<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12.5V17c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.5"/><line x1="22" y1="10" x2="22" y2="16"/>',
@@ -153,25 +152,19 @@
     inst: '<polygon points="12 2 2 7 22 7 12 2"/><line x1="6" y1="7" x2="6" y2="17"/><line x1="10" y1="7" x2="10" y2="17"/><line x1="14" y1="7" x2="14" y2="17"/><line x1="18" y1="7" x2="18" y2="17"/><line x1="2" y1="21" x2="22" y2="21"/><line x1="4" y1="17" x2="20" y2="17"/>',
     globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
     cuartil: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/>',
-    qTag: '<path d="M12 2l3 6 6 .9-4.3 4.2 1 6-5.7-3-5.7 3 1-6L3 8.9 9 8z"/>',
     oa: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
     primerAutor: '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>',
     csv: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
     bibtex: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="10 13 8 15 10 17"/><polyline points="14 13 16 15 14 17"/>',
     tema: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
     filtro: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
-    copiar: '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
     enlace: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     alerta: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-    check: '<polyline points="20 6 9 17 4 12"/>',
-    cerrar: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
-    mas: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
     rol: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
     trayectoria: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     calidad: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>',
     reciente: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
     ritmo: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
-    descarga: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
     calendario: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
     recientes: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>',
     fuente: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
@@ -908,7 +901,19 @@
     if (estado.pagina > paginas) estado.pagina = paginas
     const ini = (estado.pagina - 1) * POR_PAGINA
     const vis = arr.slice(ini, ini + POR_PAGINA)
-    refConteo.textContent = num(total) + ' investigadores'
+    const hayFiltrosDir = !!(estado.q.trim() || estado.area || estado.soloVig || estado.letra)
+    refConteo.innerHTML = `<span>${num(total)} ${total === 1 ? 'investigador' : 'investigadores'}</span>`
+      + (hayFiltrosDir ? '<button type="button" class="btn-limpiar" id="btnLimpiarDir">Limpiar filtros</button>' : '')
+    const btnLimDir = document.getElementById('btnLimpiarDir')
+    if (btnLimDir) btnLimDir.addEventListener('click', () => {
+      estado.q = ''; estado.area = ''; estado.soloVig = false; estado.letra = ''; estado.pagina = 1
+      const qEl = document.getElementById('q'); if (qEl) qEl.value = ''
+      const areaEl = document.getElementById('areaDir')
+      if (areaEl) { areaEl.value = ''; areaEl.parentElement.classList.remove('on') }
+      const vigEl = document.getElementById('btnVigente')
+      if (vigEl) { vigEl.classList.remove('on'); vigEl.setAttribute('aria-pressed', 'false') }
+      marcarLetra(); pintar(); verDirectorio(false)
+    })
     refGrid.innerHTML = vis.length ? vis.map(cardInv).join('')
       : '<div class="vacio">Sin coincidencias.</div>'
     // Misma paginación y "Página X de Y" arriba y abajo de la lista.
@@ -2946,6 +2951,7 @@
           ${autorId ? `<button type="button" class="pub-fchip" data-pf="fa">${ico('primerAutor')}<span>Primer autor</span></button>` : ''}
           <button type="button" class="pub-fchip" data-pf="cit">${ico('citas')}<span>Con citas</span></button>
           <span id="pubCtxWrap" class="pub-ctx-wrap"></span>
+          <button type="button" class="btn-limpiar" id="btnLimpiarPubs" hidden>Limpiar filtros</button>
         </div>
       </div>
       ${autorId ? `<div class="ctx-hint pub-hint">Haga clic en un año, revista, coautor, país, área o tema del perfil y elija «Filtrar»; con Ctrl o ⌘ + clic se filtra al instante. Los filtros se combinan y quedan guardados en el enlace.</div>` : ''}
@@ -3013,19 +3019,25 @@
       if (pagina > paginas) pagina = paginas
       const ini = (pagina - 1) * pp
       const vis = porPag === 0 ? ordenada : ordenada.slice(ini, ini + pp)
+      const hayFiltros = qSel.size > 0 || chips.size > 0 || ctxFiltros.length > 0 || qTxt.trim().length > 0
+      const limpiarPubFiltros = () => {
+        qSel.clear(); chips.clear(); ctxFiltros = []; qTxt = ''
+        if (inpQ) inpQ.value = ''
+        document.querySelectorAll('.pub-qchip[data-q]').forEach(x => x.classList.toggle('on', x.dataset.q === 'todos'))
+        document.querySelectorAll('.pub-fchip[data-pf]').forEach(x => x.classList.remove('on'))
+        pagina = 1; filtrarOrdenar(); pinta()
+      }
+      const btnLimTop = document.getElementById('btnLimpiarPubs')
+      if (btnLimTop) {
+        btnLimTop.hidden = !hayFiltros
+        btnLimTop.onclick = limpiarPubFiltros
+      }
       if (vis.length) {
         cont.innerHTML = vis.map(rowFn).join('')
       } else {
-        const hayFiltros = qSel.size > 0 || chips.size > 0 || ctxFiltros.length > 0 || qTxt.trim().length > 0
         cont.innerHTML = `<div class="vacio">Sin publicaciones que coincidan con los filtros activos.${hayFiltros ? ' <button type="button" class="btn-exp" id="btnLimpiarPubFiltros" style="margin-left:8px">Limpiar filtros</button>' : ''}</div>`
         const btnLim = document.getElementById('btnLimpiarPubFiltros')
-        if (btnLim) btnLim.addEventListener('click', () => {
-          qSel.clear(); chips.clear(); ctxFiltros = []; qTxt = ''
-          if (inpQ) inpQ.value = ''
-          document.querySelectorAll('.pub-qchip[data-q]').forEach(x => x.classList.toggle('on', x.dataset.q === 'todos'))
-          document.querySelectorAll('.pub-fchip[data-pf]').forEach(x => x.classList.remove('on'))
-          pagina = 1; filtrarOrdenar(); pinta()
-        })
+        if (btnLim) btnLim.addEventListener('click', limpiarPubFiltros)
       }
       pager.innerHTML = paginacionHTML(pagina, paginas)
       pager.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => {
@@ -3706,7 +3718,15 @@
       const paginas = Math.max(1, Math.ceil(arr.length / PUB_POR_PAGINA))
       if (estadoPub.pagina > paginas) estadoPub.pagina = paginas
       const ini = (estadoPub.pagina - 1) * PUB_POR_PAGINA
-      document.getElementById('conteoPub').textContent = num(arr.length) + (arr.length === 1 ? ' publicación' : ' publicaciones')
+      const conteoEl = document.getElementById('conteoPub')
+      const hayFiltrosPub = !!(estadoPub.q.trim() || estadoPub.anio || estadoPub.cuartil || estadoPub.oa)
+      conteoEl.innerHTML = `<span>${num(arr.length)} ${arr.length === 1 ? 'publicación' : 'publicaciones'}</span>`
+        + (hayFiltrosPub ? '<button type="button" class="btn-limpiar" id="btnLimpiarCat">Limpiar filtros</button>' : '')
+      const btnLimCat = document.getElementById('btnLimpiarCat')
+      if (btnLimCat) btnLimCat.addEventListener('click', () => {
+        estadoPub.q = ''; estadoPub.anio = ''; estadoPub.cuartil = ''; estadoPub.oa = false; estadoPub.pagina = 1
+        qI.value = ''; anioS.value = ''; cuS.value = ''; marcaOa(); pintarPubs(false)
+      })
       document.getElementById('listaPub').innerHTML = arr.length
         ? arr.slice(ini, ini + PUB_POR_PAGINA).map(p => pubRow(p)).join('')
         : '<div class="vacio">Sin coincidencias. Pruebe con menos palabras o quite algún filtro.</div>'
@@ -3931,7 +3951,7 @@
     const intro = `${migasCmp()}<div class="panel cmp-intro">
       <h1>Comparar investigadores</h1>
       <p>Dos perfiles frente a frente con sus indicadores en Scopus. Puede recalcularlos por periodo más abajo. Las cifras no son comparables entre disciplinas con hábitos de publicación muy distintos.</p></div>`
-    const ladoVacio = (cual, otro) => `<div class="cmp-lado cmp-${cual} cmp-vacio"><div class="cmp-rol">${cual === 'a' ? 'Investigador 1' : 'Investigador 2'}</div>
+    const ladoVacio = cual => `<div class="cmp-lado cmp-${cual} cmp-vacio"><div class="cmp-rol">${cual === 'a' ? 'Investigador 1' : 'Investigador 2'}</div>
       <label for="cmpQ-${cual}" class="cmp-pide">Elige ${cual === 'a' ? 'al primer' : 'al segundo'} investigador</label>
       <input id="cmpQ-${cual}" type="search" autocomplete="off" placeholder="Escribe un nombre o apellido…" class="cmp-q">
       <div class="cmp-sug" id="cmpSug-${cual}"></div></div>`
@@ -3945,7 +3965,8 @@
     if (!slots[0] || !slots[1]) {
       const R = slots.map(x => (x ? resumenComparar(x, per) : null))
       app.innerHTML = `<div class="wrap cmp-pag">${intro}
-        <div class="cmp-vs">${R[0] ? ladoLleno(R[0], 'a') : ladoVacio('a')}<div class="cmp-vsb" aria-hidden="true"><span>VS</span></div>${R[1] ? ladoLleno(R[1], 'b') : ladoVacio('b')}</div></div>`
+        <div class="cmp-vs">${R[0] ? ladoLleno(R[0], 'a') : ladoVacio('a')}<div class="cmp-vsb" aria-hidden="true"><span>VS</span></div>${R[1] ? ladoLleno(R[1], 'b') : ladoVacio('b')}</div></div>
+      ${TOP_PAGE_HTML}`
       // Cada lado vacío tiene su propio buscador; el otro lado (si ya está elegido) se excluye de las sugerencias.
       ;[0, 1].filter(i => !slots[i]).forEach(i => {
         const q = document.getElementById('cmpQ-' + (i ? 'b' : 'a')), caja = document.getElementById('cmpSug-' + (i ? 'b' : 'a'))
@@ -4008,7 +4029,6 @@
       // Se compara con el mismo redondeo que se muestra, para que dos cifras iguales en pantalla den empate.
       const rd = v => (clave === 'CP' || clave === 'm') ? Math.round(v * 100) / 100 : v
       const va = rd(Number(g(A)) || 0), vb = rd(Number(g(B)) || 0)
-      const m = Math.max(va, vb, 1e-9)
       if (va > vb) gA++; else if (vb > va) gB++
       const celda = (v, cual, gana) => `<div class="cmp-cel cmp-${cual}"><button type="button" class="cmp-cap cmp-pop${gana ? ' gana' : ''}${va === vb ? ' emp' : ''}" data-ind="${clave}" data-lado="${cual}" title="Ver las publicaciones de ${esc(corto((cual === 'a' ? A : B).a.n))} detrás de este valor">${gana && cual === 'b' ? '<span class="cmp-ok" aria-hidden="true">✓</span>' : ''}${f(v)}${gana && cual === 'a' ? '<span class="cmp-ok" aria-hidden="true">✓</span>' : ''}${gana ? '<span class="cmp-vh"> (es mayor)</span>' : ''}</button></div>`
       const medio = `<span class="cmp-et"${AY[clave] ? ` title="${esc(AY[clave])}"` : ''}>${n}</span>${va === vb ? '<span class="cmp-emp">Empate</span>' : ''}`
@@ -4035,9 +4055,9 @@
         <div class="periodo-bar filtro-zona" role="group" aria-label="Ventana temporal de la comparación">
           <span class="filtro-lbl">Filtrar:</span>
           <div class="top-tabs">
-            <button type="button" class="top-tab cmp-per${per === 'todo' ? ' on' : ''}" data-per="todo" aria-pressed="${per === 'todo'}">${ico('filtro')}<span>Todo el historial (${A.todas.length} · ${B.todas.length})</span></button>
-            <button type="button" class="top-tab cmp-per${per === '5a' ? ' on' : ''}" data-per="5a" aria-pressed="${per === '5a'}">${ico('calendario')}<span>Últimos 5 años · ${ANIO_ACTUAL - 4} a ${ANIO_ACTUAL} (${enVentana(A.todas, '5a').length} · ${enVentana(B.todas, '5a').length})</span></button>
-            <button type="button" class="top-tab cmp-per${per === 'actual' ? ' on' : ''}" data-per="actual" aria-pressed="${per === 'actual'}">${ico('reciente')}<span>Año ${ANIO_ACTUAL} (${enVentana(A.todas, 'actual').length} · ${enVentana(B.todas, 'actual').length})</span></button>
+            <button type="button" class="top-tab per-tab cmp-per${per === 'todo' ? ' on' : ''}" data-per="todo" aria-pressed="${per === 'todo'}">${ico('filtro')}<span>Todo el historial (${A.todas.length} · ${B.todas.length})</span></button>
+            <button type="button" class="top-tab per-tab cmp-per${per === '5a' ? ' on' : ''}" data-per="5a" aria-pressed="${per === '5a'}">${ico('calendario')}<span>Últimos 5 años · ${ANIO_ACTUAL - 4} a ${ANIO_ACTUAL} (${enVentana(A.todas, '5a').length} · ${enVentana(B.todas, '5a').length})</span></button>
+            <button type="button" class="top-tab per-tab cmp-per${per === 'actual' ? ' on' : ''}" data-per="actual" aria-pressed="${per === 'actual'}">${ico('reciente')}<span>Año ${ANIO_ACTUAL} (${enVentana(A.todas, 'actual').length} · ${enVentana(B.todas, 'actual').length})</span></button>
           </div>
         </div>
         <div class="ctx-hint">Entre paréntesis, publicaciones de cada investigador en ese periodo: ${esc(A.a.n.split(',')[0])} · ${esc(B.a.n.split(',')[0])}.</div></div>
@@ -4055,7 +4075,8 @@
           <div class="pubs">${juntas.slice(0, 15).map(p => pubRow(p)).join('')}</div>
           ${juntas.length > 15 ? `<div class="ctx-hint">Se muestran 15 de ${juntas.length}.</div>` : ''}`
           : '<div class="ayuda-filtros">No tienen publicaciones en conjunto en Scopus.</div>'}</div>
-    </div>`
+    </div>
+    ${TOP_PAGE_HTML}`
     const COL = { a: '#185a10', b: '#b5800e' }
     app.querySelectorAll('.cmp-pop').forEach(bt => bt.addEventListener('click', ev => {
       const r = bt.dataset.lado === 'a' ? A : B
@@ -4351,6 +4372,17 @@
   }
   document.addEventListener('click', ev => { if (!ev.target.closest('.exp-drop')) cerrarMenusExport() })
   document.addEventListener('keydown', ev => {
+    const esInput = el => el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable)
+    if ((ev.key === 'k' && (ev.metaKey || ev.ctrlKey)) || (ev.key === '/' && !ev.metaKey && !ev.ctrlKey && !ev.altKey && !esInput(document.activeElement))) {
+      const qh = document.getElementById('qHero')
+      if (qh) {
+        ev.preventDefault()
+        qh.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        qh.focus()
+        qh.select()
+      }
+      return
+    }
     if (ev.key !== 'Escape') return
     const m = document.getElementById('expMenu')
     const b = document.getElementById('btnExpMenu')
