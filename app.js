@@ -3179,6 +3179,14 @@
     const fg = { Q1: '#1e6b14', Q2: '#366b10', Q3: '#9a5a08', Q4: '#9e2f25', 'N/A': '#5a5549', NC: '#5c584e' }[q] || '#4a5542'
     return `<span class="insig-q" style="background:${c}24;color:${fg};border:1px solid ${c}44;cursor:help" title="${esc(tipCuartil(q))}">${esc(q)}</span>`
   }
+  function badgeSjr(v) {
+    if (v == null) return ''
+    const [c, fg] = v >= 1.5 ? ['#1e6b14', '#1e6b14']
+      : v >= 0.7 ? ['#7bbf3a', '#366b10']
+      : v >= 0.3 ? ['#e0902d', '#9a5a08']
+      : ['#a8a394', '#5a5549']
+    return `<span class="insig-sjr" style="background:${c}24;color:${fg};border:1px solid ${c}44" title="Índice SCImago Journal Rank (SJR): ${dec(v, 3)}"><em>SJR</em>${dec(v, 3)}</span>`
+  }
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
   // Mapa de coautores en móvil: más alto y desplazable; se centra en América al aparecer.
   if (typeof MutationObserver !== 'undefined') new MutationObserver(() => {
@@ -3683,6 +3691,7 @@
       ;(p.u || []).forEach(u => { const s = String(u); if (porId.has(s)) f.auts.add(s) })
       ;(p.a || []).forEach(a => f.areas.set(a, (f.areas.get(a) || 0) + 1))
     })
+    const sjrMap = D.sjrFuentes || {}
     CACHE_FUENTES = [...m.values()].map(f => ({
       nombre: f.nombre,
       pubs: f.pubs.sort((x, y) => (y.y || 0) - (x.y || 0) || (y.c || 0) - (x.c || 0)),
@@ -3691,6 +3700,7 @@
       oa: f.oa,
       pctOa: Math.round(100 * f.oa / (f.pubs.length || 1)),
       q: f.q,
+      sjr: sjrMap[f.nombre] ?? null,
       uAnio: f.uAnio,
       nAut: f.auts.size,
       areas: [...f.areas.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0]),
@@ -3718,11 +3728,12 @@
             <input id="qFuente" type="search" aria-label="Buscar fuentes de publicación" placeholder="Nombre de revista, conferencia o área…" autocomplete="off" />
           </div>
           <span class="sel-ico">${ico('orden')}<select class="selector" id="ordFuente" aria-label="Ordenar fuentes">
+            <option value="nombre">Ordenar: Nombre (A-Z)</option>
             <option value="pubs">Ordenar: Más publicaciones</option>
             <option value="citadas">Ordenar: Más citadas</option>
-            <option value="cuartil">Ordenar: Cuartil SJR (Q1 a Q4)</option>
             <option value="recientes">Ordenar: Más recientes</option>
-            <option value="nombre">Ordenar: Nombre (A-Z)</option>
+            <option value="sjr">Ordenar: Mayor SJR (impacto)</option>
+            <option value="cuartil">Ordenar: Cuartil SJR (Q1 a Q4)</option>
           </select></span>
         </div>
         <div class="pub-filtros filtro-zona">
@@ -3756,7 +3767,8 @@
       })
       const prioQ = { Q1: 1, Q2: 2, Q3: 3, Q4: 4, 'N/A': 5, NC: 6 }
       if (estadoFuente.orden === 'citadas') arr.sort((a, b) => b.C - a.C || b.P - a.P)
-      else if (estadoFuente.orden === 'cuartil') arr.sort((a, b) => (prioQ[a.q] || 9) - (prioQ[b.q] || 9) || b.C - a.C || b.P - a.P)
+      else if (estadoFuente.orden === 'sjr') arr.sort((a, b) => (b.sjr ?? -1) - (a.sjr ?? -1) || b.C - a.C || b.P - a.P)
+      else if (estadoFuente.orden === 'cuartil') arr.sort((a, b) => (prioQ[a.q] || 9) - (prioQ[b.q] || 9) || (b.sjr ?? -1) - (a.sjr ?? -1) || b.C - a.C)
       else if (estadoFuente.orden === 'recientes') arr.sort((a, b) => b.uAnio - a.uAnio || b.P - a.P)
       else if (estadoFuente.orden === 'nombre') arr.sort((a, b) => a.nombre.localeCompare(b.nombre))
       else arr.sort((a, b) => b.P - a.P || b.C - a.C)
@@ -3777,7 +3789,7 @@
       const vis = arr.slice(ini, ini + POR_PAG)
       document.getElementById('listaFuentes').innerHTML = vis.length
         ? vis.map(f => `<div class="fuente-card">
-            <div class="fuente-cab"><a class="fuente-nom" href="#/fuente/${encodeURIComponent(f.nombre)}" title="Abrir página completa de ${esc(fmtFuente(f.nombre))}">${esc(fmtFuente(f.nombre))}</a>${badgeQ(f.q)}</div>
+            <div class="fuente-cab"><a class="fuente-nom" href="#/fuente/${encodeURIComponent(f.nombre)}" title="Abrir página completa de ${esc(fmtFuente(f.nombre))}">${esc(fmtFuente(f.nombre))}</a><span class="fuente-badges">${badgeSjr(f.sjr)}${badgeQ(f.q)}</span></div>
             <div class="fuente-meta">
               <button type="button" class="fuente-ind" data-fpop="pubs" data-fnom="${esc(f.nombre)}" title="Ver las ${num(f.P)} publicaciones en esta fuente"><b>${num(f.P)}</b> pub.</button>
               <button type="button" class="fuente-ind" data-fpop="citas" data-fnom="${esc(f.nombre)}" title="Ver publicaciones citadas de esta fuente"><b>${num(f.C)}</b> citas</button>
@@ -3860,7 +3872,7 @@
       ${migasFuente}
       <div class="perfil-hero" style="border-left-color:var(--g3)">
         <div style="flex:1"><h1>${esc(fmtFuente(nombre))}</h1>
-          <div class="sub">Cuartil ${esc(q)} · ${num(lista.length)} publicaciones UTM · ${num(citasTot)} citas · ${num(autFuente.length)} investigadores UTM · ${pctOa}% acceso abierto</div></div></div>
+          <div class="sub">Cuartil ${esc(q)}${info && info.sjr != null ? ` · SJR ${dec(info.sjr, 3)}` : ''} · ${num(lista.length)} publicaciones UTM · ${num(citasTot)} citas · ${num(autFuente.length)} investigadores UTM · ${pctOa}% acceso abierto</div></div></div>
       ${autFuente.length ? `<div class="panel" style="margin-bottom:18px">
         <h2 class="dir-tit">Investigadores UTM en esta fuente (${num(autFuente.length)})</h2>
         <div class="ayuda-filtros">Autores con filiación UTM que han publicado en esta fuente. Haga clic en «pub. en la fuente» para filtrar el listado inferior por investigador.</div>
