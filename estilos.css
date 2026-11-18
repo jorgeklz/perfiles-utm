@@ -4684,27 +4684,22 @@ select:focus-visible,
 }
 
 .fuentes-lista {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 12px;
-  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
 }
 
 .fuente-card {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--borde);
-  background: var(--sup);
+  gap: 6px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--borde);
   color: inherit;
-  transition: border-color .15s, box-shadow .15s;
 }
 
-.fuente-card:hover {
-  border-color: var(--g3);
-  box-shadow: var(--sombra);
+.fuente-card:last-child {
+  border-bottom: none;
 }
 
 .fuente-cab {
