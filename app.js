@@ -17,6 +17,22 @@
     : (k === 'apu' || k === 'cc') ? dec(v, 1) : num(v)
   const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  const CONEC_FUENTE = new Set(['de', 'del', 'la', 'las', 'lo', 'los', 'el', 'y', 'e', 'o', 'u', 'a', 'al', 'en', 'con', 'sin', 'por', 'para', 'da', 'das', 'do', 'dos', 'em', 'na', 'nas', 'no', 'nos', 'et', 'du', 'des', 'le', 'les', 'of', 'and', 'the', 'in', 'for', 'on', 'to', 'at', 'by', 'with', 'from', 'as', 'an', 'or', 'into'])
+  function fmtFuente(s) {
+    const t = String(s || '')
+    if (!t || !/[a-z]/.test(t)) return t
+    const partes = t.split(/(\s+)/)
+    let vista = 0
+    return partes.map((p, idx) => {
+      if (!p || /^\s+$/.test(p)) return p
+      const esPrimera = vista === 0
+      const esUltima = idx >= partes.length - 1
+      vista++
+      const low = p.toLowerCase()
+      if (!esPrimera && !esUltima && CONEC_FUENTE.has(low) && /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+$/.test(p)) return low
+      return p
+    }).join('')
+  }
 
   const COLQ = { Q1: '#1e6b14', Q2: '#7bbf3a', Q3: '#e0902d', Q4: '#b23b30', 'N/A': '#a8a394', NC: '#c9c4b8' }
 
@@ -707,9 +723,9 @@
   function panoramaHTML() {
     const maxR = GI.topRev.length ? GI.topRev[0][1] : 1
     const revHTML = GI.topRev.map(([n, c]) =>
-      `<div class="tipo-fila" data-cat="revista" data-val="${esc(n)}" style="cursor:pointer" title="Ver publicaciones de ${esc(n)}"><span class="tn">${esc(n)}</span>
+      `<div class="tipo-fila" data-cat="revista" data-val="${esc(n)}" style="cursor:pointer" title="Ver publicaciones de ${esc(fmtFuente(n))}"><span class="tn">${esc(fmtFuente(n))}</span>
         <span class="tb"><div style="width:${Math.max(3, Math.round(100 * c / maxR))}%"></div></span>
-        <span class="tv">${c} <a href="#/fuente/${encodeURIComponent(n)}" onclick="event.stopPropagation()" title="Abrir página de la fuente ${esc(n)}" style="margin-left:4px;font-weight:700">↗</a></span></div>`).join('')
+        <span class="tv">${c} <a href="#/fuente/${encodeURIComponent(n)}" onclick="event.stopPropagation()" title="Abrir página de la fuente ${esc(fmtFuente(n))}" style="margin-left:4px;font-weight:700">↗</a></span></div>`).join('')
     const topAr8 = GI.topAreas.slice(0, 15)
     const maxA = topAr8.length ? topAr8[0][1] : 1
     const areaHTML = topAr8.map(([n, c]) =>
@@ -2533,7 +2549,7 @@
       ? ` · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>`
       : ''
     return `<div class="ctx-row"><div class="ctx-row-main"><div class="ctx-t">${t}</div>
-      <div class="ctx-m">${p.y || ''} · ${adelM(p)}${esc(p.j || 'N/D')} · ${badgeQ(p.q)}${retirada}</div></div><span class="ctx-cit-pill">${num(p.c)} citas</span></div>`
+      <div class="ctx-m">${p.y || ''} · ${adelM(p)}${esc(fmtFuente(p.j) || 'N/D')} · ${badgeQ(p.q)}${retirada}</div></div><span class="ctx-cit-pill">${num(p.c)} citas</span></div>`
   }
   // popover flotante contextual (junto al cursor)
   let popEl = null
@@ -3297,7 +3313,7 @@
     const btnCit = btnCitarHTML(PUB_IDX.get(p))
     return `<div class="pub"><div class="anio"><b>${p.y || 'N/D'}</b></div>
       <div class="cuerpo"><div class="t">${t}${dest ? ' <span class="mas-citada">★ Más citada</span>' : ''}</div>
-      <div class="m">${adelM(p)}${esc(p.j || 'N/D')} · ${badgeQ(p.q)} · ${citasMetaHTML(p, cpaRef)}${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${btnCit}</div>${autoresLinea(p)}</div></div>`
+      <div class="m">${adelM(p)}${esc(fmtFuente(p.j) || 'N/D')} · ${badgeQ(p.q)} · ${citasMetaHTML(p, cpaRef)}${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${btnCit}</div>${autoresLinea(p)}</div></div>`
   }
 
   // ---------- coautoría externa, temas y exportaciones del perfil ----------
@@ -3603,7 +3619,7 @@
     const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
     const btnCit = btnCitarHTML(PUB_IDX.get(p))
     return `<div class="pub"><div class="anio"><b>${p.y || 'N/D'}</b></div><div class="cuerpo"><div class="t">${t}</div>
-      <div class="m">${adelM(p)}${esc(p.j || 'N/D')} · ${badgeQ(p.q)} · ${citasMetaHTML(p, 0)}${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${aut}${btnCit}</div></div></div>`
+      <div class="m">${adelM(p)}${esc(fmtFuente(p.j) || 'N/D')} · ${badgeQ(p.q)} · ${citasMetaHTML(p, 0)}${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${aut}${btnCit}</div></div></div>`
   }
 
   function renderArea(area) {
@@ -3761,7 +3777,7 @@
       const vis = arr.slice(ini, ini + POR_PAG)
       document.getElementById('listaFuentes').innerHTML = vis.length
         ? vis.map(f => `<div class="fuente-card">
-            <div class="fuente-cab"><a class="fuente-nom" href="#/fuente/${encodeURIComponent(f.nombre)}" title="Abrir página completa de ${esc(f.nombre)}">${esc(f.nombre)}</a>${badgeQ(f.q)}</div>
+            <div class="fuente-cab"><a class="fuente-nom" href="#/fuente/${encodeURIComponent(f.nombre)}" title="Abrir página completa de ${esc(fmtFuente(f.nombre))}">${esc(fmtFuente(f.nombre))}</a>${badgeQ(f.q)}</div>
             <div class="fuente-meta">
               <button type="button" class="fuente-ind" data-fpop="pubs" data-fnom="${esc(f.nombre)}" title="Ver las ${num(f.P)} publicaciones en esta fuente"><b>${num(f.P)}</b> pub.</button>
               <button type="button" class="fuente-ind" data-fpop="citas" data-fnom="${esc(f.nombre)}" title="Ver publicaciones citadas de esta fuente"><b>${num(f.C)}</b> citas</button>
@@ -3794,26 +3810,27 @@
       const f = todas.find(x => x.nombre === bt.dataset.fnom)
       if (!f) return
       const tipo = bt.dataset.fpop
+      const fNom = fmtFuente(f.nombre)
       if (tipo === 'pubs') {
-        mostrarPopover(ev, f.nombre, f.pubs, '#185a10', null, null, { sub: 'Publicaciones en la fuente', valorHtml: esc(f.nombre) })
+        mostrarPopover(ev, fNom, f.pubs, '#185a10', null, null, { sub: 'Publicaciones en la fuente', valorHtml: esc(fNom) })
       } else if (tipo === 'citas') {
         const cit = f.pubs.filter(p => (p.c || 0) > 0).sort((a, b) => (b.c || 0) - (a.c || 0))
-        mostrarPopover(ev, f.nombre + ' · Citas', cit, '#185a10', null, null,
-          { sub: `${num(f.C)} citas en ${num(cit.length)} publicaciones citadas`, sinOrden: true, valorHtml: esc(f.nombre) })
+        mostrarPopover(ev, fNom + ' · Citas', cit, '#185a10', null, null,
+          { sub: `${num(f.C)} citas en ${num(cit.length)} publicaciones citadas`, sinOrden: true, valorHtml: esc(fNom) })
       } else if (tipo === 'aut') {
         const ct = {}
         f.pubs.forEach(p => (p.u || []).forEach(u => { const s = String(u); if (porId.has(s)) ct[s] = (ct[s] || 0) + 1 }))
         const auts = Object.entries(ct).map(([id, n]) => ({ id, nombre: porId.get(id).n, n })).sort((a, b) => b.n - a.n)
-        mostrarPopover(ev, f.nombre + ' · Investigadores UTM', f.pubs, '#185a10', null, auts,
-          { sub: `${num(f.nAut)} investigadores UTM en esta fuente`, valorHtml: esc(f.nombre), tabIni: 'utm' })
+        mostrarPopover(ev, fNom + ' · Investigadores UTM', f.pubs, '#185a10', null, auts,
+          { sub: `${num(f.nAut)} investigadores UTM en esta fuente`, valorHtml: esc(fNom), tabIni: 'utm' })
       } else if (tipo === 'oa') {
         const oa = f.pubs.filter(esAbierta)
-        mostrarPopover(ev, f.nombre + ' · Acceso abierto', oa, '#185a10', null, null,
-          { sub: `${num(oa.length)} publicaciones en acceso abierto (${f.pctOa}%)`, valorHtml: esc(f.nombre) })
+        mostrarPopover(ev, fNom + ' · Acceso abierto', oa, '#185a10', null, null,
+          { sub: `${num(oa.length)} publicaciones en acceso abierto (${f.pctOa}%)`, valorHtml: esc(fNom) })
       } else if (tipo === 'area') {
         const ar = bt.dataset.farea
         const sub = f.pubs.filter(p => (p.a || []).includes(ar))
-        mostrarPopover(ev, ar, sub, '#8a5a0c', null, null, { sub: `En ${f.nombre}`, valorHtml: esc(ar) })
+        mostrarPopover(ev, ar, sub, '#8a5a0c', null, null, { sub: `En ${fNom}`, valorHtml: esc(ar) })
       }
     })
     pintar(false)
@@ -3837,12 +3854,12 @@
     const citasTot = info ? info.C : lista.reduce((s, p) => s + (p.c || 0), 0)
     const pctOa = info ? info.pctOa : Math.round(100 * lista.filter(esAbierta).length / (lista.length || 1))
     const q = info ? info.q : (lista[0]?.q || 'N/A')
-    const migasFuente = `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span><a href="#/fuentes"><span>Fuentes</span></a><span class="mg-sep" aria-hidden="true">›</span><span class="mg-act" aria-current="page">${esc(nombre)}</span></nav>`
+    const migasFuente = `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span><a href="#/fuentes"><span>Fuentes</span></a><span class="mg-sep" aria-hidden="true">›</span><span class="mg-act" aria-current="page">${esc(fmtFuente(nombre))}</span></nav>`
 
     app.innerHTML = `<div class="wrap">
       ${migasFuente}
       <div class="perfil-hero" style="border-left-color:var(--g3)">
-        <div style="flex:1"><h1>${esc(nombre)}</h1>
+        <div style="flex:1"><h1>${esc(fmtFuente(nombre))}</h1>
           <div class="sub">Cuartil ${esc(q)} · ${num(lista.length)} publicaciones UTM · ${num(citasTot)} citas · ${num(autFuente.length)} investigadores UTM · ${pctOa}% acceso abierto</div></div></div>
       ${autFuente.length ? `<div class="panel" style="margin-bottom:18px">
         <h2 class="dir-tit">Investigadores UTM en esta fuente (${num(autFuente.length)})</h2>
@@ -4465,8 +4482,8 @@
       opts = { sub: 'Tipo de documento', valorHtml: esc(val) }
     }
     else if (cat === 'revista') {
-      lista = listaCat(fuente, cat, val); titulo = 'Fuente: ' + val
-      opts = { sub: 'Revista o conferencia', valorHtml: esc(val) }
+      lista = listaCat(fuente, cat, val); titulo = 'Fuente: ' + fmtFuente(val)
+      opts = { sub: 'Revista o conferencia', valorHtml: esc(fmtFuente(val)) }
     }
     else if (cat === 'area') {
       lista = listaCat(fuente, cat, val); titulo = 'Área: ' + val
