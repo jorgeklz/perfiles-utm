@@ -973,8 +973,27 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* ---------- panel de filtros en celular (hoja inferior) y enlace a Publicaciones ---------- */
 .btn-filtros, .hoja-cab, .hoja-pie, .hoja-vel { display: none; }
 .hoja-filtros { display: contents; }
+.hero-enlaces { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin: 4px 0 2px; }
 .hero-pubs { display: inline-block; margin: 4px 0 2px; font-size: var(--fs-sm); font-weight: 600; color: #fff; opacity: .95; }
+.hero-enlaces .hero-pubs { margin: 0; }
 .hero-pubs:hover { color: #e8c25a; text-decoration: none; }
+.fuentes-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; margin-top: 12px; }
+.fuente-card { display: flex; flex-direction: column; gap: 7px; padding: 14px 16px; border-radius: 12px;
+  border: 1px solid var(--borde); background: var(--sup); color: inherit;
+  transition: border-color .15s, box-shadow .15s; }
+.fuente-card:hover { border-color: var(--g3); box-shadow: var(--sombra); }
+.fuente-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.fuente-cab .insig-q { flex-shrink: 0; }
+.fuente-nom { font-size: var(--fs-md); font-weight: 700; color: var(--g1); line-height: 1.3; text-decoration: none; }
+.fuente-nom:hover { text-decoration: underline; }
+.fuente-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: var(--fs-xs); color: var(--texto2); }
+.fuente-meta b { color: var(--g1); }
+.fuente-ind { border: 1px solid transparent; background: transparent; padding: 2px 5px; margin: -2px -5px;
+  border-radius: 6px; font: inherit; color: inherit; cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
+.fuente-ind:hover { background: var(--g6); border-color: var(--borde); color: var(--g1); }
+.fuente-areas { font-size: var(--fs-2xs); color: var(--texto3); line-height: 1.35; }
+.fuente-area-btn { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline dotted; }
+.fuente-area-btn:hover { color: var(--g1); text-decoration: underline; }
 @media (max-width: 640px) {
   .btn-filtros { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 1px solid var(--borde);
     border-radius: 10px; background: var(--sup, #fff); color: var(--texto2); font-family: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }

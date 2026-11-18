@@ -315,7 +315,10 @@
         <p>Refleja exclusivamente las investigaciones en las que los autores figuran con
            afiliación a la Universidad Técnica de Manabí (UTM).</p>
         ${buscadorHeroHTML()}
-        <a class="hero-pubs" href="#/publicaciones">Explorar todas las publicaciones →</a>
+        <div class="hero-enlaces">
+          <a class="hero-pubs" href="#/publicaciones">Explorar todas las publicaciones →</a>
+          <a class="hero-pubs" href="#/fuentes">Explorar revistas y fuentes →</a>
+        </div>
         <div class="hero-panel">
         ${fechaHero}
         <div class="hero-stats">
@@ -706,7 +709,7 @@
     const revHTML = GI.topRev.map(([n, c]) =>
       `<div class="tipo-fila" data-cat="revista" data-val="${esc(n)}" style="cursor:pointer" title="Ver publicaciones de ${esc(n)}"><span class="tn">${esc(n)}</span>
         <span class="tb"><div style="width:${Math.max(3, Math.round(100 * c / maxR))}%"></div></span>
-        <span class="tv">${c}</span></div>`).join('')
+        <span class="tv">${c} <a href="#/fuente/${encodeURIComponent(n)}" onclick="event.stopPropagation()" title="Abrir página de la fuente ${esc(n)}" style="margin-left:4px;font-weight:700">↗</a></span></div>`).join('')
     const topAr8 = GI.topAreas.slice(0, 15)
     const maxA = topAr8.length ? topAr8[0][1] : 1
     const areaHTML = topAr8.map(([n, c]) =>
@@ -2688,15 +2691,23 @@
       const capA = 15
       const autBody = conAutores ? autores.slice(0, capA).map(ctxAutorRow).join('') : ''
       const utmBody = conUtm ? autoresUtm.slice(0, capA).map(ctxAutorRow).join('') : ''
+      const tabIni = (opts.tabIni === 'utm' && conUtm) ? 'utm' : (opts.tabIni === 'aut' && conAutores) ? 'aut' : 'pubs'
+      const defs = [
+        ['pubs', 'recientes', `Publicaciones (${lista.length})`, pubsBody],
+        ...(conUtm ? [['utm', 'primerAutor', `Autores UTM (${autoresUtm.length})`, utmBody]] : []),
+        ...(conAutores ? [['aut', 'autores', `Coautores ext. (${autores.length})`, autBody]] : []),
+      ]
+      if (tabIni !== 'pubs') {
+        const i = defs.findIndex(d => d[0] === tabIni)
+        if (i > 0) defs.unshift(defs.splice(i, 1)[0])
+      }
       popEl.innerHTML = `${cabHtml}
-        <div class="pop-subtabs">
-          <button type="button" class="pop-stab pop-tab on" data-pt="pubs">${ico('recientes')}<span>Publicaciones (${lista.length})</span></button>
-          ${conUtm ? `<button type="button" class="pop-stab pop-tab" data-pt="utm">${ico('primerAutor')}<span>Autores UTM (${autoresUtm.length})</span></button>` : ''}
-          ${conAutores ? `<button type="button" class="pop-stab pop-tab" data-pt="aut">${ico('autores')}<span>Coautores ext. (${autores.length})</span></button>` : ''}
-        </div>
-        <div class="pop-body pop-pane" data-pt="pubs">${pubsBody}</div>
-        ${conUtm ? `<div class="pop-body pop-pane" data-pt="utm" style="display:none">${utmBody}</div>` : ''}
-        ${conAutores ? `<div class="pop-body pop-pane" data-pt="aut" style="display:none">${autBody}</div>` : ''}
+        <div class="pop-subtabs">${defs.map(([k, ic, lbl]) =>
+          `<button type="button" class="pop-stab pop-tab${tabIni === k ? ' on' : ''}" data-pt="${k}">${ico(ic)}<span>${lbl}</span></button>`
+        ).join('')}</div>
+        ${defs.map(([k, , , body]) =>
+          `<div class="pop-body pop-pane" data-pt="${k}"${tabIni === k ? '' : ' style="display:none"'}>${body}</div>`
+        ).join('')}
         ${pieFiltro}`
     } else {
       popEl.innerHTML = `${cabHtml}
@@ -3149,7 +3160,8 @@
   const tipCuartil = (q) => TIP_Q[q] || TIP_Q['N/A']
   function badgeQ(q) {
     const c = COLQ[q] || '#999'
-    return `<span class="insig-q" style="background:${c}1e;color:${q === 'Q2' ? '#3f7d12' : c};cursor:help" title="${esc(tipCuartil(q))}">${esc(q)}</span>`
+    const fg = { Q1: '#1e6b14', Q2: '#366b10', Q3: '#9a5a08', Q4: '#9e2f25', 'N/A': '#5a5549', NC: '#5c584e' }[q] || '#4a5542'
+    return `<span class="insig-q" style="background:${c}24;color:${fg};border:1px solid ${c}44;cursor:help" title="${esc(tipCuartil(q))}">${esc(q)}</span>`
   }
   // Nota compacta para autores sin filiación UTM actual (directorio y top 10).
   // Mapa de coautores en móvil: más alto y desplazable; se centra en América al aparecer.
@@ -3633,6 +3645,222 @@
     }
   }
 
+  // ---------- directorio y ficha de fuentes (revistas y conferencias) ----------
+  let CACHE_FUENTES = null
+  function calcFuentes() {
+    if (CACHE_FUENTES) return CACHE_FUENTES
+    const m = new Map()
+    const prioQ = { Q1: 1, Q2: 2, Q3: 3, Q4: 4, 'N/A': 5, NC: 6 }
+    D.pubs.forEach(p => {
+      if (!p.j) return
+      let f = m.get(p.j)
+      if (!f) {
+        f = { nombre: p.j, pubs: [], C: 0, oa: 0, q: p.q || 'N/A', uAnio: 0, auts: new Set(), areas: new Map() }
+        m.set(p.j, f)
+      }
+      f.pubs.push(p)
+      f.C += p.c || 0
+      if (esAbierta(p)) f.oa++
+      const pq = p.q || 'N/A'
+      if ((prioQ[pq] || 9) < (prioQ[f.q] || 9)) f.q = pq
+      if ((p.y || 0) > f.uAnio) f.uAnio = p.y || 0
+      ;(p.u || []).forEach(u => { const s = String(u); if (porId.has(s)) f.auts.add(s) })
+      ;(p.a || []).forEach(a => f.areas.set(a, (f.areas.get(a) || 0) + 1))
+    })
+    CACHE_FUENTES = [...m.values()].map(f => ({
+      nombre: f.nombre,
+      pubs: f.pubs.sort((x, y) => (y.y || 0) - (x.y || 0) || (y.c || 0) - (x.c || 0)),
+      P: f.pubs.length,
+      C: f.C,
+      oa: f.oa,
+      pctOa: Math.round(100 * f.oa / (f.pubs.length || 1)),
+      q: f.q,
+      uAnio: f.uAnio,
+      nAut: f.auts.size,
+      areas: [...f.areas.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0]),
+      busq: norm(f.nombre + ' ' + [...f.areas.keys()].join(' ')),
+    })).sort((a, b) => b.P - a.P || b.C - a.C || a.nombre.localeCompare(b.nombre))
+    return CACHE_FUENTES
+  }
+  const estadoFuente = { q: '', cuartil: 'todos', orden: 'pubs', pagina: 1 }
+  function renderFuentes() {
+    perfilPubs = null
+    aplicarFiltroCtxPubs = null
+    const todas = calcFuentes()
+    const POR_PAG = 24
+    app.innerHTML = `<div class="wrap">
+      ${migas('Fuentes')}
+      <div class="perfil-hero" style="border-left-color:var(--g3)">
+        <div style="flex:1"><h1>Fuentes de publicación</h1>
+          <div class="sub">${num(todas.length)} revistas, conferencias y libros donde publican investigadores UTM en Scopus (${num(D.pubs.length)} publicaciones).</div></div></div>
+      <div class="panel" id="listaFuentesBox">
+        <h2 class="dir-tit">Directorio de fuentes</h2>
+        <div class="ayuda-filtros">Busque por nombre de revista o área temática, filtre por cuartil SJR o ordene por volumen, citas o actividad reciente.</div>
+        <div class="pub-controles">
+          <div class="buscador">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="qFuente" type="search" aria-label="Buscar fuentes de publicación" placeholder="Nombre de revista, conferencia o área…" autocomplete="off" />
+          </div>
+          <span class="sel-ico">${ico('orden')}<select class="selector" id="ordFuente" aria-label="Ordenar fuentes">
+            <option value="pubs">Ordenar: Más publicaciones</option>
+            <option value="citadas">Ordenar: Más citadas</option>
+            <option value="cuartil">Ordenar: Cuartil SJR (Q1 a Q4)</option>
+            <option value="recientes">Ordenar: Más recientes</option>
+            <option value="nombre">Ordenar: Nombre (A-Z)</option>
+          </select></span>
+        </div>
+        <div class="pub-filtros filtro-zona">
+          <div class="pub-fchips">
+            <span class="filtro-lbl">Filtrar:</span>
+            <button type="button" class="pub-fchip f-qchip" data-fq="todos">${ico('filtro')}<span>Todas</span></button>
+            <button type="button" class="pub-fchip f-qchip" data-fq="Q1">${icoQ(COLQ.Q1)}<span>Q1</span></button>
+            <button type="button" class="pub-fchip f-qchip" data-fq="Q2">${icoQ(COLQ.Q2)}<span>Q2</span></button>
+            <button type="button" class="pub-fchip f-qchip" data-fq="Q3">${icoQ(COLQ.Q3)}<span>Q3</span></button>
+            <button type="button" class="pub-fchip f-qchip" data-fq="Q4">${icoQ(COLQ.Q4)}<span>Q4</span></button>
+            <button type="button" class="pub-fchip f-qchip" data-fq="N/A">${icoQ(COLQ['N/A'])}<span>N/A</span></button>
+          </div>
+        </div>
+        <div class="conteo" id="conteoFuentes"></div>
+        <div class="paginacion" id="pagFuentesTop"></div>
+        <div class="fuentes-lista" id="listaFuentes"></div>
+        <div class="paginacion" id="pagFuentes"></div>
+      </div>
+    </div>
+    ${TOP_PAGE_HTML}`
+    const qI = document.getElementById('qFuente'), ordS = document.getElementById('ordFuente')
+    qI.value = estadoFuente.q; ordS.value = estadoFuente.orden
+    const marcaQ = () => document.querySelectorAll('.f-qchip[data-fq]').forEach(b => b.classList.toggle('on', b.dataset.fq === estadoFuente.cuartil))
+    marcaQ()
+    const pintar = (bajar) => {
+      const tokens = norm(estadoFuente.q).split(/\s+/).filter(Boolean)
+      const arr = todas.filter(f => {
+        if (estadoFuente.cuartil !== 'todos' && f.q !== estadoFuente.cuartil) return false
+        if (tokens.length && !tokens.every(t => f.busq.includes(t))) return false
+        return true
+      })
+      const prioQ = { Q1: 1, Q2: 2, Q3: 3, Q4: 4, 'N/A': 5, NC: 6 }
+      if (estadoFuente.orden === 'citadas') arr.sort((a, b) => b.C - a.C || b.P - a.P)
+      else if (estadoFuente.orden === 'cuartil') arr.sort((a, b) => (prioQ[a.q] || 9) - (prioQ[b.q] || 9) || b.C - a.C || b.P - a.P)
+      else if (estadoFuente.orden === 'recientes') arr.sort((a, b) => b.uAnio - a.uAnio || b.P - a.P)
+      else if (estadoFuente.orden === 'nombre') arr.sort((a, b) => a.nombre.localeCompare(b.nombre))
+      else arr.sort((a, b) => b.P - a.P || b.C - a.C)
+
+      const hayF = !!(estadoFuente.q.trim() || estadoFuente.cuartil !== 'todos')
+      const conteoEl = document.getElementById('conteoFuentes')
+      conteoEl.innerHTML = `<span>${num(arr.length)} ${arr.length === 1 ? 'fuente' : 'fuentes'}</span>`
+        + (hayF ? '<button type="button" class="btn-limpiar" id="btnLimpiarFuentes">Limpiar filtros</button>' : '')
+      const btnLim = document.getElementById('btnLimpiarFuentes')
+      if (btnLim) btnLim.addEventListener('click', () => {
+        estadoFuente.q = ''; estadoFuente.cuartil = 'todos'; estadoFuente.pagina = 1
+        qI.value = ''; marcaQ(); pintar(false)
+      })
+
+      const paginas = Math.max(1, Math.ceil(arr.length / POR_PAG))
+      if (estadoFuente.pagina > paginas) estadoFuente.pagina = paginas
+      const ini = (estadoFuente.pagina - 1) * POR_PAG
+      const vis = arr.slice(ini, ini + POR_PAG)
+      document.getElementById('listaFuentes').innerHTML = vis.length
+        ? vis.map(f => `<div class="fuente-card">
+            <div class="fuente-cab"><a class="fuente-nom" href="#/fuente/${encodeURIComponent(f.nombre)}" title="Abrir página completa de ${esc(f.nombre)}">${esc(f.nombre)}</a>${badgeQ(f.q)}</div>
+            <div class="fuente-meta">
+              <button type="button" class="fuente-ind" data-fpop="pubs" data-fnom="${esc(f.nombre)}" title="Ver las ${num(f.P)} publicaciones en esta fuente"><b>${num(f.P)}</b> pub.</button>
+              <button type="button" class="fuente-ind" data-fpop="citas" data-fnom="${esc(f.nombre)}" title="Ver publicaciones citadas de esta fuente"><b>${num(f.C)}</b> citas</button>
+              <button type="button" class="fuente-ind" data-fpop="aut" data-fnom="${esc(f.nombre)}" title="Ver investigadores UTM que publican en esta fuente"><b>${num(f.nAut)}</b> aut. UTM</button>
+              <button type="button" class="fuente-ind" data-fpop="oa" data-fnom="${esc(f.nombre)}" title="Ver publicaciones en acceso abierto de esta fuente"><b>${f.pctOa}%</b> OA</button>
+            </div>
+            ${f.areas.length ? `<div class="fuente-areas">${f.areas.map(ar => `<button type="button" class="fuente-area-btn" data-fpop="area" data-fnom="${esc(f.nombre)}" data-farea="${esc(ar)}" title="Ver publicaciones de ${esc(ar)} en esta fuente">${esc(ar)}</button>`).join(' · ')}</div>` : ''}
+          </div>`).join('')
+        : '<div class="vacio" style="grid-column:1/-1">Sin fuentes que coincidan con los filtros activos.</div>'
+
+      const htmlPag = (paginas > 1 ? `<div class="pag-actual">Página ${estadoFuente.pagina} de ${paginas}</div>` : '') + paginacionHTML(estadoFuente.pagina, paginas)
+      for (const id of ['pagFuentesTop', 'pagFuentes']) {
+        const ref = document.getElementById(id)
+        ref.innerHTML = htmlPag
+        ref.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => {
+          estadoFuente.pagina = +b.dataset.p; pintar(true)
+        }))
+      }
+      if (bajar) document.getElementById('listaFuentesBox').scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    qI.addEventListener('input', () => { estadoFuente.q = qI.value; estadoFuente.pagina = 1; pintar(false) })
+    ordS.addEventListener('change', () => { estadoFuente.orden = ordS.value; estadoFuente.pagina = 1; pintar(false) })
+    document.querySelectorAll('.f-qchip[data-fq]').forEach(b => b.addEventListener('click', () => {
+      estadoFuente.cuartil = b.dataset.fq; estadoFuente.pagina = 1; marcaQ(); pintar(false)
+    }))
+    document.getElementById('listaFuentes').addEventListener('click', ev => {
+      const bt = ev.target.closest('[data-fpop]')
+      if (!bt) return
+      ev.stopPropagation()
+      const f = todas.find(x => x.nombre === bt.dataset.fnom)
+      if (!f) return
+      const tipo = bt.dataset.fpop
+      if (tipo === 'pubs') {
+        mostrarPopover(ev, f.nombre, f.pubs, '#185a10', null, null, { sub: 'Publicaciones en la fuente', valorHtml: esc(f.nombre) })
+      } else if (tipo === 'citas') {
+        const cit = f.pubs.filter(p => (p.c || 0) > 0).sort((a, b) => (b.c || 0) - (a.c || 0))
+        mostrarPopover(ev, f.nombre + ' · Citas', cit, '#185a10', null, null,
+          { sub: `${num(f.C)} citas en ${num(cit.length)} publicaciones citadas`, sinOrden: true, valorHtml: esc(f.nombre) })
+      } else if (tipo === 'aut') {
+        const ct = {}
+        f.pubs.forEach(p => (p.u || []).forEach(u => { const s = String(u); if (porId.has(s)) ct[s] = (ct[s] || 0) + 1 }))
+        const auts = Object.entries(ct).map(([id, n]) => ({ id, nombre: porId.get(id).n, n })).sort((a, b) => b.n - a.n)
+        mostrarPopover(ev, f.nombre + ' · Investigadores UTM', f.pubs, '#185a10', null, auts,
+          { sub: `${num(f.nAut)} investigadores UTM en esta fuente`, valorHtml: esc(f.nombre), tabIni: 'utm' })
+      } else if (tipo === 'oa') {
+        const oa = f.pubs.filter(esAbierta)
+        mostrarPopover(ev, f.nombre + ' · Acceso abierto', oa, '#185a10', null, null,
+          { sub: `${num(oa.length)} publicaciones en acceso abierto (${f.pctOa}%)`, valorHtml: esc(f.nombre) })
+      } else if (tipo === 'area') {
+        const ar = bt.dataset.farea
+        const sub = f.pubs.filter(p => (p.a || []).includes(ar))
+        mostrarPopover(ev, ar, sub, '#8a5a0c', null, null, { sub: `En ${f.nombre}`, valorHtml: esc(ar) })
+      }
+    })
+    pintar(false)
+  }
+  function renderFuente(nombre) {
+    perfilPubs = null
+    aplicarFiltroCtxPubs = null
+    const info = calcFuentes().find(f => f.nombre === nombre)
+    const lista = info ? info.pubs : D.pubs.filter(p => p.j === nombre).sort((x, y) => (y.y || 0) - (x.y || 0) || (y.c || 0) - (x.c || 0))
+    const conteoAut = new Map()
+    lista.forEach(p => {
+      ;(p.u || []).forEach(u => {
+        const s = String(u)
+        if (porId.has(s)) conteoAut.set(s, (conteoAut.get(s) || 0) + 1)
+      })
+    })
+    const autFuente = [...conteoAut.entries()]
+      .map(([uid, n]) => [porId.get(uid), n])
+      .sort((a, b) => b[1] - a[1] || (b[0].C || 0) - (a[0].C || 0))
+    const slug = 'fuente-' + (nombre || 'utm').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const citasTot = info ? info.C : lista.reduce((s, p) => s + (p.c || 0), 0)
+    const pctOa = info ? info.pctOa : Math.round(100 * lista.filter(esAbierta).length / (lista.length || 1))
+    const q = info ? info.q : (lista[0]?.q || 'N/A')
+    const migasFuente = `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span><a href="#/fuentes"><span>Fuentes</span></a><span class="mg-sep" aria-hidden="true">›</span><span class="mg-act" aria-current="page">${esc(nombre)}</span></nav>`
+
+    app.innerHTML = `<div class="wrap">
+      ${migasFuente}
+      <div class="perfil-hero" style="border-left-color:var(--g3)">
+        <div style="flex:1"><h1>${esc(nombre)}</h1>
+          <div class="sub">Cuartil ${esc(q)} · ${num(lista.length)} publicaciones UTM · ${num(citasTot)} citas · ${num(autFuente.length)} investigadores UTM · ${pctOa}% acceso abierto</div></div></div>
+      ${autFuente.length ? `<div class="panel" style="margin-bottom:18px">
+        <h2 class="dir-tit">Investigadores UTM en esta fuente (${num(autFuente.length)})</h2>
+        <div class="ayuda-filtros">Autores con filiación UTM que han publicado en esta fuente. Haga clic en «pub. en la fuente» para filtrar el listado inferior por investigador.</div>
+        <div class="coautores" id="fuenteAutCont"></div>
+        <div class="paginacion" id="fuenteAutPager"></div>
+      </div>` : ''}
+      ${panelPubsHTML('Publicaciones en la fuente', lista.length, true, null, 'Filtre por cuartil SJR, acceso abierto, texto o investigador de esta fuente, y exporte citas en CSV, BibTeX o RIS.')}</div>
+    ${TOP_PAGE_HTML}`
+    wirePubs(lista, pubRow, null, slug)
+    if (autFuente.length) {
+      paginar('fuenteAutCont', 'fuenteAutPager', autFuente, ([au, c]) => `<div class="coautor">
+        <a class="coautor-ir" href="#/autor/${encodeURIComponent(au.id)}" title="Ver perfil de ${esc(au.n)}">${avatar(au)}<span class="cn">${esc(au.n)}</span></a>
+        <span class="cc" data-fuente-aut="${esc(au.id)}" title="Filtrar las publicaciones de ${esc(au.n)} en esta fuente">${c} pub. en la fuente</span>
+      </div>`, 10)
+    }
+  }
+
   // ---------- metodología ----------
   // ---------- sección Publicaciones: listado global con búsqueda y filtros ----------
   const estadoPub = { q: '', anio: '', cuartil: '', oa: false, orden: 'recientes', pagina: 1 }
@@ -4111,7 +4339,7 @@
   // donde estaba la persona (los filtros y la página ya se conservan en "estado").
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual' } catch (e) { /* sin historial */ }
   let enLista = true, scrollLista = 0
-  const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h.indexOf('#/area/') === 0 || h === '#/metodologia' || h === '#/publicaciones' || h.indexOf('#/comparar') === 0)
+  const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h.indexOf('#/area/') === 0 || h === '#/fuentes' || h.indexOf('#/fuente/') === 0 || h === '#/metodologia' || h === '#/publicaciones' || h.indexOf('#/comparar') === 0)
   function router() {
     const h = hashPartes()[0]
     document.body.classList.remove('hoja-abierta')   // por si se navegó con la hoja de filtros abierta
@@ -4128,6 +4356,13 @@
     } else if (h.indexOf('#/comparar') === 0) {
       renderComparar(decUri(h.slice(11)).split(','))
       document.title = `Comparar investigadores · ${TITULO}`
+    } else if (h === '#/fuentes') {
+      renderFuentes()
+      document.title = `Fuentes · ${TITULO}`
+    } else if (h.indexOf('#/fuente/') === 0) {
+      const fNom = decUri(h.slice(9))
+      renderFuente(fNom)
+      document.title = `${fNom} · ${TITULO}`
     } else if (h === '#/publicaciones') {
       renderPublicaciones()
       document.title = `Publicaciones · ${TITULO}`
@@ -4186,12 +4421,14 @@
       if (p) toggleMenuCita(btnCit, p)
       return
     }
-    const btnAreaAut = ev.target.closest('[data-area-aut]')
-    if (btnAreaAut && aplicarFiltroCtxPubs) {
-      const uid = btnAreaAut.getAttribute('data-area-aut')
+    const btnSubAut = ev.target.closest('[data-area-aut], [data-fuente-aut]')
+    if (btnSubAut && aplicarFiltroCtxPubs) {
+      const esFuente = btnSubAut.hasAttribute('data-fuente-aut')
+      const uid = btnSubAut.getAttribute(esFuente ? 'data-fuente-aut' : 'data-area-aut')
       const au = porId.get(uid)
-      const areaNombre = location.hash.indexOf('#/area/') === 0 ? decUri(location.hash.slice(7)) : ''
-      const sub = D.pubs.filter(p => (!areaNombre || (p.a || []).includes(areaNombre)) && (p.u || []).map(String).includes(uid))
+      const areaNombre = !esFuente && location.hash.indexOf('#/area/') === 0 ? decUri(location.hash.slice(7)) : ''
+      const fuenteNombre = esFuente && location.hash.indexOf('#/fuente/') === 0 ? decUri(location.hash.slice(9)) : ''
+      const sub = D.pubs.filter(p => (!areaNombre || (p.a || []).includes(areaNombre)) && (!fuenteNombre || p.j === fuenteNombre) && (p.u || []).map(String).includes(uid))
       aplicarFiltroCtxPubs('Autor: ' + (au ? au.n : uid), sub)
       const panel = document.getElementById('panelPubs')
       if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
