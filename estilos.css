@@ -973,7 +973,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 /* ---------- panel de filtros en celular (hoja inferior) y enlace a Publicaciones ---------- */
 .btn-filtros, .hoja-cab, .hoja-pie, .hoja-vel { display: none; }
 .hoja-filtros { display: contents; }
-.hero-enlaces { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin: 4px 0 2px; }
+.hero-enlaces { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin: 12px 0 2px; }
 @media (max-width: 680px) { .hero-enlaces { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 6px; text-align: left; } }
 .hero-pubs { display: inline-block; margin: 4px 0 2px; font-size: var(--fs-sm); font-weight: 600; color: #fff; opacity: .95; }
 .hero-enlaces .hero-pubs { margin: 0; }
