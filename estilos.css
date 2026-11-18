@@ -974,6 +974,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .btn-filtros, .hoja-cab, .hoja-pie, .hoja-vel { display: none; }
 .hoja-filtros { display: contents; }
 .hero-enlaces { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin: 4px 0 2px; }
+@media (max-width: 680px) { .hero-enlaces { justify-content: flex-start; gap: 6px 16px; } }
 .hero-pubs { display: inline-block; margin: 4px 0 2px; font-size: var(--fs-sm); font-weight: 600; color: #fff; opacity: .95; }
 .hero-enlaces .hero-pubs { margin: 0; }
 .hero-pubs:hover { color: #e8c25a; text-decoration: none; }
