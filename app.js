@@ -346,6 +346,7 @@
         <div class="hero-enlaces">
           <a class="hero-pubs" href="#/publicaciones">Explorar todas las publicaciones →</a>
           <a class="hero-pubs" href="#/fuentes">Explorar revistas y fuentes →</a>
+          <a class="hero-pubs" href="#/areas">Explorar áreas temáticas →</a>
         </div>
         <div class="hero-panel">
         ${fechaHero}
@@ -1827,8 +1828,12 @@
   }
 
   // ---------- perfil ----------
-  // Ruta de navegación: "Inicio › página actual". El primer tramo vuelve a la portada.
-  const migas = actual => `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a><span class="mg-sep" aria-hidden="true">›</span><span class="mg-act" aria-current="page">${esc(actual)}</span></nav>`
+  // Ruta de navegación: "Inicio › página actual" (o "Inicio › Padre › página actual").
+  const migas = (actual, padre) => `<nav class="migas" aria-label="Ruta de navegación"><a href="#/" title="Volver a la página principal"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7.5 9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg><span>Inicio</span></a>${padre ? `<span class="mg-sep" aria-hidden="true">›</span><a href="${esc(padre.href)}"><span>${esc(padre.texto)}</span></a>` : ''}<span class="mg-sep" aria-hidden="true">›</span><span class="mg-act" aria-current="page">${esc(actual)}</span></nav>`
+  const resumenFiltrosHTML = (chips, btnId) => {
+    if (!chips.length) return ''
+    return `<span class="filtros-resumen">${chips.map(c => `<span class="filtro-activo-chip">${esc(c)}</span>`).join('')}<button type="button" class="btn-limpiar" id="${btnId}">Limpiar filtros</button></span>`
+  }
   function renderPerfil(id, mantenerScroll) {
     const a = porId.get(id)
     if (!a) {
@@ -3688,7 +3693,7 @@
     const slug = 'area-' + (area || 'utm').toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
     app.innerHTML = `<div class="wrap">
-      ${migas(area)}
+      ${migas(area, { href: '#/areas', texto: 'Áreas' })}
       <div class="perfil-hero" style="border-left-color:var(--g3)">
         <div style="flex:1"><h1>${esc(area)}</h1>
           <div class="sub">Área temática de Scopus · ${num(lista.length)} publicaciones UTM · ${num(autArea.length)} investigadores UTM</div></div></div>
@@ -3709,6 +3714,160 @@
     }
   }
 
+  // ---------- directorio de áreas temáticas ----------
+  let CACHE_AREAS = null
+  function calcAreas() {
+    if (CACHE_AREAS) return CACHE_AREAS
+    const m = new Map()
+    D.pubs.forEach(p => {
+      ;(p.a || []).forEach(nom => {
+        let ar = m.get(nom)
+        if (!ar) {
+          ar = { nombre: nom, pubs: [], P: 0, C: 0, q1: 0, oa: 0, uAnio: 0, auts: new Set(), fuentes: new Map() }
+          m.set(nom, ar)
+        }
+        ar.pubs.push(p)
+        ar.P++
+        ar.C += p.c || 0
+        if (p.q === 'Q1') ar.q1++
+        if (esAbierta(p)) ar.oa++
+        if ((p.y || 0) > ar.uAnio) ar.uAnio = p.y || 0
+        ;(p.u || []).forEach(u => { const s = String(u); if (porId.has(s)) ar.auts.add(s) })
+        if (p.j) ar.fuentes.set(p.j, (ar.fuentes.get(p.j) || 0) + 1)
+      })
+    })
+    CACHE_AREAS = [...m.values()].map(ar => {
+      const topF = [...ar.fuentes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0])
+      return {
+        nombre: ar.nombre,
+        pubs: ar.pubs.sort((x, y) => (y.y || 0) - (x.y || 0) || (y.c || 0) - (x.c || 0)),
+        P: ar.P,
+        C: ar.C,
+        q1: ar.q1,
+        pctQ1: Math.round(100 * ar.q1 / (ar.P || 1)),
+        oa: ar.oa,
+        pctOa: Math.round(100 * ar.oa / (ar.P || 1)),
+        nAut: ar.auts.size,
+        uAnio: ar.uAnio,
+        fuentes: topF,
+        busq: norm(ar.nombre + ' ' + topF.join(' ')),
+      }
+    }).sort((a, b) => b.P - a.P || b.C - a.C || a.nombre.localeCompare(b.nombre))
+    return CACHE_AREAS
+  }
+  const estadoArea = { q: '', orden: 'pubs', pagina: 1 }
+  function renderAreas() {
+    perfilPubs = null
+    aplicarFiltroCtxPubs = null
+    const todas = calcAreas()
+    const POR_PAG = 24
+    app.innerHTML = `<div class="wrap">
+      ${migas('Áreas temáticas')}
+      <div class="perfil-hero" style="border-left-color:var(--g3)">
+        <div style="flex:1"><h1>Áreas temáticas</h1>
+          <div class="sub">${num(todas.length)} áreas temáticas de Scopus en la producción científica UTM (${num(D.pubs.length)} publicaciones).</div></div></div>
+      <div class="panel" id="listaAreasBox">
+        <h2 class="dir-tit">Directorio de áreas</h2>
+        <div class="ayuda-filtros">Busque por nombre de área o revista principal y ordene por volumen, citas, porcentaje Q1 o actividad reciente.</div>
+        <div class="pub-controles">
+          <div class="buscador">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="qArea" type="search" aria-label="Buscar áreas temáticas" placeholder="Nombre del área o revista…" autocomplete="off" />
+          </div>
+          <span class="sel-ico">${ico('orden')}<select class="selector" id="ordArea" aria-label="Ordenar áreas">
+            <option value="nombre">Ordenar: Nombre (A-Z)</option>
+            <option value="pubs">Ordenar: Más publicaciones</option>
+            <option value="citadas">Ordenar: Más citadas</option>
+            <option value="q1">Ordenar: Mayor % Q1</option>
+            <option value="recientes">Ordenar: Más recientes</option>
+          </select></span>
+        </div>
+        <div class="conteo" id="conteoAreas"></div>
+        <div class="paginacion" id="pagAreasTop"></div>
+        <div class="fuentes-lista" id="listaAreas"></div>
+        <div class="paginacion" id="pagAreas"></div>
+      </div>
+    </div>
+    ${TOP_PAGE_HTML}`
+    const qI = document.getElementById('qArea'), ordS = document.getElementById('ordArea')
+    qI.value = estadoArea.q; ordS.value = estadoArea.orden
+    const pintar = (bajar) => {
+      const tokens = norm(estadoArea.q).split(/\s+/).filter(Boolean)
+      const arr = todas.filter(ar => !tokens.length || tokens.every(t => ar.busq.includes(t)))
+      if (estadoArea.orden === 'citadas') arr.sort((a, b) => b.C - a.C || b.P - a.P)
+      else if (estadoArea.orden === 'q1') arr.sort((a, b) => b.pctQ1 - a.pctQ1 || b.P - a.P || b.C - a.C)
+      else if (estadoArea.orden === 'recientes') arr.sort((a, b) => b.uAnio - a.uAnio || b.P - a.P)
+      else if (estadoArea.orden === 'nombre') arr.sort((a, b) => a.nombre.localeCompare(b.nombre))
+      else arr.sort((a, b) => b.P - a.P || b.C - a.C)
+
+      const chips = []
+      if (estadoArea.q.trim()) chips.push(`Búsqueda: "${estadoArea.q.trim()}"`)
+      const conteoEl = document.getElementById('conteoAreas')
+      conteoEl.innerHTML = `<span>${num(arr.length)} ${arr.length === 1 ? 'área' : 'áreas'}</span>`
+        + resumenFiltrosHTML(chips, 'btnLimpiarAreas')
+      const btnLim = document.getElementById('btnLimpiarAreas')
+      if (btnLim) btnLim.addEventListener('click', () => {
+        estadoArea.q = ''; estadoArea.pagina = 1
+        qI.value = ''; pintar(false)
+      })
+
+      const paginas = Math.max(1, Math.ceil(arr.length / POR_PAG))
+      if (estadoArea.pagina > paginas) estadoArea.pagina = paginas
+      const ini = (estadoArea.pagina - 1) * POR_PAG
+      const vis = arr.slice(ini, ini + POR_PAG)
+      document.getElementById('listaAreas').innerHTML = vis.length
+        ? vis.map(ar => `<div class="fuente-card">
+            <div class="fuente-cab"><a class="fuente-nom" href="#/area/${encodeURIComponent(ar.nombre)}" title="Abrir página de ${esc(ar.nombre)}">${esc(ar.nombre)}</a><span class="fuente-badges"><span class="badge-oa-pct" title="${num(ar.q1)} de ${num(ar.P)} publicaciones en Q1">${ar.pctQ1}% Q1</span><span class="badge-oa-pct" title="${num(ar.oa)} de ${num(ar.P)} publicaciones en acceso abierto">${ar.pctOa}% OA</span></span></div>
+            <div class="fuente-meta">
+              <button type="button" class="fuente-ind" data-apop="pubs" data-anom="${esc(ar.nombre)}" title="Ver las ${num(ar.P)} publicaciones en esta área"><b>${num(ar.P)}</b> pub.</button>
+              <button type="button" class="fuente-ind" data-apop="citas" data-anom="${esc(ar.nombre)}" title="Ver publicaciones citadas de esta área"><b>${num(ar.C)}</b> citas</button>
+              <button type="button" class="fuente-ind" data-apop="aut" data-anom="${esc(ar.nombre)}" title="Ver investigadores UTM que publican en esta área"><b>${num(ar.nAut)}</b> aut. UTM</button>
+              <button type="button" class="fuente-ind" data-apop="q1" data-anom="${esc(ar.nombre)}" title="Ver publicaciones en cuartil Q1 de esta área"><b>${num(ar.q1)}</b> Q1</button>
+            </div>
+            ${ar.fuentes.length ? `<div class="fuente-areas">Fuentes frecuentes: ${ar.fuentes.map(fn => `<a class="fuente-area-btn" href="#/fuente/${encodeURIComponent(fn)}">${esc(fmtFuente(fn))}</a>`).join(' · ')}</div>` : ''}
+          </div>`).join('')
+        : '<div class="vacio" style="grid-column:1/-1">Sin áreas que coincidan con la búsqueda.</div>'
+
+      const htmlPag = (paginas > 1 ? `<div class="pag-actual">Página ${estadoArea.pagina} de ${paginas}</div>` : '') + paginacionHTML(estadoArea.pagina, paginas)
+      for (const id of ['pagAreasTop', 'pagAreas']) {
+        const ref = document.getElementById(id)
+        ref.innerHTML = htmlPag
+        ref.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => {
+          estadoArea.pagina = +b.dataset.p; pintar(true)
+        }))
+      }
+      if (bajar) document.getElementById('listaAreasBox').scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    qI.addEventListener('input', () => { estadoArea.q = qI.value; estadoArea.pagina = 1; pintar(false) })
+    ordS.addEventListener('change', () => { estadoArea.orden = ordS.value; estadoArea.pagina = 1; pintar(false) })
+    document.getElementById('listaAreas').addEventListener('click', ev => {
+      const bt = ev.target.closest('[data-apop]')
+      if (!bt) return
+      ev.stopPropagation()
+      const ar = todas.find(x => x.nombre === bt.dataset.anom)
+      if (!ar) return
+      const tipo = bt.dataset.apop
+      if (tipo === 'pubs') {
+        mostrarPopover(ev, ar.nombre, ar.pubs, '#185a10', null, null, { sub: 'Publicaciones en el área', valorHtml: esc(ar.nombre) })
+      } else if (tipo === 'citas') {
+        const cit = ar.pubs.filter(p => (p.c || 0) > 0).sort((a, b) => (b.c || 0) - (a.c || 0))
+        mostrarPopover(ev, ar.nombre + ' · Citas', cit, '#185a10', null, null,
+          { sub: `${num(ar.C)} citas en ${num(cit.length)} publicaciones citadas`, sinOrden: true, valorHtml: esc(ar.nombre) })
+      } else if (tipo === 'aut') {
+        const ct = {}
+        ar.pubs.forEach(p => (p.u || []).forEach(u => { const s = String(u); if (porId.has(s)) ct[s] = (ct[s] || 0) + 1 }))
+        const auts = Object.entries(ct).map(([id, n]) => ({ id, nombre: porId.get(id).n, n })).sort((a, b) => b.n - a.n)
+        mostrarPopover(ev, ar.nombre + ' · Investigadores UTM', ar.pubs, '#185a10', null, auts,
+          { sub: `${num(ar.nAut)} investigadores UTM en esta área`, valorHtml: esc(ar.nombre), tabIni: 'utm' })
+      } else if (tipo === 'q1') {
+        const q1 = ar.pubs.filter(p => p.q === 'Q1')
+        mostrarPopover(ev, ar.nombre + ' · Cuartil Q1', q1, '#185a10', null, null,
+          { sub: `${num(q1.length)} publicaciones en Q1 (${ar.pctQ1}%)`, valorHtml: esc(ar.nombre) })
+      }
+    })
+    pintar(false)
+  }
+
   // ---------- directorio y ficha de fuentes (revistas y conferencias) ----------
   let CACHE_FUENTES = null
   function calcFuentes() {
@@ -3719,12 +3878,13 @@
       if (!p.j) return
       let f = m.get(p.j)
       if (!f) {
-        f = { nombre: p.j, pubs: [], C: 0, oa: 0, q: p.q || 'N/A', uAnio: 0, auts: new Set(), areas: new Map() }
+        f = { nombre: p.j, pubs: [], C: 0, oa: 0, q: p.q || 'N/A', uAnio: 0, retirada: false, auts: new Set(), areas: new Map() }
         m.set(p.j, f)
       }
       f.pubs.push(p)
       f.C += p.c || 0
       if (esAbierta(p)) f.oa++
+      if (p.r) f.retirada = true
       const pq = p.q || 'N/A'
       if ((prioQ[pq] || 9) < (prioQ[f.q] || 9)) f.q = pq
       if ((p.y || 0) > f.uAnio) f.uAnio = p.y || 0
@@ -3739,6 +3899,7 @@
       C: f.C,
       oa: f.oa,
       pctOa: Math.round(100 * f.oa / (f.pubs.length || 1)),
+      retirada: f.retirada,
       q: f.q,
       sjr: sjrMap[f.nombre] ?? null,
       uAnio: f.uAnio,
@@ -3748,7 +3909,7 @@
     })).sort((a, b) => b.P - a.P || b.C - a.C || a.nombre.localeCompare(b.nombre))
     return CACHE_FUENTES
   }
-  const estadoFuente = { q: '', cuartil: 'todos', orden: 'pubs', pagina: 1 }
+  const estadoFuente = { q: '', cuartil: 'todos', oa: false, retirada: false, orden: 'pubs', pagina: 1 }
   function renderFuentes() {
     perfilPubs = null
     aplicarFiltroCtxPubs = null
@@ -3785,6 +3946,8 @@
             <button type="button" class="pub-fchip f-qchip" data-fq="Q3">${icoQ(COLQ.Q3)}<span>Q3</span></button>
             <button type="button" class="pub-fchip f-qchip" data-fq="Q4">${icoQ(COLQ.Q4)}<span>Q4</span></button>
             <button type="button" class="pub-fchip f-qchip" data-fq="N/A">${icoQ(COLQ['N/A'])}<span>N/A</span></button>
+            <button type="button" class="pub-fchip" id="btnFuenteOa" aria-pressed="false" title="Mostrar solo fuentes con publicaciones en acceso abierto">${ico('oa')}<span>Con Acceso Abierto</span></button>
+            <button type="button" class="pub-fchip" id="btnFuenteRet" aria-pressed="false" title="Mostrar solo fuentes retiradas de Scopus"><span>⚑ Retiradas de Scopus</span></button>
           </div>
         </div>
         <div class="conteo" id="conteoFuentes"></div>
@@ -3795,13 +3958,20 @@
     </div>
     ${TOP_PAGE_HTML}`
     const qI = document.getElementById('qFuente'), ordS = document.getElementById('ordFuente')
+    const oaBtn = document.getElementById('btnFuenteOa'), retBtn = document.getElementById('btnFuenteRet')
     qI.value = estadoFuente.q; ordS.value = estadoFuente.orden
-    const marcaQ = () => document.querySelectorAll('.f-qchip[data-fq]').forEach(b => b.classList.toggle('on', b.dataset.fq === estadoFuente.cuartil))
+    const marcaQ = () => {
+      document.querySelectorAll('.f-qchip[data-fq]').forEach(b => b.classList.toggle('on', b.dataset.fq === estadoFuente.cuartil))
+      oaBtn.classList.toggle('on', estadoFuente.oa); oaBtn.setAttribute('aria-pressed', estadoFuente.oa ? 'true' : 'false')
+      retBtn.classList.toggle('on', estadoFuente.retirada); retBtn.setAttribute('aria-pressed', estadoFuente.retirada ? 'true' : 'false')
+    }
     marcaQ()
     const pintar = (bajar) => {
       const tokens = norm(estadoFuente.q).split(/\s+/).filter(Boolean)
       const arr = todas.filter(f => {
         if (estadoFuente.cuartil !== 'todos' && f.q !== estadoFuente.cuartil) return false
+        if (estadoFuente.oa && f.oa === 0) return false
+        if (estadoFuente.retirada && !f.retirada) return false
         if (tokens.length && !tokens.every(t => f.busq.includes(t))) return false
         return true
       })
@@ -3813,13 +3983,17 @@
       else if (estadoFuente.orden === 'nombre') arr.sort((a, b) => a.nombre.localeCompare(b.nombre))
       else arr.sort((a, b) => b.P - a.P || b.C - a.C)
 
-      const hayF = !!(estadoFuente.q.trim() || estadoFuente.cuartil !== 'todos')
+      const chipsF = []
+      if (estadoFuente.q.trim()) chipsF.push(`Búsqueda: "${estadoFuente.q.trim()}"`)
+      if (estadoFuente.cuartil !== 'todos') chipsF.push(`Cuartil: ${estadoFuente.cuartil}`)
+      if (estadoFuente.oa) chipsF.push('Con Acceso Abierto')
+      if (estadoFuente.retirada) chipsF.push('Retiradas de Scopus')
       const conteoEl = document.getElementById('conteoFuentes')
       conteoEl.innerHTML = `<span>${num(arr.length)} ${arr.length === 1 ? 'fuente' : 'fuentes'}</span>`
-        + (hayF ? '<button type="button" class="btn-limpiar" id="btnLimpiarFuentes">Limpiar filtros</button>' : '')
+        + resumenFiltrosHTML(chipsF, 'btnLimpiarFuentes')
       const btnLim = document.getElementById('btnLimpiarFuentes')
       if (btnLim) btnLim.addEventListener('click', () => {
-        estadoFuente.q = ''; estadoFuente.cuartil = 'todos'; estadoFuente.pagina = 1
+        estadoFuente.q = ''; estadoFuente.cuartil = 'todos'; estadoFuente.oa = false; estadoFuente.retirada = false; estadoFuente.pagina = 1
         qI.value = ''; marcaQ(); pintar(false)
       })
 
@@ -3829,7 +4003,7 @@
       const vis = arr.slice(ini, ini + POR_PAG)
       document.getElementById('listaFuentes').innerHTML = vis.length
         ? vis.map(f => `<div class="fuente-card">
-            <div class="fuente-cab"><a class="fuente-nom" href="#/fuente/${encodeURIComponent(f.nombre)}" title="Abrir página completa de ${esc(fmtFuente(f.nombre))}">${esc(fmtFuente(f.nombre))}</a><span class="fuente-badges">${badgeSjr(f.sjr)}${badgeQ(f.q)}</span></div>
+            <div class="fuente-cab"><a class="fuente-nom" href="#/fuente/${encodeURIComponent(f.nombre)}" title="Abrir página completa de ${esc(fmtFuente(f.nombre))}">${esc(fmtFuente(f.nombre))}</a><span class="fuente-badges">${badgeSjr(f.sjr)}${badgeQ(f.q)}<span class="badge-oa-pct" title="${num(f.oa)} de ${num(f.P)} publicaciones en acceso abierto">${f.pctOa}% OA</span>${f.retirada ? '<span class="retirada-pill" title="Fuente retirada de Scopus (discontinued source)">⚑ Retirada</span>' : ''}</span></div>
             <div class="fuente-meta">
               <button type="button" class="fuente-ind" data-fpop="pubs" data-fnom="${esc(f.nombre)}" title="Ver las ${num(f.P)} publicaciones en esta fuente"><b>${num(f.P)}</b> pub.</button>
               <button type="button" class="fuente-ind" data-fpop="citas" data-fnom="${esc(f.nombre)}" title="Ver publicaciones citadas de esta fuente"><b>${num(f.C)}</b> citas</button>
@@ -3855,6 +4029,8 @@
     document.querySelectorAll('.f-qchip[data-fq]').forEach(b => b.addEventListener('click', () => {
       estadoFuente.cuartil = b.dataset.fq; estadoFuente.pagina = 1; marcaQ(); pintar(false)
     }))
+    oaBtn.addEventListener('click', () => { estadoFuente.oa = !estadoFuente.oa; estadoFuente.pagina = 1; marcaQ(); pintar(false) })
+    retBtn.addEventListener('click', () => { estadoFuente.retirada = !estadoFuente.retirada; estadoFuente.pagina = 1; marcaQ(); pintar(false) })
     document.getElementById('listaFuentes').addEventListener('click', ev => {
       const bt = ev.target.closest('[data-fpop]')
       if (!bt) return
@@ -4016,9 +4192,13 @@
       if (estadoPub.pagina > paginas) estadoPub.pagina = paginas
       const ini = (estadoPub.pagina - 1) * PUB_POR_PAGINA
       const conteoEl = document.getElementById('conteoPub')
-      const hayFiltrosPub = !!(estadoPub.q.trim() || estadoPub.anio || estadoPub.cuartil || estadoPub.oa)
+      const chipsPub = []
+      if (estadoPub.q.trim()) chipsPub.push(`Búsqueda: "${estadoPub.q.trim()}"`)
+      if (estadoPub.anio) chipsPub.push(`Año: ${estadoPub.anio}`)
+      if (estadoPub.cuartil) chipsPub.push(`Cuartil: ${estadoPub.cuartil === 'N/A' ? 'Sin cuartil' : estadoPub.cuartil}`)
+      if (estadoPub.oa) chipsPub.push('Solo acceso abierto')
       conteoEl.innerHTML = `<span>${num(arr.length)} ${arr.length === 1 ? 'publicación' : 'publicaciones'}</span>`
-        + (hayFiltrosPub ? '<button type="button" class="btn-limpiar" id="btnLimpiarCat">Limpiar filtros</button>' : '')
+        + resumenFiltrosHTML(chipsPub, 'btnLimpiarCat')
       const btnLimCat = document.getElementById('btnLimpiarCat')
       if (btnLimCat) btnLimCat.addEventListener('click', () => {
         estadoPub.q = ''; estadoPub.anio = ''; estadoPub.cuartil = ''; estadoPub.oa = false; estadoPub.pagina = 1
@@ -4408,7 +4588,7 @@
   // donde estaba la persona (los filtros y la página ya se conservan en "estado").
   try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual' } catch (e) { /* sin historial */ }
   let enLista = true, scrollLista = 0
-  const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h.indexOf('#/area/') === 0 || h === '#/fuentes' || h.indexOf('#/fuente/') === 0 || h === '#/metodologia' || h === '#/publicaciones' || h.indexOf('#/comparar') === 0)
+  const esRutaLista = h => !(h.indexOf('#/autor/') === 0 || h === '#/areas' || h.indexOf('#/area/') === 0 || h === '#/fuentes' || h.indexOf('#/fuente/') === 0 || h === '#/metodologia' || h === '#/publicaciones' || h.indexOf('#/comparar') === 0)
   function router() {
     const h = hashPartes()[0]
     document.body.classList.remove('hoja-abierta')   // por si se navegó con la hoja de filtros abierta
@@ -4425,6 +4605,9 @@
     } else if (h.indexOf('#/comparar') === 0) {
       renderComparar(decUri(h.slice(11)).split(','))
       document.title = `Comparar investigadores · ${TITULO}`
+    } else if (h === '#/areas') {
+      renderAreas()
+      document.title = `Áreas temáticas · ${TITULO}`
     } else if (h === '#/fuentes') {
       renderFuentes()
       document.title = `Fuentes · ${TITULO}`

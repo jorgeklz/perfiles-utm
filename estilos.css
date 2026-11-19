@@ -5764,3 +5764,50 @@ select:focus-visible,
     font-size: var(--fs-xs);
   }
 }
+
+/* Badges de acceso abierto, retirada y barra resumen de filtros */
+.badge-oa-pct {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  white-space: nowrap;
+}
+
+.retirada-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  white-space: nowrap;
+}
+
+.filtros-resumen {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.filtro-activo-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--g1);
+  background: rgba(46, 138, 31, .09);
+  border: 1px solid rgba(46, 138, 31, .22);
+}
