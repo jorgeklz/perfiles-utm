@@ -47,6 +47,8 @@
   }
 
   const COLQ = { Q1: '#1e6b14', Q2: '#7bbf3a', Q3: '#e0902d', Q4: '#b23b30', 'N/A': '#a8a394', NC: '#c9c4b8' }
+  const ETQ_Q = { 'N/A': 'Sin Q', NC: 'No clasif.' }
+  const etqQ = q => ETQ_Q[q] || q || 'Sin Q'
 
   // Mínimo de publicaciones para entrar en el ranking de citas por publicación (C/P),
   // evitando que un único trabajo muy citado distorsione los primeros puestos.
@@ -1079,9 +1081,9 @@
     })
     const tot = total || pubs.length || 0
     const orden = ['Q1', 'Q2', 'Q3', 'Q4', 'N/A']
-    const items = orden.map(k => `<span${c[k] === 0 ? ' class="cero"' : ''}><b>${c[k]}</b> ${k}</span>`)
+    const items = orden.map(k => `<span${c[k] === 0 ? ' class="cero"' : ''}><b>${c[k]}</b> ${etqQ(k)}</span>`)
       .join('<i class="bar" aria-hidden="true">|</i>')
-    return `<div class="q-sep" title="${tot} ${tot === 1 ? 'publicación' : 'publicaciones'}: ${orden.map(k => `${c[k]} ${k}`).join(', ')}">${items}</div>`
+    return `<div class="q-sep" title="${tot} ${tot === 1 ? 'publicación' : 'publicaciones'}: ${orden.map(k => `${c[k]} ${etqQ(k)}`).join(', ')}">${items}</div>`
   }
   function subTopHTML(m, obj, val, hTotal, sufAnio) {
     const citas = m === 'C' ? `<b>${num(obj.C)}</b> citas${sufAnio}` : `${num(obj.C)} citas${sufAnio}`
@@ -1249,7 +1251,7 @@
   function tituloCat(cat, val) {
     switch (cat) {
       case 'anio': return 'Año ' + val
-      case 'cuartil': return 'Cuartil ' + val
+      case 'cuartil': return (val === 'N/A' || val === 'NC') ? etqQ(val) : 'Cuartil ' + val
       case 'tipo': return 'Tipo: ' + val
       case 'revista': return 'Fuente: ' + val
       case 'area': return 'Área: ' + val
@@ -1808,7 +1810,7 @@
       ${areas.length ? `<div class="ficha-sec">Áreas principales</div><div class="ficha-areas">${areas.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : ''}
       <div class="ficha-sec">Publicaciones más citadas</div>
       <table class="ficha-tabla"><tbody>${top.map(p => `<tr><td class="y">${p.y || ''}</td>
-        <td><div class="t">${esc(p.t || '')}</div><div class="j">${esc(p.j || '')}${p.q && p.q !== 'N/A' ? ' · ' + esc(p.q) : ''}</div></td>
+        <td><div class="t">${esc(p.t || '')}</div><div class="j">${esc(p.j || '')}${p.q && p.q !== 'N/A' ? ' · ' + esc(etqQ(p.q)) : ''}</div></td>
         <td class="c"><b>${num(p.c)}</b><span>citas</span></td></tr>`).join('')}</tbody></table>
       <div class="ficha-pie"><div class="ficha-qr">${qrSvg(url)}</div>
         <div><b>Perfil completo en línea</b><br>${esc(url)}<br><span>Datos de Scopus${fecha ? ' al ' + esc(fecha) : ''}.</span><br><span class="ficha-obs">Generado por el observatorio Investigadores UTM, parte del proyecto de investigación ObservaIA</span></div></div>
@@ -3042,7 +3044,7 @@
           <button type="button" class="pub-fchip pub-qchip" data-q="Q2" title="Cuartil 2 (SJR)">${icoQ(COLQ.Q2)}<span>Q2</span></button>
           <button type="button" class="pub-fchip pub-qchip" data-q="Q3" title="Cuartil 3 (SJR)">${icoQ(COLQ.Q3)}<span>Q3</span></button>
           <button type="button" class="pub-fchip pub-qchip" data-q="Q4" title="Cuartil 4 (SJR)">${icoQ(COLQ.Q4)}<span>Q4</span></button>
-          <button type="button" class="pub-fchip pub-qchip" data-q="N/A" title="Sin cuartil SJR (ponencia, capítulo o libro)">${icoQ(COLQ['N/A'])}<span>N/A</span></button>
+          <button type="button" class="pub-fchip pub-qchip" data-q="N/A" title="Sin cuartil SJR (ponencia, capítulo o libro)">${icoQ(COLQ['N/A'])}<span>Sin Q</span></button>
           <span class="pub-fsep" aria-hidden="true"></span>
           <button type="button" class="pub-fchip" data-pf="oa">${ico('oa')}<span>Acceso abierto</span></button>
           ${autorId ? `<button type="button" class="pub-fchip" data-pf="fa">${ico('primerAutor')}<span>Primer autor</span></button>` : ''}
@@ -3240,14 +3242,14 @@
     Q2: 'Cuartil 2 (SJR): la revista está en el segundo 25% de su área.',
     Q3: 'Cuartil 3 (SJR): la revista está en el tercer 25% de su área.',
     Q4: 'Cuartil 4 (SJR): la revista está en el 25% inferior de su área.',
-    'N/A': 'No aplica: el documento no es de revista (libro, capítulo o ponencia), así que el cuartil SJR no corresponde.',
+    'N/A': 'Sin Q (no aplica): el documento no es de revista (libro, capítulo o ponencia), así que el cuartil SJR no corresponde.',
     NC: 'No clasificada: es una revista sin cuartil disponible en el ranking SJR de SCImago.',
   }
   const tipCuartil = (q) => TIP_Q[q] || TIP_Q['N/A']
   function badgeQ(q) {
     const c = COLQ[q] || '#999'
     const fg = { Q1: '#1e6b14', Q2: '#366b10', Q3: '#9a5a08', Q4: '#9e2f25', 'N/A': '#5a5549', NC: '#5c584e' }[q] || '#4a5542'
-    return `<span class="insig-q" style="background:${c}24;color:${fg};border:1px solid ${c}44;cursor:help" title="${esc(tipCuartil(q))}">${esc(q)}</span>`
+    return `<span class="insig-q" style="background:${c}24;color:${fg};border:1px solid ${c}44;cursor:help" title="${esc(tipCuartil(q))}">${esc(etqQ(q))}</span>`
   }
   function badgeSjr(v) {
     if (v == null) return ''
@@ -3653,21 +3655,21 @@
     const R = 50, C = 2 * Math.PI * R, cx = 64, cy = 64, sw = 20
     // Texto emergente: número de documentos y su equivalencia en porcentaje.
     const pctDe = (v) => Math.round((1000 * v) / total) / 10
-    const rotulo = (q) => `${q}: ${num(cq[q])} ${cq[q] === 1 ? 'documento' : 'documentos'} (${pctDe(cq[q])}%)`
+    const rotulo = (q) => `${etqQ(q)}: ${num(cq[q])} ${cq[q] === 1 ? 'documento' : 'documentos'} (${pctDe(cq[q])}%)`
     let off = 0, segs = ''
     pres.forEach(q => {
       const len = (cq[q] / total) * C
       segs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${COLQ[q]}" stroke-width="${sw}" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})" data-cat="cuartil" data-val="${q}" style="cursor:pointer"><title>${esc(rotulo(q))} · ${esc(tipCuartil(q))} · clic para ver las publicaciones</title></circle>`
       off += len
     })
-    const leg = pres.map(q => `<span data-cat="cuartil" data-val="${q}" style="cursor:pointer" title="${esc(rotulo(q))} · ${esc(tipCuartil(q))} · clic para ver las publicaciones"><i style="background:${COLQ[q]}"></i>${q}<b>${cq[q]}</b><em>(${pctDe(cq[q])}%)</em></span>`).join('')
+    const leg = pres.map(q => `<span data-cat="cuartil" data-val="${q}" style="cursor:pointer" title="${esc(rotulo(q))} · ${esc(tipCuartil(q))} · clic para ver las publicaciones"><i style="background:${COLQ[q]}"></i>${esc(etqQ(q))}<b>${cq[q]}</b><em>(${pctDe(cq[q])}%)</em></span>`).join('')
     const html = `<div class="donut-fila"><svg width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Distribución por cuartil SJR">${segs}
       <text x="64" y="61" text-anchor="middle" font-size="21" font-weight="700" fill="#185a10" font-family="Montserrat,sans-serif">${total}</text>
       <text x="64" y="78" text-anchor="middle" font-size="10" fill="#8f9985">${total === 1 ? 'Doc.' : 'Docs.'}</text></svg>
       <div class="leyenda">${leg}</div></div>`
     return conTabla(html, 'Distribución por cuartil SJR',
       [{ t: 'Cuartil' }, { t: 'Publicaciones', num: true }, { t: '%', num: true }],
-      pres.map(q => [q, num(cq[q]), pctDe(cq[q]) + '%']))
+      pres.map(q => [etqQ(q), num(cq[q]), pctDe(cq[q]) + '%']))
   }
 
   function tiposBarras(ct) {
@@ -3968,7 +3970,7 @@
             <button type="button" class="pub-fchip f-qchip" data-fq="Q2">${icoQ(COLQ.Q2)}<span>Q2</span></button>
             <button type="button" class="pub-fchip f-qchip" data-fq="Q3">${icoQ(COLQ.Q3)}<span>Q3</span></button>
             <button type="button" class="pub-fchip f-qchip" data-fq="Q4">${icoQ(COLQ.Q4)}<span>Q4</span></button>
-            <button type="button" class="pub-fchip f-qchip" data-fq="N/A">${icoQ(COLQ['N/A'])}<span>N/A</span></button>
+            <button type="button" class="pub-fchip f-qchip" data-fq="N/A">${icoQ(COLQ['N/A'])}<span>Sin Q</span></button>
             <button type="button" class="pub-fchip" id="btnFuenteOa" aria-pressed="false" title="Mostrar solo fuentes con publicaciones en acceso abierto">${ico('oa')}<span>Con Acceso Abierto</span></button>
             <button type="button" class="pub-fchip" id="btnFuenteRet" aria-pressed="false" title="Mostrar solo fuentes retiradas de Scopus"><span>⚑ Retiradas de Scopus</span></button>
           </div>
@@ -4187,7 +4189,7 @@
             </select></span>
             <span class="sel-ico">${ico('cuartil')}<select class="selector" id="cuartilPub" aria-label="Filtrar por cuartil de la revista">
               <option value="">Cuartil: Todos</option>
-              ${['Q1', 'Q2', 'Q3', 'Q4', 'N/A'].map(q => `<option value="${q}">${q === 'N/A' ? 'Sin cuartil' : q}</option>`).join('')}
+              ${['Q1', 'Q2', 'Q3', 'Q4', 'N/A'].map(q => `<option value="${q}">${etqQ(q)}</option>`).join('')}
             </select></span>
             <span class="sel-ico">${ico('orden')}<select class="selector" id="ordenPub" aria-label="Ordenar publicaciones">
               <option value="recientes">Ordenar: Más recientes</option>
@@ -4218,7 +4220,7 @@
       const chipsPub = []
       if (estadoPub.q.trim()) chipsPub.push(`Búsqueda: "${estadoPub.q.trim()}"`)
       if (estadoPub.anio) chipsPub.push(`Año: ${estadoPub.anio}`)
-      if (estadoPub.cuartil) chipsPub.push(`Cuartil: ${estadoPub.cuartil === 'N/A' ? 'Sin cuartil' : estadoPub.cuartil}`)
+      if (estadoPub.cuartil) chipsPub.push(`Cuartil: ${etqQ(estadoPub.cuartil)}`)
       if (estadoPub.oa) chipsPub.push('Solo acceso abierto')
       conteoEl.innerHTML = `<span>${num(arr.length)} ${arr.length === 1 ? 'publicación' : 'publicaciones'}</span>`
         + resumenFiltrosHTML(chipsPub, 'btnLimpiarCat')
@@ -4365,15 +4367,15 @@
         <div class="panel"><h2>Puesto y cuartiles</h2>
           ${item('Puesto en la UTM', 'Se ordena a todos los autores del portal, de mayor a menor, en cada indicador. Si hay empate, decide el total de citas y luego el de publicaciones. En acceso abierto el puesto solo se muestra entre los 100 primeros.')}
           ${item('Cuartil SJR', 'Es el mejor cuartil de la revista según SCImago (SJR) en el año de la publicación. Si ese año no está disponible, se toma el de los años más cercanos, y como respaldo se usa el cuartil de CiteScore de Scopus.')}
-          ${item('N/A y NC', 'N/A corresponde a documentos a los que no se aplica un cuartil, como las ponencias en conferencias. NC significa que no se encontró cuartil para esa revista en ese año.')}
-          ${item('Colores', 'Q1 verde oscuro, Q2 verde claro, Q3 naranja, Q4 rojo, N/A gris y NC gris claro, igual en todas las gráficas y ventanas del portal.')}
+          ${item('Sin Q y No clasif.', 'Sin Q (no aplica) corresponde a documentos a los que no se aplica un cuartil, como las ponencias en conferencias o capítulos de libro. No clasif. (no clasificada) significa que no se encontró cuartil para esa revista en ese año.')}
+          ${item('Colores', 'Q1 verde oscuro, Q2 verde claro, Q3 naranja, Q4 rojo, Sin Q gris y No clasif. gris claro, igual en todas las gráficas y ventanas del portal.')}
         </div>
       </div>
       <div class="panel" style="margin-top:16px"><h2>Calidad y cobertura de los datos</h2>
         <p class="ayuda-filtros" style="margin:0 0 10px">Porcentajes de registros incompletos o depurados sobre ${num(D.pubs.length)} publicaciones y ${num(D.autores.length)} investigadores.</p>
         <div class="cal-grid">
           ${calCard(100 * sinDoi / nPub, `${num(sinDoi)} de ${num(D.pubs.length)}`, 'Publicaciones sin DOI', 'Sin enlace directo al documento', sinDoi > 0)}
-          ${calCard(100 * sinCuartil / nPub, `${num(sinCuartil)} de ${num(D.pubs.length)}`, 'Revistas sin cuartil (NC)', 'Sin registro SJR ni CiteScore', sinCuartil > 0)}
+          ${calCard(100 * sinCuartil / nPub, `${num(sinCuartil)} de ${num(D.pubs.length)}`, 'Revistas no clasificadas (No clasif.)', 'Sin registro SJR ni CiteScore', sinCuartil > 0)}
           ${calCard(100 * retiradas / nPub, `${num(retiradas)} de ${num(D.pubs.length)}`, 'En revistas retiradas de Scopus', 'Fuentes descontinuadas', retiradas > 0)}
           ${calCard(100 * sinOrcid / nAut, `${num(sinOrcid)} de ${num(D.autores.length)}`, 'Autores sin ORCID vinculado', 'Pendiente de enlace en Scopus', sinOrcid > 0)}
           ${calCard(100 * fusionados / nAut, `${num(fusionados)} de ${num(D.autores.length)}`, 'Perfiles unificados', 'Autores con IDs de Scopus fusionados', false)}
@@ -4732,8 +4734,8 @@
       opts = { sub: 'Producción anual', valorHtml: 'Año ' + esc(val) }
     }
     else if (cat === 'cuartil') {
-      lista = listaCat(fuente, cat, val); titulo = 'Cuartil ' + val; color = COLQ[val] || '#2e8a1f'
-      opts = { sub: 'Cuartil SJR', valorHtml: 'Cuartil ' + esc(val) }
+      lista = listaCat(fuente, cat, val); titulo = (val === 'N/A' || val === 'NC') ? etqQ(val) : 'Cuartil ' + val; color = COLQ[val] || '#2e8a1f'
+      opts = { sub: 'Cuartil SJR', valorHtml: esc(titulo) }
     }
     else if (cat === 'tipo') {
       lista = listaCat(fuente, cat, val); titulo = 'Tipo: ' + val
