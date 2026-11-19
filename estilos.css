@@ -1187,6 +1187,45 @@ h3 {
   font-size: var(--fs-md);
 }
 
+.destacado .dn small b {
+  color: var(--texto2);
+  font-weight: 600;
+}
+
+.q-sep {
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--texto3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.3;
+}
+
+.q-sep span {
+  white-space: nowrap;
+}
+
+.q-sep b {
+  color: var(--texto2);
+  font-weight: 600;
+}
+
+.q-sep .cero {
+  color: #b2b9ad;
+}
+
+.q-sep .cero b {
+  color: #b2b9ad;
+  font-weight: 500;
+}
+
+.q-sep .bar {
+  color: #d6dbd0;
+  font-style: normal;
+}
+
 .recip {
   padding: 9px 0;
   border-bottom: 1px solid var(--borde);

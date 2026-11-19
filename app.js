@@ -1071,12 +1071,33 @@
       `<circle class="rk-disco" cx="14" cy="11.5" r="9.5"/></svg>` +
       `<span>${puesto}</span></div>`
   }
+  function desgloseCuartilHTML(pubs, total) {
+    const c = { Q1: 0, Q2: 0, Q3: 0, Q4: 0, 'N/A': 0 }
+    pubs.forEach(p => {
+      const q = p && p.q && Object.prototype.hasOwnProperty.call(c, p.q) ? p.q : 'N/A'
+      c[q]++
+    })
+    const tot = total || pubs.length || 0
+    const orden = ['Q1', 'Q2', 'Q3', 'Q4', 'N/A']
+    const items = orden.map(k => `<span${c[k] === 0 ? ' class="cero"' : ''}><b>${c[k]}</b> ${k}</span>`)
+      .join('<i class="bar" aria-hidden="true">|</i>')
+    return `<div class="q-sep" title="${tot} ${tot === 1 ? 'publicación' : 'publicaciones'}: ${orden.map(k => `${c[k]} ${k}`).join(', ')}">${items}</div>`
+  }
+  function subTopHTML(m, obj, val, hTotal, sufAnio) {
+    const citas = m === 'C' ? `<b>${num(obj.C)}</b> citas${sufAnio}` : `${num(obj.C)} citas${sufAnio}`
+    const ind = (m === 'P' || m === 'C' || m === 'h')
+      ? `Índice h: <b>${fmtInd('h', hTotal)}</b>`
+      : `${esc(ETQ_TOP[m])}: <b>${val}</b>`
+    return `${ind} · ${citas}`
+  }
   function itemTop(a, puesto, medalla, m) {
     const val = fmtInd(m, a[m])
+    const pubs = (D.porAutor[a.id] || []).map(i => D.pubs[i]).filter(Boolean)
+    const etqPub = a.P === 1 ? 'Publicación' : 'Publicaciones'
     return `<div class="destacado">${badgePuesto(puesto, medalla)}${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
-        <small><span class="pub-link" data-cat="autorPubs" data-val="${esc(a.id)}" title="Ver las publicaciones">${a.P} pub</span> · ${num(a.C)} citas</small>${notaExUtm(a)}</div>
-      <div class="dm pub-link" data-cat="autorPubs" data-val="${esc(a.id)}" title="Ver las publicaciones"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
+        <small>${subTopHTML(m, a, val, a.h, '')}</small>${desgloseCuartilHTML(pubs, a.P)}${notaExUtm(a)}</div>
+      <div class="dm pub-link" data-cat="autorPubs" data-val="${esc(a.id)}" title="Ver las publicaciones"><b>${num(a.P)}</b>${etqPub}</div></div>`
   }
   function pintarTop() {
     const cont = document.getElementById('destTop'); if (!cont) return
@@ -1092,10 +1113,12 @@
   function itemTopAnual(id, r, puesto, medalla, m) {
     const a = porId.get(id)
     const val = fmtInd(m, r[m])
+    const pubs = (D.porAutor[id] || []).map(i => D.pubs[i]).filter(p => p && p.y === ANIO_ACTUAL)
+    const etqPub = r.P === 1 ? 'Publicación' : 'Publicaciones'
     return `<div class="destacado">${badgePuesto(puesto, medalla)}${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
-        <small><span class="pub-link" data-cat="autorPubsAnio" data-val="${esc(id)}" title="Ver las publicaciones de ${ANIO_ACTUAL}">${r.P} pub</span> · ${num(r.C)} citas en ${ANIO_ACTUAL}</small>${notaExUtm(a)}</div>
-      <div class="dm pub-link" data-cat="autorPubsAnio" data-val="${esc(id)}" title="Ver las publicaciones de ${ANIO_ACTUAL}"><b>${val}</b>${ETQ_TOP[m]}</div></div>`
+        <small>${subTopHTML(m, r, val, a.h, ` en ${ANIO_ACTUAL}`)}</small>${desgloseCuartilHTML(pubs, r.P)}${notaExUtm(a)}</div>
+      <div class="dm pub-link" data-cat="autorPubsAnio" data-val="${esc(id)}" title="Ver las publicaciones de ${ANIO_ACTUAL}"><b>${num(r.P)}</b>${etqPub}</div></div>`
   }
   function pintarTopAnual() {
     const cont = document.getElementById('destTopAnual'); if (!cont) return
