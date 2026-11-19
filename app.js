@@ -17,6 +17,18 @@
     : (k === 'apu' || k === 'cc') ? dec(v, 1) : num(v)
   const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  const urlPub = p => {
+    if (!p) return ''
+    if (p.doi) return `https://doi.org/${p.doi}`
+    if (p.sid) return `https://www.scopus.com/record/display.uri?eid=2-s2.0-${encodeURIComponent(p.sid)}&origin=resultslist`
+    return ''
+  }
+  const linkPub = (p, texto, titulo) => {
+    const u = urlPub(p)
+    if (!u) return esc(texto)
+    const tip = titulo || (p.doi ? '' : 'Ver ficha en Scopus')
+    return `<a href="${esc(u)}" target="_blank" rel="noreferrer"${tip ? ` title="${esc(tip)}"` : ''}>${esc(texto)}</a>`
+  }
   const CONEC_FUENTE = new Set(['de', 'del', 'la', 'las', 'lo', 'los', 'el', 'y', 'e', 'o', 'u', 'a', 'al', 'en', 'con', 'sin', 'por', 'para', 'da', 'das', 'do', 'dos', 'em', 'na', 'nas', 'no', 'nos', 'et', 'du', 'des', 'le', 'les', 'of', 'and', 'the', 'in', 'for', 'on', 'to', 'at', 'by', 'with', 'from', 'as', 'an', 'or', 'into'])
   function fmtFuente(s) {
     const t = String(s || '')
@@ -1121,7 +1133,7 @@
   function recipRow(p) {
     const au = (p.u || []).map(u => porId.get(u)).filter(Boolean)
     const aut = au.length ? `<a href="#/autor/${encodeURIComponent(au[0].id)}">${esc(au[0].n)}</a>${au.length > 1 ? ' y ' + (au.length - 1) + ' más' : ''}` : ''
-    const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
+    const t = linkPub(p, p.t)
     const citas = `<span class="recip-citas" title="Citas recibidas según Scopus">${num(p.c || 0)} ${(p.c || 0) === 1 ? 'cita' : 'citas'}</span>`
     return `<div class="recip"><div class="rt">${t}</div><div class="rm">${p.y || ''} · ${adelM(p)}${esc(p.j || '—')} · ${badgeQ(p.q)} · ${citas}${aut ? ' · ' + aut : ''}</div></div>`
   }
@@ -1428,7 +1440,7 @@
   }
   function hitosHTML(hitos) {
     return `<div class="hitos">${hitos.map(h => `<div class="hito"><span class="hito-y">${h.y}</span><span class="hito-p" aria-hidden="true"></span>
-      <div class="hito-c"><b>${esc(h.et)}</b>${h.t ? `<span>${h.p && h.p.doi ? `<a href="https://doi.org/${esc(h.p.doi)}" target="_blank" rel="noreferrer" title="Abrir la publicación">${esc(h.t)}</a>` : esc(h.t)}</span>` : ''}</div></div>`).join('')}</div>`
+      <div class="hito-c"><b>${esc(h.et)}</b>${h.t ? `<span>${h.p ? linkPub(h.p, h.t, 'Abrir la publicación') : esc(h.t)}</span>` : ''}</div></div>`).join('')}</div>`
   }
   function evolucionHTML(pubs, id) {
     const serie = serieAnual(pubs, id)
@@ -1657,7 +1669,7 @@
       <div class="ayuda-filtros">Selección de los trabajos con mayor impacto, ritmo de citas o publicación reciente.</div>
       <div class="dest-grid">${d.map(x => {
       const p = x.p
-      const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
+      const t = linkPub(p, p.t)
       return `<div class="dest-card"><div class="dest-et">${ico(x.ic)}<span>${esc(x.et)}</span></div>
         <div class="dest-t">${t}</div>
         <div class="dest-m">${p.y || 'N/D'} · ${esc(p.j || 'N/D')} · ${badgeQ(p.q)} · ${num(p.c)} citas</div>
@@ -2412,7 +2424,7 @@
             <span>${comp.length} ${comp.length === 1 ? 'publicación' : 'publicaciones'} en común con ${esc(a.n)}${perfil}</span></div>
             <button type="button" class="com-sel-x" title="Cerrar">✕</button></div>
           <div class="com-sel-lista">${comp.map(p => {
-          const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
+          const t = linkPub(p, p.t)
           const ret = p.r ? ` · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>` : ''
           return `<div class="com-pub"><div class="com-pt">${t}</div><div class="com-pm">${p.y || '—'} · ${adelM(p)}${esc(p.j || '—')} · ${badgeQ(p.q)} · ${num(p.c)} citas${ret}</div></div>`
         }).join('')}</div>`
@@ -2569,7 +2581,7 @@
 
   // lista contextual de publicaciones al hacer clic en un gráfico
   function ctxRow(p) {
-    const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
+    const t = linkPub(p, p.t)
     const retirada = p.r
       ? ` · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>`
       : ''
@@ -2837,6 +2849,8 @@
     if (p.doi) {
       lineas.push(`DO  - ${p.doi}`)
       lineas.push(`UR  - https://doi.org/${p.doi}`)
+    } else if (p.sid) {
+      lineas.push(`UR  - ${urlPub(p)}`)
     }
     lineas.push('ER  - ')
     return lineas.join('\n')
@@ -3343,9 +3357,7 @@
 
   function pubRow(p, dest, cpaRef) {
     const abierto = p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown'
-    const t = p.doi
-      ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>`
-      : esc(p.t)
+    const t = linkPub(p, p.t)
     const btnCit = btnCitarHTML(PUB_IDX.get(p))
     return `<div class="pub"><div class="anio"><b>${p.y || 'N/D'}</b></div>
       <div class="cuerpo"><div class="t">${t}${dest ? ' <span class="mas-citada">★ Más citada</span>' : ''}</div>
@@ -3652,7 +3664,7 @@
         (au.length > 3 ? ' y ' + (au.length - 3) + ' más' : '')
       : ''
     const abierto = p.oa && p.oa !== 'Closed' && p.oa !== 'Unknown'
-    const t = p.doi ? `<a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noreferrer">${esc(p.t)}</a>` : esc(p.t)
+    const t = linkPub(p, p.t)
     const btnCit = btnCitarHTML(PUB_IDX.get(p))
     return `<div class="pub"><div class="anio"><b>${p.y || 'N/D'}</b></div><div class="cuerpo"><div class="t">${t}</div>
       <div class="m">${adelM(p)}${esc(fmtFuente(p.j) || 'N/D')} · ${badgeQ(p.q)} · ${citasMetaHTML(p, 0)}${abierto ? ' · <span class="oa-tag">Acceso abierto</span>' : ''}${p.r ? ' · <span class="retirada" title="La revista o fuente fue retirada de Scopus (discontinued source).">⚑ Revista retirada de Scopus</span>' : ''}${aut}${btnCit}</div></div></div>`
