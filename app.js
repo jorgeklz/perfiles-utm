@@ -462,6 +462,25 @@
       if (pa) pa.style.display = estado.panTab === 'area' ? '' : 'none'
       if (pc) pc.style.display = estado.panTab === 'col' ? '' : 'none'
     }))
+    const selInstPais = document.getElementById('colPaisInst')
+    const boxInstLista = document.getElementById('panInstLista')
+    const pintarInstPais = () => {
+      if (!boxInstLista) return
+      const pf = selInstPais ? selInstPais.value : ''
+      const ip = D.instPais || {}
+      const ct = new Map()
+      D.pubs.forEach(p => (p.pi || []).forEach(inst => {
+        if (pf && ip[inst] !== pf) return
+        ct.set(inst, (ct.get(inst) || 0) + 1)
+      }))
+      const top = [...ct.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 10)
+      const maxI = top.length ? top[0][1] : 1
+      boxInstLista.innerHTML = top.length
+        ? top.map(([inst, c]) => `<div class="tipo-fila" data-cat="inst" data-val="${esc(inst)}" style="cursor:pointer" title="Ver publicaciones conjuntas con ${esc(inst)}"><span class="tn">${esc(inst)}</span><span class="tb"><div style="width:${Math.max(3, Math.round(100 * c / maxI))}%"></div></span><span class="tv">${c}</span></div>`).join('')
+        : '<div class="ctx-m">Sin instituciones registradas para este país.</div>'
+    }
+    if (selInstPais) selInstPais.addEventListener('change', pintarInstPais)
+    pintarInstPais()
 
     const alf = document.getElementById('alf')
     const letras = ['', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
@@ -792,7 +811,13 @@
             </div>
             <div class="ce-sub">Principales países</div>
             <div class="ce-chips">${paisesHTML}</div>
-            <div class="ctx-hint">Clic en un país para ver las publicaciones y los autores que colaboran.</div>
+            <div class="ce-sub" style="margin-top:14px">Instituciones aliadas</div>
+            <div style="margin-bottom:8px"><span class="sel-ico">${ico('inst')}<select class="selector" id="colPaisInst" aria-label="Filtrar instituciones aliadas por país">
+              <option value="">Todos los países (Top 10)</option>
+              ${GI.topPaises.map(([p]) => `<option value="${esc(p)}">${esc(p)}</option>`).join('')}
+            </select></span></div>
+            <div class="tipos-barras" id="panInstLista"></div>
+            <div class="ctx-hint">Clic en un país o institución para ver las publicaciones y los autores UTM que colaboran.</div>
           </div>
         </div>
       </div>
@@ -2689,7 +2714,8 @@
     popEl.className = 'popover-ctx'
     const conAutores = autores && autores.length
     const conUtm = autoresUtm && autoresUtm.length
-    const badgeTxt = opts.badge || `${lista.length} pub.${lista.length > cap && !conAutores && !conUtm ? ` · ${opts.sinOrden ? 'primeras' : 'últ.'} ${cap}` : ''}`
+    const conInsts = opts.insts && opts.insts.length
+    const badgeTxt = opts.badge || `${lista.length} pub.${lista.length > cap && !conAutores && !conUtm && !conInsts ? ` · ${opts.sinOrden ? 'primeras' : 'últ.'} ${cap}` : ''}`
     const cabHtml = `<div class="pop-cab">
       <div class="pop-tit-wrap">
         <div class="pop-val">${valorHtml}</div>
@@ -2703,15 +2729,17 @@
     const pieFiltro = (!opts.filas && perfilPubs && aplicarFiltroCtxPubs && lista.length)
       ? `<div class="pop-pie"><button type="button" class="pop-ir-lista">${ico('filtro')}<span>Filtrar estas ${lista.length} publicaci${lista.length === 1 ? 'ón' : 'ones'} en la lista inferior ↓</span></button></div>`
       : ''
-    if (conAutores || conUtm) {
+    if (conAutores || conUtm || conInsts) {
       const capA = 15
       const autBody = conAutores ? autores.slice(0, capA).map(ctxAutorRow).join('') : ''
       const utmBody = conUtm ? autoresUtm.slice(0, capA).map(ctxAutorRow).join('') : ''
+      const instBody = conInsts ? opts.insts.slice(0, capA).map(x => `<div class="pop-fila"><span>${esc(x.nombre)}</span><b>${x.n} pub.</b></div>`).join('') : ''
       const tabIni = (opts.tabIni === 'utm' && conUtm) ? 'utm' : (opts.tabIni === 'aut' && conAutores) ? 'aut' : 'pubs'
       const defs = [
         ['pubs', 'recientes', `Publicaciones (${lista.length})`, pubsBody],
         ...(conUtm ? [['utm', 'primerAutor', `Autores UTM (${autoresUtm.length})`, utmBody]] : []),
         ...(conAutores ? [['aut', 'autores', `Coautores ext. (${autores.length})`, autBody]] : []),
+        ...(conInsts ? [['inst', 'inst', `Instituciones (${opts.insts.length})`, instBody]] : []),
       ]
       if (tabIni !== 'pubs') {
         const i = defs.findIndex(d => d[0] === tabIni)
@@ -2731,7 +2759,7 @@
         ${pieFiltro}`
     }
     document.body.appendChild(popEl)
-    if (conAutores || conUtm) {
+    if (conAutores || conUtm || conInsts) {
       const tabs = [...popEl.querySelectorAll('.pop-tab')]
       const panes = [...popEl.querySelectorAll('.pop-pane')]
       tabs.forEach(t => t.addEventListener('click', () => {
@@ -4509,7 +4537,10 @@
     else if (cat === 'pais') {
       lista = listaCat(fuente, cat, val); titulo = 'País: ' + val
       const band = banderaPais(val)
-      opts = { sub: 'Colaboración internacional', valorHtml: (band ? band + ' ' : '') + esc(val) }
+      const ip = D.instPais || {}, ci = {}
+      lista.forEach(p => (p.pi || []).forEach(inst => { if (ip[inst] === val) ci[inst] = (ci[inst] || 0) + 1 }))
+      const insts = Object.entries(ci).map(([nombre, n]) => ({ nombre, n })).sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre))
+      opts = { sub: 'Colaboración internacional', valorHtml: (band ? band + ' ' : '') + esc(val), insts }
       const ext = (D.extNombres) || {}, extP = (D.extPais) || {}
       const ct = {}
       lista.forEach(p => (p.xa || []).forEach(id => { if (ext[id]) ct[id] = (ct[id] || 0) + 1 }))
