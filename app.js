@@ -1103,7 +1103,7 @@
   function itemTop(a, puesto, medalla, m) {
     const val = fmtInd(m, a[m])
     const pubs = (D.porAutor[a.id] || []).map(i => D.pubs[i]).filter(Boolean)
-    const etqPub = a.P === 1 ? 'Publicación' : 'Publicaciones'
+    const etqPub = a.P === 1 ? 'Pub.' : 'Pubs.'
     return `<div class="destacado">${badgePuesto(puesto, medalla)}${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
         <small>${subTopHTML(m, a, val, a.h, '')}</small>${desgloseCuartilHTML(pubs, a.P)}${notaExUtm(a)}</div>
@@ -1124,7 +1124,7 @@
     const a = porId.get(id)
     const val = fmtInd(m, r[m])
     const pubs = (D.porAutor[id] || []).map(i => D.pubs[i]).filter(p => p && p.y === ANIO_ACTUAL)
-    const etqPub = r.P === 1 ? 'Publicación' : 'Publicaciones'
+    const etqPub = r.P === 1 ? 'Pub.' : 'Pubs.'
     return `<div class="destacado">${badgePuesto(puesto, medalla)}${avatar(a)}
       <div class="dn"><a href="#/autor/${encodeURIComponent(a.id)}">${esc(a.n)}</a>
         <small>${subTopHTML(m, r, val, a.h, ` en ${ANIO_ACTUAL}`)}</small>${desgloseCuartilHTML(pubs, r.P)}${notaExUtm(a)}</div>
