@@ -4731,7 +4731,8 @@
         nAut: pa.auts.size,
         nInst: pa.insts.size,
         uAnio: pa.uAnio,
-        insts: topInsts.slice(0, 3).map(x => x[0]),
+        insts: topInsts.slice(0, 5),
+        todasInsts: topInsts,
         busq: norm(pa.nombre + ' ' + topInsts.map(x => x[0]).join(' ')),
       }
     }).sort((a, b) => b.P - a.P || b.C - a.C || a.nombre.localeCompare(b.nombre))
@@ -4810,9 +4811,9 @@
               <button type="button" class="fuente-ind" data-ppop="pubs" data-pnom="${esc(pa.nombre)}" title="Ver publicaciones con ${esc(pa.nombre)}"><b>${num(pa.P)}</b> pub.</button>
               <button type="button" class="fuente-ind" data-ppop="citas" data-pnom="${esc(pa.nombre)}" title="Ver publicaciones citadas con ${esc(pa.nombre)}"><b>${num(pa.C)}</b> citas</button>
               <button type="button" class="fuente-ind" data-ppop="aut" data-pnom="${esc(pa.nombre)}" title="Ver investigadores UTM que colaboran con ${esc(pa.nombre)}"><b>${num(pa.nAut)}</b> aut. UTM</button>
-              <span class="fuente-ind" style="cursor:default"><b>${num(pa.nInst)}</b> inst.</span>
+              <button type="button" class="fuente-ind" data-ppop="insts" data-pnom="${esc(pa.nombre)}" title="Ver las ${num(pa.nInst)} instituciones colaboradoras en ${esc(pa.nombre)}"><b>${num(pa.nInst)}</b> inst.</button>
             </div>
-            ${pa.insts.length ? `<div class="fuente-areas">Instituciones: ${pa.insts.map(ins => `<button type="button" class="fuente-area-btn" data-ppop="inst" data-pnom="${esc(pa.nombre)}" data-pins="${esc(ins)}" title="Ver publicaciones con ${esc(ins)}">${esc(ins)}</button>`).join(' · ')}</div>` : ''}
+            ${pa.insts.length ? `<div class="fuente-areas">Principales instituciones: ${pa.insts.map(([ins, n]) => `<button type="button" class="fuente-area-btn" data-ppop="inst" data-pnom="${esc(pa.nombre)}" data-pins="${esc(ins)}" title="Ver ${n} publicaciones con ${esc(ins)}">${esc(ins)} (${n})</button>`).join(' · ')}</div>` : ''}
           </div>`).join('')
         : '<div class="vacio" style="grid-column:1/-1">Sin países ni instituciones que coincidan con la búsqueda.</div>'
       const htmlPag = (paginas > 1 ? `<div class="pag-actual">Página ${estadoPais.pagina} de ${paginas}</div>` : '') + paginacionHTML(estadoPais.pagina, paginas)
@@ -4836,7 +4837,7 @@
       const hoy = new Date().toISOString().slice(0, 10)
       csvDescarga(`colaboracion-paises-utm-${hoy}.csv`,
         ['País', 'Publicaciones', 'Citas', 'Autores UTM', 'Instituciones aliadas', 'Principales instituciones'],
-        listaFiltrada().map(pa => [pa.nombre, pa.P, pa.C, pa.nAut, pa.nInst, pa.insts.join('; ')]))
+        listaFiltrada().map(pa => [pa.nombre, pa.P, pa.C, pa.nAut, pa.nInst, pa.insts.map(([ins]) => ins).join('; ')]))
     })
     document.getElementById('listaPaises').addEventListener('click', ev => {
       const bt = ev.target.closest('[data-ppop]')
@@ -4857,6 +4858,13 @@
         const auts = Object.entries(ct).map(([id, n]) => ({ id, nombre: porId.get(id).n, n })).sort((a, b) => b.n - a.n)
         mostrarPopover(ev, pa.nombre + ' · Investigadores UTM', pa.pubs, '#185a10', null, auts,
           { sub: `${num(pa.nAut)} investigadores UTM con ${pa.nombre}`, valorHtml: esc(pa.nombre), tabIni: 'utm' })
+      } else if (tipo === 'insts') {
+        mostrarPopover(ev, pa.nombre + ' · Instituciones', pa.pubs, '#185a10', null, null, {
+          sub: `${num(pa.nInst)} instituciones colaboradoras`,
+          badge: `${num(pa.nInst)} inst.`,
+          filas: pa.todasInsts.map(([nom, n]) => ({ t: nom, v: `${num(n)} pub.` })),
+          valorHtml: esc(pa.nombre),
+        })
       } else if (tipo === 'inst') {
         const ins = bt.dataset.pins
         const sub = pa.pubs.filter(p => (p.pi || []).includes(ins))

@@ -4822,7 +4822,8 @@ select:focus-visible,
 .fuente-areas {
   font-size: var(--fs-2xs);
   color: var(--texto3);
-  line-height: 1.35;
+  line-height: 1.4;
+  text-align: left;
 }
 
 .fuente-area-btn {
@@ -4831,6 +4832,7 @@ select:focus-visible,
   padding: 0;
   font: inherit;
   color: inherit;
+  text-align: left;
   cursor: pointer;
   text-decoration: underline dotted;
 }
