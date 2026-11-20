@@ -5850,3 +5850,29 @@ select:focus-visible,
   background: rgba(46, 138, 31, .09);
   border: 1px solid rgba(46, 138, 31, .22);
 }
+
+.card-inv .q-sep {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px dashed var(--borde);
+  text-align: left;
+}
+
+.pan-pie {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--borde);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pan-mas {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--g1);
+  text-decoration: none;
+}
+
+.pan-mas:hover {
+  text-decoration: underline;
+}
