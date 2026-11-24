@@ -5896,3 +5896,63 @@ select:focus-visible,
 .pan-mas:hover {
   text-decoration: underline;
 }
+/* Comparar investigadores en el celular: los apellidos ya no se parten a mitad de palabra.
+   Cada fila pone el nombre del indicador arriba y las dos cápsulas lado a lado, con la mitad
+   del ancho cada una. */
+.cmp-nom,
+.cmp-cols b,
+.cmp-leyenda span {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: manual;
+}
+
+.cmp-cols b,
+.cmp-cols span {
+  text-wrap: balance;
+}
+
+@media (max-width: 760px) {
+  .cmp-cols {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .cmp-cols > div:not(.cmp-a):not(.cmp-b) {
+    display: none;
+  }
+
+  .cmp-cols .cmp-a {
+    text-align: left;
+  }
+
+  .cmp-cols .cmp-b {
+    text-align: right;
+  }
+
+  .cmp-fila {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "med med" "a b";
+    gap: 8px 12px;
+    padding: 10px 0;
+  }
+
+  .cmp-fila .cmp-med {
+    grid-area: med;
+  }
+
+  .cmp-fila .cmp-cel.cmp-a {
+    grid-area: a;
+    justify-content: flex-start;
+  }
+
+  .cmp-fila .cmp-cel.cmp-b {
+    grid-area: b;
+    justify-content: flex-end;
+  }
+
+  .cmp-leyenda {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
